@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "relation_id": "rel_01J5F8QK2ZGERBERGEN1",
+  "type": "generated-from",
+  "from": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/output/widget-F_Cu.gbr",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:93" }
+    },
+    "version": {
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "0c078afdc8ec1ca49a7d5645ae51990086646697933bb6c5f72e5d08ec68f4b1"
+      },
+      "size_bytes": 93
+    }
+  },
+  "to": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/widget.kicad_pcb",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:79" }
+    },
+    "version": { "size_bytes": 79 }
+  },
+  "asserted_by": {
+    "precedence": "gyst_suggestion",
+    "actor": { "kind": "rule", "id": "generated.output-directory/1" }
+  },
+  "asserted_at": "2024-08-12T09:16:07+00:00",
+  "evidence": ["obs_01J5F8QK2ZGERBERF001", "obs_01J5F8QK2ZKICADPCB01"],
+  "confidence": 0.6,
+  "identity_policy_version": "ip_2024-08-01_r1",
+  "explanation": "Path and log heuristic only: output/ sits beside the board file and generation.log names it. Confidence stays moderate because no recorded generation run has pinned the inputs or tool version yet."
+}

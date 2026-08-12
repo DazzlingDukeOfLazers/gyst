@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gyst.dev/schemas/v0/observation.schema.json",
+  "title": "Observation",
+  "description": "An immutable statement about source state at a point in time. Observations are append-only: a correction is a new observation citing the one it corrects, never an edit. Everything else in Gyst is a rebuildable projection over this record.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "observation_id": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/ObservationId"
+    },
+    "observed_at": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Timestamp",
+      "description": "When the source state was seen. Sourced from the observer's clock; not an ordering key on its own."
+    },
+    "recorded_at": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Timestamp",
+      "description": "When the core accepted the observation. Differs from observed_at for queued offline agent output."
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "source_id": { "type": "string", "minLength": 1 },
+        "connector": { "type": "string", "minLength": 1 },
+        "connector_version": { "type": "string", "minLength": 1 },
+        "cursor": {
+          "type": "string",
+          "description": "Connector cursor at which this observation was produced. Enables resumable, idempotent rescans."
+        }
+      },
+      "required": ["source_id", "connector", "connector_version"],
+      "additionalProperties": false
+    },
+    "subject": {
+      "$ref": "https://gyst.dev/schemas/v0/artifact-ref.schema.json"
+    },
+    "claim": {
+      "type": "object",
+      "description": "The typed assertion being made. Payload shape is governed by the extractor's declared output_schema, not by this envelope.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "file.metadata",
+            "file.content_fingerprint",
+            "folder.metadata",
+            "artifact.absent",
+            "git.commit",
+            "git.file_change",
+            "workbook.sheet",
+            "generation.run"
+          ]
+        },
+        "payload": { "type": "object" }
+      },
+      "required": ["type", "payload"],
+      "additionalProperties": false
+    },
+    "extractor": {
+      "type": "object",
+      "description": "Provenance of interpretation. A new extractor version produces new observations; it must never rewrite historical results.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "input_digest": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Digest"
+        },
+        "output_schema": { "type": "string", "minLength": 1 },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "confidence": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Confidence"
+        }
+      },
+      "required": ["name", "version", "output_schema", "warnings", "confidence"],
+      "additionalProperties": false
+    },
+    "policy": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/PolicyContext"
+    },
+    "visibility": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Visibility"
+    },
+    "corrects": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/ObservationId",
+      "description": "Present when this observation supersedes an earlier one known to be wrong. The corrected observation remains in the log."
+    }
+  },
+  "required": [
+    "schema_version",
+    "observation_id",
+    "observed_at",
+    "source",
+    "subject",
+    "claim",
+    "extractor",
+    "policy",
+    "visibility"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "description": "A raw observation records what was seen, not how it was grouped. Logical artifact identity is a projection and must not appear on the evidence record.",
+      "not": { "required": ["subject"], "properties": { "subject": { "required": ["artifact"] } } }
+    },
+    {
+      "description": "Content digests require a policy that permits reading content.",
+      "if": {
+        "properties": { "policy": { "properties": { "content_level": { "enum": ["exclude", "metadata"] } } } },
+        "required": ["policy"]
+      },
+      "then": {
+        "properties": { "subject": { "properties": { "version": { "not": { "required": ["content_digest"] } } } } }
+      }
+    }
+  ]
+}

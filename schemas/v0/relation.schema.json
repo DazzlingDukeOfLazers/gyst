@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gyst.dev/schemas/v0/relation.schema.json",
+  "title": "Relation",
+  "description": "A typed link between two artifacts. Relations are derived, not observed: every relation cites the observations supporting it and the precedence of the assertion that created it. Rebuilding projections must reproduce relations from evidence alone.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "relation_id": { "type": "string", "minLength": 1 },
+    "type": {
+      "type": "string",
+      "enum": [
+        "contains",
+        "generated-from",
+        "supersedes",
+        "implements",
+        "blocks",
+        "built-from",
+        "applies-to",
+        "duplicate-of",
+        "compare-set-with",
+        "member-of-project"
+      ]
+    },
+    "from": { "$ref": "https://gyst.dev/schemas/v0/artifact-ref.schema.json" },
+    "to": { "$ref": "https://gyst.dev/schemas/v0/artifact-ref.schema.json" },
+    "asserted_by": {
+      "type": "object",
+      "properties": {
+        "precedence": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/AssertionPrecedence"
+        },
+        "actor": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Actor"
+        }
+      },
+      "required": ["precedence", "actor"],
+      "additionalProperties": false
+    },
+    "asserted_at": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Timestamp"
+    },
+    "evidence": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Evidence"
+    },
+    "confidence": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Confidence"
+    },
+    "identity_policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The identity policy in force when this relation was derived. A profile change rebuilds relations under a new version rather than mutating these."
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Human-readable reason this relation was asserted, shown in preview before activation and in 'gyst explain'."
+    }
+  },
+  "required": [
+    "schema_version",
+    "relation_id",
+    "type",
+    "from",
+    "to",
+    "asserted_by",
+    "asserted_at",
+    "evidence",
+    "confidence",
+    "identity_policy_version"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "description": "Gyst must never conclude that one file supersedes another from a numeric suffix alone. A machine-suggested 'supersedes' therefore requires an explanation and non-trivial confidence; below that threshold the correct output is 'compare-set-with'.",
+      "if": {
+        "properties": {
+          "type": { "const": "supersedes" },
+          "asserted_by": { "properties": { "precedence": { "const": "gyst_suggestion" } } }
+        },
+        "required": ["type", "asserted_by"]
+      },
+      "then": {
+        "required": ["explanation"],
+        "properties": { "confidence": { "minimum": 0.8 } }
+      }
+    }
+  ]
+}

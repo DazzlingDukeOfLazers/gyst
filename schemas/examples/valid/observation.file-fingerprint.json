@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.1.0",
+  "observation_id": "obs_01J5F8QK2ZWIDGETREV3",
+  "observed_at": "2024-08-12T09:14:03+00:00",
+  "recorded_at": "2024-08-12T09:14:05+00:00",
+  "source": {
+    "source_id": "src_local_eng_share",
+    "connector": "local-folder",
+    "connector_version": "0.1.0",
+    "cursor": "scan:2024-08-12T09:14:00Z:seq:41"
+  },
+  "subject": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/widget_rev3.pdf",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:539" }
+    },
+    "version": {
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "3cc9e4151db809eab31059fe61f6219037b1bad9cc7d95967ac6e0365c300174"
+      },
+      "size_bytes": 539
+    }
+  },
+  "claim": {
+    "type": "file.content_fingerprint",
+    "payload": {
+      "detected_type": "application/pdf",
+      "detected_by": "magic-bytes",
+      "page_count": 1
+    }
+  },
+  "extractor": {
+    "name": "file-fingerprint",
+    "version": "0.1.0",
+    "input_digest": {
+      "algo": "sha256",
+      "hex": "3cc9e4151db809eab31059fe61f6219037b1bad9cc7d95967ac6e0365c300174"
+    },
+    "output_schema": "gyst.claim.file.content_fingerprint/0.1.0",
+    "warnings": [],
+    "confidence": 1.0
+  },
+  "policy": {
+    "content_level": "fingerprint",
+    "egress": "device",
+    "effective_policy_version": "pol_2024-08-01_r3"
+  },
+  "visibility": {
+    "labels": ["src:src_local_eng_share:read"],
+    "source_acl_complete": true
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gyst.dev/schemas/v0/common.schema.json",
+  "title": "Gyst shared definitions",
+  "description": "Shared primitives for the v0 envelope schemas. Nothing here is a standalone document.",
+  "$defs": {
+    "SchemaVersion": {
+      "type": "string",
+      "pattern": "^0\\.[0-9]+\\.[0-9]+$",
+      "description": "Envelope schema version. Consumers must reject unknown major versions rather than guessing."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp, always with an explicit offset."
+    },
+    "Digest": {
+      "type": "object",
+      "description": "Content digest. Absent whenever effective policy is 'exclude' or 'metadata'.",
+      "properties": {
+        "algo": { "type": "string", "enum": ["sha256", "blake3"] },
+        "hex": { "type": "string", "pattern": "^[0-9a-f]{32,128}$" }
+      },
+      "required": ["algo", "hex"],
+      "additionalProperties": false
+    },
+    "NativeVersion": {
+      "type": "object",
+      "description": "The source system's own version identifier. A source locator plus native version identifies source state (architecture.md invariants). Gyst never invents this.",
+      "properties": {
+        "scheme": {
+          "type": "string",
+          "enum": ["git_oid", "mtime_size", "provider_item_version", "etag", "none"],
+          "description": "'none' means the source exposes no version concept; ordering then depends on observed_at alone and must be treated as weak evidence."
+        },
+        "value": { "type": "string", "minLength": 1 }
+      },
+      "required": ["scheme", "value"],
+      "additionalProperties": false
+    },
+    "Location": {
+      "type": "object",
+      "description": "Where a version was physically seen. Immutable once observed.",
+      "properties": {
+        "source_id": { "type": "string", "minLength": 1 },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source-native locator: a repo-relative path, a provider item id, a workbook sheet range. Not assumed to be a filesystem path."
+        },
+        "native_version": { "$ref": "#/$defs/NativeVersion" }
+      },
+      "required": ["source_id", "locator", "native_version"],
+      "additionalProperties": false
+    },
+    "Confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Explicit uncertainty. 1.0 is reserved for directly observed fact; any inference must be below it."
+    },
+    "PolicyContext": {
+      "type": "object",
+      "description": "The effective policy under which this record was produced. Recorded so a later policy change is visible as a change rather than silently reinterpreting history.",
+      "properties": {
+        "content_level": {
+          "type": "string",
+          "enum": ["exclude", "metadata", "fingerprint", "extract-local", "content"]
+        },
+        "egress": {
+          "type": "string",
+          "enum": ["device", "facility", "connected-server"]
+        },
+        "effective_policy_version": { "type": "string", "minLength": 1 }
+      },
+      "required": ["content_level", "egress", "effective_policy_version"],
+      "additionalProperties": false
+    },
+    "Visibility": {
+      "type": "object",
+      "description": "Derived from source permissions at observation time. Connector reach and viewer visibility are separate checks (design-round-2 section 5); this field carries the second one.",
+      "properties": {
+        "labels": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "source_acl_complete": {
+          "type": "boolean",
+          "description": "False when the connector could not fully enumerate source permissions. Derived data must fail closed when this is false."
+        }
+      },
+      "required": ["labels", "source_acl_complete"],
+      "additionalProperties": false
+    },
+    "ObservationId": {
+      "type": "string",
+      "pattern": "^obs_[0-9a-zA-Z]{8,}$"
+    },
+    "Evidence": {
+      "type": "array",
+      "description": "Observations supporting a derived record. Required and non-empty: a derived entity that cannot cite evidence must not exist.",
+      "items": { "$ref": "#/$defs/ObservationId" },
+      "minItems": 1
+    },
+    "IdentityProfile": {
+      "type": "string",
+      "enum": [
+        "content-path-exact",
+        "suffix-as-version",
+        "suffix-as-identity",
+        "canonical-name",
+        "compare-set"
+      ]
+    },
+    "AssertionPrecedence": {
+      "type": "string",
+      "description": "Membership and grouping evidence precedence, highest first (design-round-2 section 2). A lower-precedence rule must never overwrite a higher one.",
+      "enum": [
+        "explicit_assertion",
+        "project_manifest",
+        "source_native_marker",
+        "org_rule",
+        "gyst_suggestion"
+      ]
+    },
+    "Actor": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["user", "rule", "connector", "extractor", "suggestion"] },
+        "id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "id"],
+      "additionalProperties": false
+    }
+  }
+}

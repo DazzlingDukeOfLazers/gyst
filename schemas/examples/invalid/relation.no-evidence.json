@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "relation_id": "rel_01J5F8QK2ZNOEVIDENCE",
+  "type": "contains",
+  "from": {
+    "kind": "folder",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget",
+      "native_version": { "scheme": "none", "value": "unversioned" }
+    }
+  },
+  "to": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/widget_rev3.pdf",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:539" }
+    },
+    "version": { "size_bytes": 539 }
+  },
+  "asserted_by": {
+    "precedence": "source_native_marker",
+    "actor": { "kind": "connector", "id": "local-folder/0.1.0" }
+  },
+  "asserted_at": "2024-08-12T09:16:00+00:00",
+  "evidence": [],
+  "confidence": 1.0,
+  "identity_policy_version": "ip_2024-08-01_r1"
+}

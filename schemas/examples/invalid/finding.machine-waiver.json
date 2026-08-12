@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1.0",
+  "finding_id": "fnd_01J5F8QK2ZROBOWAIVE",
+  "rule": { "id": "hygiene.duplicate-content", "version": "1" },
+  "severity": "low",
+  "status": "waived",
+  "subjects": [
+    {
+      "kind": "file",
+      "location": {
+        "source_id": "src_local_eng_share",
+        "locator": "engineering/widget/widget_bom (copy).xlsx",
+        "native_version": { "scheme": "mtime_size", "value": "1723420800:1715" }
+      },
+      "version": { "size_bytes": 1715 }
+    }
+  ],
+  "evidence": ["obs_01J5F8QK2ZBOMCOPY001"],
+  "detected_at": "2024-08-12T09:16:00+00:00",
+  "confidence": 1.0,
+  "summary": "Duplicate BOM workbook.",
+  "waiver": {
+    "actor": { "kind": "rule", "id": "auto-waive.low-severity/1" },
+    "reason": "Severity below auto-waive threshold.",
+    "waived_at": "2024-08-12T09:16:30+00:00"
+  }
+}

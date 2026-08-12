@@ -1,0 +1,22 @@
+{
+  "kind": "file",
+  "location": {
+    "source_id": "src_local_eng_share",
+    "locator": "engineering/widget/widget_rev3.pdf",
+    "native_version": { "scheme": "mtime_size", "value": "1723420800:539" }
+  },
+  "version": {
+    "content_digest": {
+      "algo": "sha256",
+      "hex": "3cc9e4151db809eab31059fe61f6219037b1bad9cc7d95967ac6e0365c300174"
+    },
+    "size_bytes": 539,
+    "version_id": "ver_01J5F8QK2ZWIDGETV3"
+  },
+  "artifact": {
+    "artifact_id": "art_01J5F8QK2ZWIDGETDOC",
+    "identity_profile": "suffix-as-version",
+    "identity_policy_version": "ip_2024-08-01_r1",
+    "confidence": 0.88
+  }
+}

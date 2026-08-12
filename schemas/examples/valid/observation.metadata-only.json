@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.1.0",
+  "observation_id": "obs_01J5F8QK2ZMETAONLY01",
+  "observed_at": "2024-08-12T09:14:03+00:00",
+  "source": {
+    "source_id": "src_local_eng_share",
+    "connector": "local-folder",
+    "connector_version": "0.1.0"
+  },
+  "subject": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/widget.kicad_pcb",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:79" }
+    },
+    "version": { "size_bytes": 79 }
+  },
+  "claim": {
+    "type": "file.metadata",
+    "payload": { "extension": ".kicad_pcb", "content_read": false }
+  },
+  "extractor": {
+    "name": "path-metadata",
+    "version": "0.1.0",
+    "output_schema": "gyst.claim.file.metadata/0.1.0",
+    "warnings": ["content withheld by effective policy"],
+    "confidence": 1.0
+  },
+  "policy": {
+    "content_level": "metadata",
+    "egress": "device",
+    "effective_policy_version": "pol_2024-08-01_r3"
+  },
+  "visibility": {
+    "labels": ["src:src_local_eng_share:read"],
+    "source_acl_complete": true
+  }
+}

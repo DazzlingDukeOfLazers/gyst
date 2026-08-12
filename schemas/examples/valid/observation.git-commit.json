@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1.0",
+  "observation_id": "obs_01J5F8QK2ZGITCOMMIT2",
+  "observed_at": "2024-08-12T09:15:11+00:00",
+  "source": {
+    "source_id": "src_git_firmware",
+    "connector": "git",
+    "connector_version": "0.1.0",
+    "cursor": "refs/heads/main@95b5fdd158847bc1d0656d07f8214fe19b17d335"
+  },
+  "subject": {
+    "kind": "commit",
+    "location": {
+      "source_id": "src_git_firmware",
+      "locator": "firmware@95b5fdd158847bc1d0656d07f8214fe19b17d335",
+      "native_version": {
+        "scheme": "git_oid",
+        "value": "95b5fdd158847bc1d0656d07f8214fe19b17d335"
+      }
+    }
+  },
+  "claim": {
+    "type": "git.commit",
+    "payload": {
+      "message": "Add watchdog init",
+      "author": "Gyst Fixture <fixture@gyst.invalid>",
+      "authored_at": "2024-08-12T00:00:00+00:00",
+      "parents": ["f80aff2"],
+      "changed_paths": ["src/main.c"]
+    }
+  },
+  "extractor": {
+    "name": "git-history",
+    "version": "0.1.0",
+    "output_schema": "gyst.claim.git.commit/0.1.0",
+    "warnings": [],
+    "confidence": 1.0
+  },
+  "policy": {
+    "content_level": "extract-local",
+    "egress": "device",
+    "effective_policy_version": "pol_2024-08-01_r3"
+  },
+  "visibility": {
+    "labels": ["src:src_git_firmware:read"],
+    "source_acl_complete": true
+  }
+}

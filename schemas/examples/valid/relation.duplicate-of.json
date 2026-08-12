@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1.0",
+  "relation_id": "rel_01J5F8QK2ZDUPEBOM001",
+  "type": "duplicate-of",
+  "from": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/widget_bom (copy).xlsx",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:1715" }
+    },
+    "version": {
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
+      },
+      "size_bytes": 1715
+    }
+  },
+  "to": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/widget_bom.xlsx",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:1715" }
+    },
+    "version": {
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
+      },
+      "size_bytes": 1715
+    }
+  },
+  "asserted_by": {
+    "precedence": "gyst_suggestion",
+    "actor": { "kind": "rule", "id": "hygiene.duplicate-content/1" }
+  },
+  "asserted_at": "2024-08-12T09:16:00+00:00",
+  "evidence": ["obs_01J5F8QK2ZBOMCOPY001", "obs_01J5F8QK2ZBOMORIG001"],
+  "confidence": 1.0,
+  "identity_policy_version": "ip_2024-08-01_r1",
+  "explanation": "Identical sha256 over 1715 bytes. Content-derived, so the '(copy)' in the filename is corroboration rather than the basis."
+}

@@ -1,0 +1,96 @@
+{
+  "$comment": "Case manifest. Instance files stay pure JSON, so rationale lives here rather than in a $comment property that additionalProperties:false would reject. Invalid cases declare expect_error_contains so a case cannot pass by failing for an unrelated reason.",
+  "cases": [
+    {
+      "file": "valid/observation.file-fingerprint.json",
+      "schema": "observation",
+      "expect": "valid",
+      "rationale": "Baseline observation under fingerprint policy: digest present, no logical grouping asserted."
+    },
+    {
+      "file": "valid/observation.metadata-only.json",
+      "schema": "observation",
+      "expect": "valid",
+      "rationale": "Under metadata policy Gyst records that a path exists without reading it. Size is a stat() fact; no digest."
+    },
+    {
+      "file": "valid/observation.git-commit.json",
+      "schema": "observation",
+      "expect": "valid",
+      "rationale": "Native Git provenance with git_oid versioning, so ordering is authoritative rather than clock-derived."
+    },
+    {
+      "file": "valid/artifact-ref.projection.json",
+      "schema": "artifact-ref",
+      "expect": "valid",
+      "rationale": "The projection form: an artifact block is legal here because a query result is derived, not evidence."
+    },
+    {
+      "file": "valid/relation.duplicate-of.json",
+      "schema": "relation",
+      "expect": "valid",
+      "rationale": "Duplicate asserted from identical digests, citing both supporting observations."
+    },
+    {
+      "file": "valid/relation.compare-set.json",
+      "schema": "relation",
+      "expect": "valid",
+      "rationale": "The connector_123/124 trap resolved correctly: low confidence yields compare-set-with, not supersedes."
+    },
+    {
+      "file": "valid/relation.generated-from.json",
+      "schema": "relation",
+      "expect": "valid",
+      "rationale": "Heuristic generated-from at moderate confidence, pending a real generation run to pin inputs and tool version."
+    },
+    {
+      "file": "valid/finding.duplicate-content.json",
+      "schema": "finding",
+      "expect": "valid",
+      "rationale": "Advisory finding whose remediation is a proposal requiring approval."
+    },
+
+    {
+      "file": "invalid/observation.artifact-on-evidence.json",
+      "schema": "observation",
+      "expect": "invalid",
+      "violates": "Logical identity is a projection and must never appear on a raw observation.",
+      "expect_error_contains": "should not be valid"
+    },
+    {
+      "file": "invalid/observation.digest-under-metadata-policy.json",
+      "schema": "observation",
+      "expect": "invalid",
+      "violates": "A content digest was recorded under a policy that forbids reading content.",
+      "expect_error_contains": "should not be valid"
+    },
+    {
+      "file": "invalid/relation.low-confidence-supersedes.json",
+      "schema": "relation",
+      "expect": "invalid",
+      "violates": "A machine-suggested supersedes at confidence 0.35 with no explanation. Gyst must never conclude supersession from a numeric suffix alone.",
+      "expect_error_contains": "explanation"
+    },
+    {
+      "file": "invalid/relation.no-evidence.json",
+      "schema": "relation",
+      "expect": "invalid",
+      "violates": "Empty evidence array. A derived record that cannot cite evidence must not exist.",
+      "expect_error_contains": "non-empty"
+    },
+    {
+      "file": "invalid/finding.waived-without-waiver.json",
+      "schema": "finding",
+      "expect": "invalid",
+      "violates": "Status is waived with no waiver record. A waiver is an audit record, not a status flag.",
+      "expect_error_contains": "waiver"
+    },
+    {
+      "file": "invalid/finding.machine-waiver.json",
+      "schema": "finding",
+      "expect": "invalid",
+      "violates": "A rule waived its own finding. Only a human may waive.",
+      "expect_error_contains": "user"
+    }
+  ]
+}

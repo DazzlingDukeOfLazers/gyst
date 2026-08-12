@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "finding_id": "fnd_01J5F8QK2ZDUPEBOM01",
+  "rule": { "id": "hygiene.duplicate-content", "version": "1" },
+  "severity": "low",
+  "status": "open",
+  "subjects": [
+    {
+      "kind": "file",
+      "location": {
+        "source_id": "src_local_eng_share",
+        "locator": "engineering/widget/widget_bom.xlsx",
+        "native_version": { "scheme": "mtime_size", "value": "1723420800:1715" }
+      },
+      "version": { "size_bytes": 1715 }
+    },
+    {
+      "kind": "file",
+      "location": {
+        "source_id": "src_local_eng_share",
+        "locator": "engineering/widget/widget_bom (copy).xlsx",
+        "native_version": { "scheme": "mtime_size", "value": "1723420800:1715" }
+      },
+      "version": { "size_bytes": 1715 }
+    }
+  ],
+  "evidence": ["obs_01J5F8QK2ZBOMORIG001", "obs_01J5F8QK2ZBOMCOPY001"],
+  "detected_at": "2024-08-12T09:16:00+00:00",
+  "confidence": 1.0,
+  "summary": "Two byte-identical BOM workbooks in one project folder. Neither is marked authoritative, so a reader cannot tell which one to build from.",
+  "remediation": {
+    "proposal": "Nominate one workbook as the authoritative record and relate the other to it, or import both into a single Record with cell provenance retained.",
+    "reversible": true,
+    "requires_approval": true
+  }
+}

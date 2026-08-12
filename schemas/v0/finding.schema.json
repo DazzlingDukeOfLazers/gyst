@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gyst.dev/schemas/v0/finding.schema.json",
+  "title": "Finding",
+  "description": "A policy rule and the evidence that it matched. Findings are advisory: they may propose remediation but never perform it. Every finding must be explainable back to the observations that triggered it.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/SchemaVersion"
+    },
+    "finding_id": { "type": "string", "minLength": 1 },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "required": ["id", "version"],
+      "additionalProperties": false
+    },
+    "severity": { "type": "string", "enum": ["info", "low", "medium", "high"] },
+    "status": {
+      "type": "string",
+      "enum": ["open", "acknowledged", "waived", "resolved"]
+    },
+    "subjects": {
+      "type": "array",
+      "items": { "$ref": "https://gyst.dev/schemas/v0/artifact-ref.schema.json" },
+      "minItems": 1
+    },
+    "evidence": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Evidence"
+    },
+    "detected_at": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Timestamp"
+    },
+    "confidence": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Confidence"
+    },
+    "summary": { "type": "string", "minLength": 1 },
+    "remediation": {
+      "type": "object",
+      "description": "A proposal only. Nothing here may be applied without an explicit human decision, and irreversible proposals must say so.",
+      "properties": {
+        "proposal": { "type": "string", "minLength": 1 },
+        "reversible": { "type": "boolean" },
+        "requires_approval": { "type": "boolean", "const": true }
+      },
+      "required": ["proposal", "reversible", "requires_approval"],
+      "additionalProperties": false
+    },
+    "waiver": {
+      "type": "object",
+      "properties": {
+        "actor": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Actor"
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "waived_at": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Timestamp"
+        },
+        "expires_at": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Timestamp"
+        }
+      },
+      "required": ["actor", "reason", "waived_at"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "finding_id",
+    "rule",
+    "severity",
+    "status",
+    "subjects",
+    "evidence",
+    "detected_at",
+    "confidence",
+    "summary"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "description": "A waived finding must record who waived it and why. Waivers are audit records, not a status flag.",
+      "if": { "properties": { "status": { "const": "waived" } }, "required": ["status"] },
+      "then": { "required": ["waiver"] }
+    },
+    {
+      "description": "Only a human may waive a finding.",
+      "if": { "required": ["waiver"] },
+      "then": {
+        "properties": {
+          "waiver": { "properties": { "actor": { "properties": { "kind": { "const": "user" } } } } }
+        }
+      }
+    }
+  ]
+}

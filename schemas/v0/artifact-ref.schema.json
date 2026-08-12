@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gyst.dev/schemas/v0/artifact-ref.schema.json",
+  "title": "ArtifactRef",
+  "description": "A reference to something Gyst has seen. Separates the physical Location where a version was observed, the ArtifactVersion identified by content, and the logical Artifact that grouping assigns. Only 'location' is a raw fact; 'artifact' is a rebuildable projection and must never be treated as evidence.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "file",
+        "folder",
+        "commit",
+        "sheet",
+        "row_range",
+        "issue",
+        "message",
+        "release",
+        "external_record"
+      ]
+    },
+    "location": {
+      "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Location"
+    },
+    "version": {
+      "type": "object",
+      "description": "Identifies the observed state of the content itself. Absent under 'exclude' or 'metadata' content policy, where Gyst may know a path exists without being permitted to read it.",
+      "properties": {
+        "content_digest": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Digest"
+        },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "version_id": {
+          "type": "string",
+          "description": "Core-assigned stable id for this version. Absent on connector output; assigned on ingestion."
+        }
+      },
+      "required": ["size_bytes"],
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "description": "PROJECTION, NOT EVIDENCE. The logical grouping a given identity profile assigned. Present only on derived records and query results, never on a raw connector observation. Carries the profile and policy version so the grouping can be explained and rebuilt after a profile change.",
+      "properties": {
+        "artifact_id": { "type": "string", "minLength": 1 },
+        "identity_profile": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/IdentityProfile"
+        },
+        "identity_policy_version": { "type": "string", "minLength": 1 },
+        "confidence": {
+          "$ref": "https://gyst.dev/schemas/v0/common.schema.json#/$defs/Confidence"
+        }
+      },
+      "required": ["artifact_id", "identity_profile", "identity_policy_version", "confidence"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["kind", "location"],
+  "additionalProperties": false
+}

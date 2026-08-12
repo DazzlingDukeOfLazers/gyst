@@ -1,0 +1,9 @@
+# Generated fixture tree. Rebuild with: python3 testdata/generate.py
+# Never commit it: it contains a nested Git repository and binary fixtures whose
+# only authority is the generator plus expected-inventory.json.
+testdata/tree/
+
+# Local tooling for the schema validator.
+.venv/
+__pycache__/
+*.pyc
