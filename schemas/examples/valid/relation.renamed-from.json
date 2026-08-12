@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1.0",
+  "relation_id": "rel_01J5F8QK2ZRENAME0001",
+  "type": "renamed-from",
+  "from": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/connectors/archive/conn-123-old.pdf",
+      "native_version": { "scheme": "mtime_size", "value": "1723507200:540" }
+    },
+    "version": {
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "1307657aee613b9ac0a29cfd2ab8865a5012cfc175cbe4b4a2e5166618596e70"
+      },
+      "size_bytes": 540
+    }
+  },
+  "to": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/connectors/connector_123.pdf",
+      "native_version": { "scheme": "mtime_size", "value": "1723420800:540" }
+    },
+    "version": {
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "1307657aee613b9ac0a29cfd2ab8865a5012cfc175cbe4b4a2e5166618596e70"
+      },
+      "size_bytes": 540
+    }
+  },
+  "asserted_by": {
+    "precedence": "gyst_suggestion",
+    "actor": { "kind": "suggestion", "id": "rename-detector/1" }
+  },
+  "asserted_at": "2024-08-13T09:16:00+00:00",
+  "evidence": ["obs_01J5F8QK2ZARRIVED001", "obs_01J5F8QK2ZTOMBSTONE1"],
+  "confidence": 0.95,
+  "identity_policy_version": "ip_2024-08-01_r1",
+  "explanation": "connector_123.pdf disappeared and conn-123-old.pdf appeared in the same scan pass with identical content (540 bytes), and no other file on either side shares that digest."
+}

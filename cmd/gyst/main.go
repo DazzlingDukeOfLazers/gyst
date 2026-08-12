@@ -160,6 +160,10 @@ func cmdScan(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	renames, err := project.ProjectRenames(ctx, s)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("source     %s\n", sourceID)
 	fmt.Printf("seen       %d files, %s\n", res.Scanned+res.Unchanged, humanBytes(res.Bytes))
@@ -178,6 +182,14 @@ func cmdScan(ctx context.Context, args []string) error {
 	fmt.Printf("appended   %d new observations (%d already known)\n",
 		inserted, len(res.Observations)-inserted)
 	fmt.Printf("projected  %d rows applied (seq %d -> %d)\n", stats.Applied, stats.FromSeq, stats.ToSeq)
+	if renames.Renamed > 0 || renames.Ambiguous > 0 {
+		fmt.Printf("renames    %d detected, %d ambiguous (candidates offered), %d plain deletions\n",
+			renames.Renamed, renames.Ambiguous, renames.Unmatched)
+		if renames.SkippedNoContent > 0 {
+			fmt.Printf("           %d skipped: no content to match on (empty files)\n",
+				renames.SkippedNoContent)
+		}
+	}
 	fmt.Printf("elapsed    %s walk, %s total", walked.Round(time.Millisecond), elapsed.Round(time.Millisecond))
 	if res.HashedBytes > 0 {
 		fmt.Printf("   (%s/s hashed)", humanBytes(int64(float64(res.HashedBytes)/elapsed.Seconds())))

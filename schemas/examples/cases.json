@@ -44,6 +44,14 @@
       "rationale": "Heuristic generated-from at moderate confidence, pending a real generation run to pin inputs and tool version."
     },
     {
+      "file": "valid/relation.renamed-from.json",
+      "schema": "relation",
+      "expect": "valid",
+      "rationale": "An unambiguous move: one file gone, one arrived, identical content, digest unique on both sides. Both endpoints carry the same digest, which is the whole basis for the claim.",
+      "allow_absent_locators": ["engineering/connectors/archive/conn-123-old.pdf"],
+      "why_absent": "A move's destination exists only after the move. The static fixture holds the pre-move tree, so the origin is checked against it and the destination cannot be."
+    },
+    {
       "file": "valid/finding.duplicate-content.json",
       "schema": "finding",
       "expect": "valid",

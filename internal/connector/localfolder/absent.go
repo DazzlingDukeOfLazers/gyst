@@ -61,7 +61,12 @@ func Tombstones(res *Result, opts Options, known map[string]observe.KnownState) 
 		policy.Egress = "device"
 	}
 
-	now := time.Now().UTC()
+	// The scan's clock reading, not a fresh one: tombstones must land in the
+	// same pass as the arrivals they may pair with.
+	now := res.Pass
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
 	decision := TombstoneDecision{Eligible: true, Reason: "complete unresumed pass with no read errors"}
 
 	// Sorted so a run is deterministic and diffable.

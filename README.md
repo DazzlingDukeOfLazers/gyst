@@ -25,6 +25,7 @@ This repository is at the planning stage. The initial documents are:
 - [Day 2 notes: walking skeleton](docs/day-2-notes.md)
 - [Day 3 notes: identity profiles and Git provenance](docs/day-3-notes.md)
 - [Day 4 notes: tombstones and reconciliation](docs/day-4-notes.md)
+- [Day 5 notes: rename detection](docs/day-5-notes.md)
 
 ## Working principles
 

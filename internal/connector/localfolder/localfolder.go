@@ -83,6 +83,13 @@ type Result struct {
 	// this -- which is only sound when Complete is true and Skipped is zero.
 	Seen map[string]bool
 
+	// Pass is the single clock reading shared by every observation this scan
+	// produces, tombstones included. Rename detection pairs a disappearance
+	// with an arrival only within one pass, and it identifies a pass by
+	// observed_at -- so two clock readings in one scan silently split it in
+	// two and no rename is ever found.
+	Pass time.Time
+
 	// IgnoredPaths are locators excluded by policy rather than absent. A newly
 	// ignored file disappears from Seen exactly like a deleted one, and
 	// tombstoning it would assert it was removed from the source when it was
@@ -113,8 +120,9 @@ func Discover(opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	res := &Result{Complete: true, Seen: map[string]bool{}, IgnoredPaths: map[string]bool{}}
 	now := time.Now().UTC()
+	res := &Result{Complete: true, Pass: now,
+		Seen: map[string]bool{}, IgnoredPaths: map[string]bool{}}
 
 	err = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {

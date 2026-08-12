@@ -39,10 +39,15 @@ def load_registry():
     }
 
 
-def crosscheck_fixtures() -> list:
+def crosscheck_fixtures(cases) -> list:
     """Every locator an example cites must exist in the fixture tree with the
     digest and size claimed. Without this the examples drift into fiction the
-    moment the dataset changes, and they stop being evidence of anything."""
+    moment the dataset changes, and they stop being evidence of anything.
+
+    A case may exempt specific locators via allow_absent_locators. The rename
+    example needs one: a move's destination is a path that exists only after
+    the move, so a static tree cannot contain it. Exemptions are per-locator
+    and must be declared, so the guard stays strict everywhere it can be."""
     inventory_path = HERE.parent / "testdata" / "expected-inventory.json"
     if not inventory_path.exists():
         return [("testdata", "expected-inventory.json missing; run testdata/generate.py")]
@@ -74,10 +79,22 @@ def crosscheck_fixtures() -> list:
             for value in node:
                 walk(value, path_hint)
 
+    exempt = {
+        c["file"]: set(c.get("allow_absent_locators", []))
+        for c in cases
+    }
     for case_file in sorted(EXAMPLES.rglob("*.json")):
         if case_file.name == "cases.json":
             continue
-        walk(json.loads(case_file.read_text()), case_file.relative_to(EXAMPLES).as_posix())
+        rel = case_file.relative_to(EXAMPLES).as_posix()
+        allowed = exempt.get(rel, set())
+        before = len(problems)
+        walk(json.loads(case_file.read_text()), rel)
+        # Drop problems that name an explicitly exempted locator.
+        problems[before:] = [
+            (where, msg) for where, msg in problems[before:]
+            if not any(loc in msg for loc in allowed)
+        ]
     return problems
 
 
@@ -122,7 +139,7 @@ def main() -> int:
                 print(f"{GREEN}ok  {RESET} {name}  {DIM}rejected: {case['violates']}{RESET}")
 
     print()
-    drift = crosscheck_fixtures()
+    drift = crosscheck_fixtures(cases)
     for where, problem in drift:
         print(f"{RED}DRIFT{RESET} {where}: {problem}")
     if drift:

@@ -20,6 +20,7 @@
         "built-from",
         "applies-to",
         "duplicate-of",
+        "renamed-from",
         "compare-set-with",
         "member-of-project"
       ]
