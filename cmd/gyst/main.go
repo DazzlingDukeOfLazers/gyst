@@ -112,6 +112,10 @@ func cmdScan(ctx context.Context, args []string) error {
 		}
 	}
 
+	if err := s.RegisterSource(ctx, sourceID, "local-folder", *root); err != nil {
+		return err
+	}
+
 	// What the projection already believes. Unchanged files are skipped before
 	// they are read, so an incremental scan does not re-hash a settled tree.
 	known, err := s.KnownState(ctx, sourceID)
@@ -135,6 +139,12 @@ func cmdScan(ctx context.Context, args []string) error {
 	}
 	walked := time.Since(start)
 
+	// Deletion detection: anything known but not seen by a complete pass.
+	opts := localfolder.Options{Cursor: cursor, SourceID: sourceID,
+		ContentLevel: *policy, Egress: "device", PolicyVersion: "pol_dev_r1"}
+	tomb := localfolder.Tombstones(res, opts, known)
+	res.Observations = append(res.Observations, tomb.Tombstones...)
+
 	inserted, err := s.Append(ctx, res.Observations)
 	if err != nil {
 		return err
@@ -156,6 +166,15 @@ func cmdScan(ctx context.Context, args []string) error {
 	fmt.Printf("unchanged  %d (not read)   changed %d, %s hashed\n",
 		res.Unchanged, res.Scanned, humanBytes(res.HashedBytes))
 	fmt.Printf("ignored    %d   skipped %d   unstable %d\n", res.Ignored, res.Skipped, res.Unstable)
+	if tomb.Eligible {
+		fmt.Printf("absent     %d file(s) gone", len(tomb.Tombstones))
+		if tomb.Suppressed > 0 {
+			fmt.Printf("   (%d newly ignored, not tombstoned)", tomb.Suppressed)
+		}
+		fmt.Println()
+	} else {
+		fmt.Printf("absent     not checked: %s\n", tomb.Reason)
+	}
 	fmt.Printf("appended   %d new observations (%d already known)\n",
 		inserted, len(res.Observations)-inserted)
 	fmt.Printf("projected  %d rows applied (seq %d -> %d)\n", stats.Applied, stats.FromSeq, stats.ToSeq)

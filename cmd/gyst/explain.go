@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/identity"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
 
 // cmdExplain answers "why does Gyst believe this?" for one file.
@@ -90,68 +91,58 @@ func cmdExplain(ctx context.Context, args []string) error {
 		return err
 	}
 	if version == "" {
+		// Not a reason to stop. Git history and source-native relations are
+		// derived from evidence, not from an identity interpretation.
 		fmt.Printf("\nidentity   no policy active; run 'gyst identity apply'\n")
-		return nil
+	} else if err := explainIdentity(ctx, s, version, string(profile), sourceID, locator); err != nil {
+		return err
 	}
 
-	var artifactID, groupingKey, rule, explanation string
-	var versionLabel *string
-	var isCurrent bool
-	var conf float64
-	err = s.Pool().QueryRow(ctx, `
-		SELECT m.artifact_id, a.grouping_key, m.rule, m.explanation,
-		       m.version_label, m.is_current, m.confidence
-		FROM artifact_members m
-		JOIN artifacts a ON a.identity_policy_version=m.identity_policy_version
-		                AND a.artifact_id=m.artifact_id
-		WHERE m.identity_policy_version=$1 AND m.source_id=$2 AND m.locator=$3`,
-		version, sourceID, locator).
-		Scan(&artifactID, &groupingKey, &rule, &explanation, &versionLabel, &isCurrent, &conf)
+	// --- git history ------------------------------------------------------
+	//
+	// Reachable only because reconciliation matched this file's path to the
+	// paths inside commits. Both connectors observed the same bytes; this is
+	// the join between them.
+	hist, err := s.Pool().Query(ctx, `
+		SELECT c.oid, c.author, c.message, c.authored_at, r.evidence
+		FROM relations r
+		JOIN commits c ON (c.source_id || '@' || c.oid) = r.from_locator
+		               AND c.source_id = r.from_source
+		WHERE r.type='contains' AND r.to_source=$1 AND r.to_locator=$2
+		ORDER BY c.authored_at DESC, c.seq DESC`, sourceID, locator)
 	if err != nil {
-		fmt.Printf("\nidentity   not grouped under %s\n", version)
-	} else {
-		fmt.Printf("\nidentity (policy %s, profile %s)\n", version, profile)
-		fmt.Printf("  artifact   %s  %s\n", artifactID, groupingKey)
-		fmt.Printf("  rule       %s (confidence %.2f)\n", rule, conf)
-		fmt.Printf("  version    %s%s\n", derefStr(versionLabel, "-"), currentSuffix(isCurrent))
-		fmt.Printf("  because    %s\n", wrap(explanation, 68, "             "))
-
-		sib, err := s.Pool().Query(ctx, `
-			SELECT locator, coalesce(version_label,'-'), is_current, confidence
-			FROM artifact_members
-			WHERE identity_policy_version=$1 AND artifact_id=$2 AND locator <> $3
-			ORDER BY locator`, version, artifactID, locator)
-		if err != nil {
+		return err
+	}
+	touched := 0
+	hw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	for hist.Next() {
+		var oid, author, message string
+		var at time.Time
+		var evidence []string
+		if err := hist.Scan(&oid, &author, &message, &at, &evidence); err != nil {
+			hist.Close()
 			return err
 		}
-		sw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		n := 0
-		for sib.Next() {
-			var l, vl string
-			var cur bool
-			var c float64
-			if err := sib.Scan(&l, &vl, &cur, &c); err != nil {
-				sib.Close()
-				return err
-			}
-			if n == 0 {
-				fmt.Fprintln(sw, "  GROUPED WITH\tVER\tCONF\t")
-			}
-			fmt.Fprintf(sw, "  %s\t%s\t%.2f\t%s\n", l, vl, c, currentSuffix(cur))
-			n++
+		if touched == 0 {
+			fmt.Println("\nchanged by (git)")
+			fmt.Fprintln(hw, "  COMMIT\tWHEN\tAUTHOR\tMESSAGE\tEVIDENCE")
 		}
-		sib.Close()
-		sw.Flush()
-		if n == 0 {
-			fmt.Printf("  grouped with nothing else under this profile\n")
-		}
+		fmt.Fprintf(hw, "  %s\t%s\t%s\t%s\t%s\n", firstN(oid, 12),
+			at.Local().Format("2006-01-02"), short(author, 24), short(message, 40),
+			firstN(evidence[0], 16))
+		touched++
+	}
+	hist.Close()
+	hw.Flush()
+	if touched == 0 {
+		fmt.Println("\nchanged by (git)\n  no commit in any observed repository touches this path")
 	}
 
 	// --- relations --------------------------------------------------------
 	rel, err := s.Pool().Query(ctx, `
 		SELECT type, from_locator, to_locator, confidence, precedence, evidence, explanation
 		FROM relations
-		WHERE identity_policy_version=$1
+		WHERE (identity_policy_version IS NULL OR identity_policy_version=$1)
 		  AND ((from_source=$2 AND from_locator=$3) OR (to_source=$2 AND to_locator=$3))
 		ORDER BY type, to_locator`, version, sourceID, locator)
 	if err != nil {
@@ -174,7 +165,7 @@ func cmdExplain(ctx context.Context, args []string) error {
 		n++
 	}
 	if n == 0 {
-		fmt.Println("  none under the active policy")
+		fmt.Println("  none")
 	}
 	return rel.Err()
 }
@@ -227,4 +218,63 @@ func wrap(s string, width int, indent string) string {
 		line += len(word)
 	}
 	return b.String()
+}
+
+// explainIdentity reports how the active profile grouped this locator and what
+// it was grouped with.
+func explainIdentity(ctx context.Context, s *store.Store, version, profile, sourceID, locator string) error {
+	var artifactID, groupingKey, rule, explanation string
+	var versionLabel *string
+	var isCurrent bool
+	var conf float64
+	err := s.Pool().QueryRow(ctx, `
+		SELECT m.artifact_id, a.grouping_key, m.rule, m.explanation,
+		       m.version_label, m.is_current, m.confidence
+		FROM artifact_members m
+		JOIN artifacts a ON a.identity_policy_version=m.identity_policy_version
+		                AND a.artifact_id=m.artifact_id
+		WHERE m.identity_policy_version=$1 AND m.source_id=$2 AND m.locator=$3`,
+		version, sourceID, locator).
+		Scan(&artifactID, &groupingKey, &rule, &explanation, &versionLabel, &isCurrent, &conf)
+	if err != nil {
+		fmt.Printf("\nidentity   not grouped under %s\n", version)
+		return nil
+	}
+
+	fmt.Printf("\nidentity (policy %s, profile %s)\n", version, profile)
+	fmt.Printf("  artifact   %s  %s\n", artifactID, groupingKey)
+	fmt.Printf("  rule       %s (confidence %.2f)\n", rule, conf)
+	fmt.Printf("  version    %s%s\n", derefStr(versionLabel, "-"), currentSuffix(isCurrent))
+	fmt.Printf("  because    %s\n", wrap(explanation, 68, "             "))
+
+	sib, err := s.Pool().Query(ctx, `
+		SELECT locator, coalesce(version_label,'-'), is_current, confidence
+		FROM artifact_members
+		WHERE identity_policy_version=$1 AND artifact_id=$2 AND locator <> $3
+		ORDER BY locator`, version, artifactID, locator)
+	if err != nil {
+		return err
+	}
+	defer sib.Close()
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	n := 0
+	for sib.Next() {
+		var l, vl string
+		var cur bool
+		var c float64
+		if err := sib.Scan(&l, &vl, &cur, &c); err != nil {
+			return err
+		}
+		if n == 0 {
+			fmt.Fprintln(w, "  GROUPED WITH\tVER\tCONF\t")
+		}
+		fmt.Fprintf(w, "  %s\t%s\t%.2f\t%s\n", l, vl, c, currentSuffix(cur))
+		n++
+	}
+	w.Flush()
+	if n == 0 {
+		fmt.Printf("  grouped with nothing else under this profile\n")
+	}
+	return sib.Err()
 }

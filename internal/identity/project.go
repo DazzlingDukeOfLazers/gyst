@@ -171,7 +171,8 @@ func relationsFor(profile Profile, version string, g *Group, obsID map[string]st
 		}
 
 		out = append(out, Relation{
-			RelationID:  relationID(version, relType, newer.Locator, older.Locator),
+			RelationID: relationID(version, relType,
+				newer.SourceID, newer.Locator, older.SourceID, older.Locator),
 			Type:        relType,
 			FromSource:  newer.SourceID,
 			FromLocator: newer.Locator,
@@ -193,8 +194,13 @@ func artifactID(version, sourceID, key string) string {
 	return "art_" + hex.EncodeToString(h[:])[:24]
 }
 
-func relationID(version, relType, from, to string) string {
-	h := sha256.Sum256([]byte(version + "\x00" + relType + "\x00" + from + "\x00" + to))
+// relationID must include the source of each endpoint, not just the locator.
+// Two sources scanning trees that both contain "widget_rev3.pdf" produce
+// distinct relations about distinct files; keying on locators alone collided
+// them and the second insert failed on the primary key.
+func relationID(version, relType, fromSource, from, toSource, to string) string {
+	h := sha256.Sum256([]byte(version + "\x00" + relType + "\x00" +
+		fromSource + "\x00" + from + "\x00" + toSource + "\x00" + to))
 	return "rel_" + hex.EncodeToString(h[:])[:24]
 }
 

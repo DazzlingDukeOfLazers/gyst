@@ -168,12 +168,72 @@ type KnownState struct {
 	Seq           int64
 }
 
-// TombstoneID derives the id for an absence claim, keyed on the last locator
-// rather than a native version, since a vanished file has none.
-func TombstoneID(sourceID, locator string) string {
+// TombstoneID derives the id for an absence claim. A vanished file has no
+// native version, so the id is keyed on the locator and the seq of the
+// observation whose subject went missing.
+//
+// priorSeq is required for the same reason it is on DeriveID, and this is the
+// case where forgetting it bites hardest: delete a file, restore it, delete it
+// again, and a state-derived id would collide with the first tombstone. The
+// second deletion would append nothing and the projection would show the file
+// as present forever.
+func TombstoneID(sourceID, locator string, priorSeq int64) string {
 	h := sha256.New()
-	h.Write([]byte(sourceID + "\x00" + locator + "\x00artifact.absent"))
+	h.Write([]byte(sourceID + "\x00" + locator + "\x00artifact.absent\x00" +
+		strconv.FormatInt(priorSeq, 10)))
 	return "obs_" + hex.EncodeToString(h.Sum(nil))[:32]
+}
+
+// Tombstone builds an absence observation for a locator that was known but is
+// no longer present.
+//
+// Absence is only evidence when the observer actually looked everywhere it
+// should have. Callers must not build one from a partial or resumed pass -- see
+// localfolder.Result.Complete.
+func Tombstone(sourceID, locator string, prior KnownState, policy Policy, observedAt time.Time) Observation {
+	obs := Observation{
+		SchemaVersion: SchemaVersion,
+		ObservationID: TombstoneID(sourceID, locator, prior.Seq),
+		ObservedAt:    observedAt,
+		Source: Source{
+			SourceID:         sourceID,
+			Connector:        "local-folder",
+			ConnectorVersion: "0.1.0",
+		},
+		Subject: ArtifactRef{
+			Kind: "file",
+			Location: Location{
+				SourceID: sourceID,
+				Locator:  locator,
+				// The last version known to exist. Recording it keeps the
+				// tombstone joinable to what it is a statement about.
+				NativeVersion: NativeVersion{Scheme: "mtime_size", Value: prior.NativeVersion},
+			},
+		},
+		Claim: Claim{
+			Type: "artifact.absent",
+			Payload: map[string]any{
+				"last_known_native_version": prior.NativeVersion,
+				"last_known_seq":            prior.Seq,
+			},
+		},
+		Extractor: Extractor{
+			Name:         "absence-detector",
+			Version:      "0.1.0",
+			OutputSchema: "gyst.claim.artifact.absent/0.1.0",
+			Warnings:     []string{},
+			// Not 1.0. A complete pass failing to find a file is strong
+			// evidence of deletion but not proof: it may have been moved,
+			// permissions may have changed, or a mount may have been absent.
+			Confidence: 0.9,
+		},
+		Policy: policy,
+		Visibility: Visibility{
+			Labels:            []string{"src:" + sourceID + ":read"},
+			SourceACLComplete: true,
+		},
+	}
+	return obs
 }
 
 // NormalizeLocator makes locators comparable across platforms. Paths always use

@@ -37,6 +37,10 @@ func cmdGit(ctx context.Context, args []string) error {
 	}
 	defer s.Close()
 
+	if err := s.RegisterSource(ctx, sourceID, "git", *repo); err != nil {
+		return err
+	}
+
 	cursor := ""
 	if *resume {
 		if cursor, err = s.Cursor(ctx, sourceID); err != nil {
@@ -68,12 +72,18 @@ func cmdGit(ctx context.Context, args []string) error {
 	if _, err := project.Apply(ctx, s); err != nil {
 		return err
 	}
+	cs, err := project.ProjectCommits(ctx, s)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("source     %s\n", sourceID)
 	fmt.Printf("ref        %s at %s\n", res.Ref, firstN(res.Head, 12))
 	fmt.Printf("commits    %d read\n", res.Commits)
 	fmt.Printf("appended   %d new observations (%d already known)\n",
 		inserted, len(res.Observations)-inserted)
+	fmt.Printf("projected  %d commits, %d file touches\n", cs.Commits, cs.Files)
+	fmt.Printf("reconciled %d touches matched a scanned file, %d unmatched\n", cs.Bridged, cs.Orphaned)
 
 	rows, err := s.Pool().Query(ctx, `
 		SELECT native_version_value, claim_payload->>'author', claim_payload->>'message',

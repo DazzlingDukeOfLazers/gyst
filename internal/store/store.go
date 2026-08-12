@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/observe"
@@ -149,6 +150,22 @@ func (s *Store) KnownState(ctx context.Context, sourceID string) (map[string]obs
 		out[loc] = st
 	}
 	return out, rows.Err()
+}
+
+// RegisterSource records where a source's locators are rooted. Without it a
+// locator cannot be resolved to a filesystem path, and two sources observing
+// the same file cannot be recognised as such.
+func (s *Store) RegisterSource(ctx context.Context, sourceID, kind, root string) error {
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return err
+	}
+	_, err = s.pool.Exec(ctx, `
+		INSERT INTO sources (source_id, kind, root) VALUES ($1,$2,$3)
+		ON CONFLICT (source_id) DO UPDATE SET
+			kind=EXCLUDED.kind, root=EXCLUDED.root, last_seen=now()`,
+		sourceID, kind, abs)
+	return err
 }
 
 func (s *Store) Count(ctx context.Context) (int64, error) {

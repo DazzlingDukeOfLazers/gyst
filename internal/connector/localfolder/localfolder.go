@@ -77,6 +77,17 @@ type Result struct {
 	// HashedBytes is what was actually read. On an incremental pass it is far
 	// below Bytes, and the gap is the point of Known.
 	HashedBytes int64
+
+	// Seen is every locator this pass actually looked at, including unchanged
+	// ones. Deletion detection is the set difference between known state and
+	// this -- which is only sound when Complete is true and Skipped is zero.
+	Seen map[string]bool
+
+	// IgnoredPaths are locators excluded by policy rather than absent. A newly
+	// ignored file disappears from Seen exactly like a deleted one, and
+	// tombstoning it would assert it was removed from the source when it was
+	// only removed from view.
+	IgnoredPaths map[string]bool
 }
 
 // Discover walks the root in deterministic order and emits one observation per
@@ -102,7 +113,7 @@ func Discover(opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	res := &Result{Complete: true}
+	res := &Result{Complete: true, Seen: map[string]bool{}, IgnoredPaths: map[string]bool{}}
 	now := time.Now().UTC()
 
 	err = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -123,6 +134,7 @@ func Discover(opts Options) (*Result, error) {
 			// root entirely, which policy forbids.
 			if ig.match(rel, true) {
 				res.Ignored++
+				res.IgnoredPaths[rel] = true
 				return filepath.SkipDir
 			}
 			if rel == ".git" || strings.HasSuffix(rel, "/.git") {
@@ -136,6 +148,7 @@ func Discover(opts Options) (*Result, error) {
 		}
 		if ig.match(rel, false) {
 			res.Ignored++
+			res.IgnoredPaths[rel] = true
 			return nil
 		}
 		if opts.Cursor != "" && rel <= opts.Cursor {
@@ -152,6 +165,7 @@ func Discover(opts Options) (*Result, error) {
 			return nil
 		}
 		res.Bytes += info.Size()
+		res.Seen[rel] = true
 
 		// Compare against known state before touching the file's contents.
 		nv := nativeVersion(info)
