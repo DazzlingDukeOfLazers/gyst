@@ -21,6 +21,7 @@ This repository is at the planning stage. The initial documents are:
 - [Round-two design](docs/design-round-2.md)
 - [Delivery roadmap](docs/roadmap.md)
 - [Open questions and decisions](docs/decisions.md)
+- [Plan: first three days](docs/plan-week-1.md)
 
 ## Working principles
 
