@@ -26,6 +26,18 @@ Usage:
   gyst project [--rebuild]
   gyst verify
   gyst status
+  gyst git     --repo <path> [--ref HEAD] [--resume]
+
+  gyst identity preview --profile <profile>   show grouping without writing it
+  gyst identity apply   --profile <profile>   activate a grouping
+  gyst identity verify                        every profile, evidence unchanged
+  gyst identity status                        active policy and its ambiguous groups
+
+  gyst explain <locator>                      provenance for one file
+
+Profiles:
+  content-path-exact  suffix-as-version  suffix-as-identity
+  canonical-name      compare-set
 
 Environment:
   GYST_DATABASE_URL   default postgres:///gyst
@@ -47,6 +59,12 @@ func main() {
 		err = cmdProject(ctx, os.Args[2:])
 	case "verify":
 		err = cmdVerify(ctx)
+	case "git":
+		err = cmdGit(ctx, os.Args[2:])
+	case "identity":
+		err = cmdIdentity(ctx, os.Args[2:])
+	case "explain":
+		err = cmdExplain(ctx, os.Args[2:])
 	case "status":
 		err = cmdStatus(ctx)
 	case "-h", "--help", "help":

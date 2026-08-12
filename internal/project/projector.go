@@ -53,6 +53,18 @@ func Apply(ctx context.Context, s *store.Store) (Stats, error) {
 			return st, err
 		}
 		for _, f := range batch {
+			// current_files is a file projection. A commit is an artifact, but
+			// it is not a file: it has no size, no content digest, and no path
+			// on disk. Folding one in here produced rows keyed by
+			// "src@<oid>" with null sizes, which the identity profiles then
+			// tried to group as filenames.
+			//
+			// The cursor still advances past them, so last_seq keeps meaning
+			// "consumed up to here" rather than "last file seen".
+			if f.Kind != "file" {
+				last = f.Seq
+				continue
+			}
 			present := f.ClaimType != "artifact.absent"
 			_, err := tx.Exec(ctx, `
 				INSERT INTO current_files
@@ -176,6 +188,10 @@ func Verify(ctx context.Context, s *store.Store) (before, after string, rows int
 			break
 		}
 		for _, f := range batch {
+			if f.Kind != "file" {
+				last = f.Seq
+				continue
+			}
 			present := f.ClaimType != "artifact.absent"
 			if _, e := tx.Exec(ctx, `
 				INSERT INTO current_files
@@ -226,7 +242,7 @@ func Verify(ctx context.Context, s *store.Store) (before, after string, rows int
 func txSince(ctx context.Context, tx pgx.Tx, seq int64, limit int) ([]store.LoggedFile, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT seq, source_id, locator, content_digest_hex, size_bytes, observed_at,
-		       claim_type, native_version_value
+		       claim_type, native_version_value, subject_kind
 		FROM observations WHERE seq > $1 ORDER BY seq LIMIT $2`, seq, limit)
 	if err != nil {
 		return nil, err
@@ -236,7 +252,7 @@ func txSince(ctx context.Context, tx pgx.Tx, seq int64, limit int) ([]store.Logg
 	for rows.Next() {
 		var f store.LoggedFile
 		if err := rows.Scan(&f.Seq, &f.SourceID, &f.Locator, &f.DigestHex,
-			&f.SizeBytes, &f.ObservedAt, &f.ClaimType, &f.NativeVer); err != nil {
+			&f.SizeBytes, &f.ObservedAt, &f.ClaimType, &f.NativeVer, &f.Kind); err != nil {
 			return nil, err
 		}
 		out = append(out, f)

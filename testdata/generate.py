@@ -160,9 +160,9 @@ FILES = [
         "content": make_pdf("WIDGET REV 2"),
         "profiles": {
             "content-path-exact": "engineering/widget/widget_rev2.pdf",
-            "suffix-as-version": "engineering/widget/widget",
-            "suffix-as-identity": "engineering/widget/widget_rev2",
-            "compare-set": "engineering/widget/widget:set",
+            "suffix-as-version": "engineering/widget/widget.pdf",
+            "suffix-as-identity": "engineering/widget/widget_rev2.pdf",
+            "compare-set": "engineering/widget/widget.pdf:set",
         },
         "note": "Superseded by rev3 under suffix-as-version only.",
     },
@@ -171,9 +171,9 @@ FILES = [
         "content": make_pdf("WIDGET REV 3"),
         "profiles": {
             "content-path-exact": "engineering/widget/widget_rev3.pdf",
-            "suffix-as-version": "engineering/widget/widget",
-            "suffix-as-identity": "engineering/widget/widget_rev3",
-            "compare-set": "engineering/widget/widget:set",
+            "suffix-as-version": "engineering/widget/widget.pdf",
+            "suffix-as-identity": "engineering/widget/widget_rev3.pdf",
+            "compare-set": "engineering/widget/widget.pdf:set",
         },
         "note": "Current under suffix-as-version; a distinct artifact under suffix-as-identity.",
     },
@@ -184,9 +184,9 @@ FILES = [
         "content": make_xlsx(BOM_ROWS),
         "profiles": {
             "content-path-exact": "engineering/widget/widget_bom.xlsx",
-            "suffix-as-version": "engineering/widget/widget_bom",
-            "suffix-as-identity": "engineering/widget/widget_bom",
-            "compare-set": "engineering/widget/widget_bom:set",
+            "suffix-as-version": "engineering/widget/widget_bom.xlsx",
+            "suffix-as-identity": "engineering/widget/widget_bom.xlsx",
+            "compare-set": "engineering/widget/widget_bom.xlsx:set",
         },
     },
     {
@@ -195,9 +195,9 @@ FILES = [
         "duplicate_of": "engineering/widget/widget_bom.xlsx",
         "profiles": {
             "content-path-exact": "engineering/widget/widget_bom (copy).xlsx",
-            "suffix-as-version": "engineering/widget/widget_bom (copy)",
-            "suffix-as-identity": "engineering/widget/widget_bom (copy)",
-            "compare-set": "engineering/widget/widget_bom:set",
+            "suffix-as-version": "engineering/widget/widget_bom (copy).xlsx",
+            "suffix-as-identity": "engineering/widget/widget_bom (copy).xlsx",
+            "compare-set": "engineering/widget/widget_bom.xlsx:set",
         },
         "note": "Byte-identical to widget_bom.xlsx. Duplicate detection must be "
                 "content-based; the name gives no usable signal.",
@@ -228,8 +228,17 @@ FILES = [
     {
         "path": "engineering/widget/widget.kicad_pcb",
         "content": b"(kicad_pcb (version 20240108) (generator pcbnew)\n  (general (thickness 1.6))\n)\n",
+        "profiles": {
+            "content-path-exact": "engineering/widget/widget.kicad_pcb",
+            "suffix-as-version": "engineering/widget/widget.kicad_pcb",
+            "suffix-as-identity": "engineering/widget/widget.kicad_pcb",
+            "compare-set": "engineering/widget/widget.kicad_pcb:set",
+        },
         "note": "Source of the output/ directory. Indexed as a file; no semantic "
-                "parse until the KiCad extractor exists.",
+                "parse until the KiCad extractor exists. Also why the grouping key "
+                "carries the file extension: without it this collapsed into the "
+                "widget_rev2/rev3 PDF series, and a board file is not a revision "
+                "of a drawing.",
     },
 
     # --- suffix-as-identity: part numbers, not revisions --------------------
@@ -238,9 +247,9 @@ FILES = [
         "content": make_pdf("CONNECTOR 123"),
         "profiles": {
             "content-path-exact": "engineering/connectors/connector_123.pdf",
-            "suffix-as-version": "engineering/connectors/connector",
-            "suffix-as-identity": "engineering/connectors/connector_123",
-            "compare-set": "engineering/connectors/connector:set",
+            "suffix-as-version": "engineering/connectors/connector.pdf",
+            "suffix-as-identity": "engineering/connectors/connector_123.pdf",
+            "compare-set": "engineering/connectors/connector.pdf:set",
         },
         "note": "THE TRAP. Under suffix-as-version this wrongly collapses with "
                 "connector_124 and one appears superseded. 123 and 124 are "
@@ -251,9 +260,9 @@ FILES = [
         "content": make_pdf("CONNECTOR 124"),
         "profiles": {
             "content-path-exact": "engineering/connectors/connector_124.pdf",
-            "suffix-as-version": "engineering/connectors/connector",
-            "suffix-as-identity": "engineering/connectors/connector_124",
-            "compare-set": "engineering/connectors/connector:set",
+            "suffix-as-version": "engineering/connectors/connector.pdf",
+            "suffix-as-identity": "engineering/connectors/connector_124.pdf",
+            "compare-set": "engineering/connectors/connector.pdf:set",
         },
     },
 
@@ -263,9 +272,9 @@ FILES = [
         "content": make_pdf("ASSEMBLY NOTES V2"),
         "profiles": {
             "content-path-exact": "engineering/vendor-drop/Assembly Notes v2.pdf",
-            "suffix-as-version": "engineering/vendor-drop/Assembly Notes",
-            "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2",
-            "compare-set": "engineering/vendor-drop/Assembly Notes:set",
+            "suffix-as-version": "engineering/vendor-drop/Assembly Notes.pdf",
+            "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2.pdf",
+            "compare-set": "engineering/vendor-drop/Assembly Notes.pdf:set",
         },
         "note": "Space in the name; low-confidence grouping.",
     },
@@ -274,12 +283,18 @@ FILES = [
         "content": make_pdf("ASSEMBLY NOTES V2 FINAL"),
         "profiles": {
             "content-path-exact": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
-            "suffix-as-version": "engineering/vendor-drop/Assembly Notes",
-            "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2 FINAL",
-            "compare-set": "engineering/vendor-drop/Assembly Notes:set",
+            # Stands alone under the strict profile. An earlier expectation here
+            # said "Assembly Notes", which contradicted this entry's own note:
+            # if FINAL is not a revision scheme, a strict profile must not strip
+            # it to force a grouping. Only compare-set, which never orders
+            # anything, may group across a qualifier word.
+            "suffix-as-version": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
+            "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
+            "compare-set": "engineering/vendor-drop/Assembly Notes.pdf:set",
         },
-        "note": "'FINAL' is not a revision scheme. Confidence must land below the "
-                "supersedes threshold, so the correct output is compare-set.",
+        "note": "'FINAL' is not a revision scheme. suffix-as-version leaves it "
+                "alone rather than guessing; compare-set groups it with "
+                "'Assembly Notes v2' for side-by-side review without ordering them.",
     },
 
     # --- edge cases that break naive scanners -------------------------------

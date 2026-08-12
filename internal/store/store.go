@@ -169,6 +169,7 @@ type LoggedFile struct {
 	ObservedAt time.Time
 	ClaimType  string
 	NativeVer  string
+	Kind       string
 }
 
 // Since streams observations after seq in log order. Order is by seq alone:
@@ -176,7 +177,7 @@ type LoggedFile struct {
 func (s *Store) Since(ctx context.Context, seq int64, limit int) ([]LoggedFile, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT seq, source_id, locator, content_digest_hex, size_bytes, observed_at,
-		       claim_type, native_version_value
+		       claim_type, native_version_value, subject_kind
 		FROM observations WHERE seq > $1 ORDER BY seq LIMIT $2`, seq, limit)
 	if err != nil {
 		return nil, err
@@ -187,7 +188,7 @@ func (s *Store) Since(ctx context.Context, seq int64, limit int) ([]LoggedFile, 
 	for rows.Next() {
 		var f LoggedFile
 		if err := rows.Scan(&f.Seq, &f.SourceID, &f.Locator, &f.DigestHex,
-			&f.SizeBytes, &f.ObservedAt, &f.ClaimType, &f.NativeVer); err != nil {
+			&f.SizeBytes, &f.ObservedAt, &f.ClaimType, &f.NativeVer, &f.Kind); err != nil {
 			return nil, err
 		}
 		out = append(out, f)

@@ -25,9 +25,9 @@
       "ignored": false,
       "profiles": {
         "content-path-exact": "engineering/connectors/connector_123.pdf",
-        "suffix-as-version": "engineering/connectors/connector",
-        "suffix-as-identity": "engineering/connectors/connector_123",
-        "compare-set": "engineering/connectors/connector:set"
+        "suffix-as-version": "engineering/connectors/connector.pdf",
+        "suffix-as-identity": "engineering/connectors/connector_123.pdf",
+        "compare-set": "engineering/connectors/connector.pdf:set"
       },
       "note": "THE TRAP. Under suffix-as-version this wrongly collapses with connector_124 and one appears superseded. 123 and 124 are distinct parts; no revision relationship exists."
     },
@@ -39,9 +39,9 @@
       "ignored": false,
       "profiles": {
         "content-path-exact": "engineering/connectors/connector_124.pdf",
-        "suffix-as-version": "engineering/connectors/connector",
-        "suffix-as-identity": "engineering/connectors/connector_124",
-        "compare-set": "engineering/connectors/connector:set"
+        "suffix-as-version": "engineering/connectors/connector.pdf",
+        "suffix-as-identity": "engineering/connectors/connector_124.pdf",
+        "compare-set": "engineering/connectors/connector.pdf:set"
       }
     },
     {
@@ -76,11 +76,11 @@
       "ignored": false,
       "profiles": {
         "content-path-exact": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
-        "suffix-as-version": "engineering/vendor-drop/Assembly Notes",
-        "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2 FINAL",
-        "compare-set": "engineering/vendor-drop/Assembly Notes:set"
+        "suffix-as-version": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
+        "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
+        "compare-set": "engineering/vendor-drop/Assembly Notes.pdf:set"
       },
-      "note": "'FINAL' is not a revision scheme. Confidence must land below the supersedes threshold, so the correct output is compare-set."
+      "note": "'FINAL' is not a revision scheme. suffix-as-version leaves it alone rather than guessing; compare-set groups it with 'Assembly Notes v2' for side-by-side review without ordering them."
     },
     {
       "path": "engineering/vendor-drop/Assembly Notes v2.pdf",
@@ -90,9 +90,9 @@
       "ignored": false,
       "profiles": {
         "content-path-exact": "engineering/vendor-drop/Assembly Notes v2.pdf",
-        "suffix-as-version": "engineering/vendor-drop/Assembly Notes",
-        "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2",
-        "compare-set": "engineering/vendor-drop/Assembly Notes:set"
+        "suffix-as-version": "engineering/vendor-drop/Assembly Notes.pdf",
+        "suffix-as-identity": "engineering/vendor-drop/Assembly Notes v2.pdf",
+        "compare-set": "engineering/vendor-drop/Assembly Notes.pdf:set"
       },
       "note": "Space in the name; low-confidence grouping."
     },
@@ -143,7 +143,13 @@
       "sha256": "5a88cbd748f627435dc6f7c7a2dab19fc609e01157415e997466fbab8a948d64",
       "mtime_epoch": 1723420800,
       "ignored": false,
-      "note": "Source of the output/ directory. Indexed as a file; no semantic parse until the KiCad extractor exists."
+      "profiles": {
+        "content-path-exact": "engineering/widget/widget.kicad_pcb",
+        "suffix-as-version": "engineering/widget/widget.kicad_pcb",
+        "suffix-as-identity": "engineering/widget/widget.kicad_pcb",
+        "compare-set": "engineering/widget/widget.kicad_pcb:set"
+      },
+      "note": "Source of the output/ directory. Indexed as a file; no semantic parse until the KiCad extractor exists. Also why the grouping key carries the file extension: without it this collapsed into the widget_rev2/rev3 PDF series, and a board file is not a revision of a drawing."
     },
     {
       "path": "engineering/widget/widget_bom (copy).xlsx",
@@ -154,9 +160,9 @@
       "duplicate_of": "engineering/widget/widget_bom.xlsx",
       "profiles": {
         "content-path-exact": "engineering/widget/widget_bom (copy).xlsx",
-        "suffix-as-version": "engineering/widget/widget_bom (copy)",
-        "suffix-as-identity": "engineering/widget/widget_bom (copy)",
-        "compare-set": "engineering/widget/widget_bom:set"
+        "suffix-as-version": "engineering/widget/widget_bom (copy).xlsx",
+        "suffix-as-identity": "engineering/widget/widget_bom (copy).xlsx",
+        "compare-set": "engineering/widget/widget_bom.xlsx:set"
       },
       "note": "Byte-identical to widget_bom.xlsx. Duplicate detection must be content-based; the name gives no usable signal."
     },
@@ -168,9 +174,9 @@
       "ignored": false,
       "profiles": {
         "content-path-exact": "engineering/widget/widget_bom.xlsx",
-        "suffix-as-version": "engineering/widget/widget_bom",
-        "suffix-as-identity": "engineering/widget/widget_bom",
-        "compare-set": "engineering/widget/widget_bom:set"
+        "suffix-as-version": "engineering/widget/widget_bom.xlsx",
+        "suffix-as-identity": "engineering/widget/widget_bom.xlsx",
+        "compare-set": "engineering/widget/widget_bom.xlsx:set"
       }
     },
     {
@@ -181,9 +187,9 @@
       "ignored": false,
       "profiles": {
         "content-path-exact": "engineering/widget/widget_rev2.pdf",
-        "suffix-as-version": "engineering/widget/widget",
-        "suffix-as-identity": "engineering/widget/widget_rev2",
-        "compare-set": "engineering/widget/widget:set"
+        "suffix-as-version": "engineering/widget/widget.pdf",
+        "suffix-as-identity": "engineering/widget/widget_rev2.pdf",
+        "compare-set": "engineering/widget/widget.pdf:set"
       },
       "note": "Superseded by rev3 under suffix-as-version only."
     },
@@ -195,9 +201,9 @@
       "ignored": false,
       "profiles": {
         "content-path-exact": "engineering/widget/widget_rev3.pdf",
-        "suffix-as-version": "engineering/widget/widget",
-        "suffix-as-identity": "engineering/widget/widget_rev3",
-        "compare-set": "engineering/widget/widget:set"
+        "suffix-as-version": "engineering/widget/widget.pdf",
+        "suffix-as-identity": "engineering/widget/widget_rev3.pdf",
+        "compare-set": "engineering/widget/widget.pdf:set"
       },
       "note": "Current under suffix-as-version; a distinct artifact under suffix-as-identity."
     },

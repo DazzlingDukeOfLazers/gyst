@@ -23,6 +23,7 @@ This repository is at the planning stage. The initial documents are:
 - [Open questions and decisions](docs/decisions.md)
 - [Plan: first three days](docs/plan-week-1.md)
 - [Day 2 notes: walking skeleton](docs/day-2-notes.md)
+- [Day 3 notes: identity profiles and Git provenance](docs/day-3-notes.md)
 
 ## Working principles
 
