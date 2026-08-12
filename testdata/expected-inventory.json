@@ -3,8 +3,8 @@
   "fixture_version": "0.1.0",
   "root": "testdata/tree",
   "counts": {
-    "files_total": 18,
-    "files_expected_in_inventory": 17,
+    "files_total": 20,
+    "files_expected_in_inventory": 19,
     "files_expected_ignored": 1,
     "duplicate_pairs": 1,
     "generated_files": 4
@@ -200,6 +200,24 @@
         "compare-set": "engineering/widget/widget:set"
       },
       "note": "Current under suffix-as-version; a distinct artifact under suffix-as-identity."
+    },
+    {
+      "path": "firmware/README.md",
+      "size_bytes": 11,
+      "sha256": "f56698c90018f0d9c693540f8af2896eb5350faed2f9f5e38f9107c8a4f382f4",
+      "mtime_epoch": null,
+      "ignored": false,
+      "also_observable_via": "git",
+      "note": "Inside a Git working tree. Mtime is not pinned because Git writes it; identity must come from content, not mtime."
+    },
+    {
+      "path": "firmware/src/main.c",
+      "size_bytes": 63,
+      "sha256": "4aad389fd6623f6e521d049dc98f84101203821016159525e419703cf0fe051c",
+      "mtime_epoch": null,
+      "ignored": false,
+      "also_observable_via": "git",
+      "note": "Inside a Git working tree. Mtime is not pinned because Git writes it; identity must come from content, not mtime."
     }
   ],
   "git": {
@@ -222,6 +240,10 @@
           "src/main.c"
         ]
       }
-    ]
+    ],
+    "working_tree": {
+      "README.md": "# Firmware\n",
+      "src/main.c": "void wdt_init(void);\n\nint main(void) { wdt_init(); return 0; }\n"
+    }
   }
 }

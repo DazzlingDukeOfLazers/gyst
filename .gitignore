@@ -7,3 +7,6 @@ testdata/tree/
 .venv/
 __pycache__/
 *.pyc
+
+# Go build output
+/gyst
