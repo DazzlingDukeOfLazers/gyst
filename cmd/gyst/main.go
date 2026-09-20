@@ -32,6 +32,7 @@ Usage:
   gyst discover [--root <path>]... [--depth 6] [--nested] [--json]
   gyst projects                               projects and where membership comes from
   gyst findings [--all] [--json]              what needs attention
+  gyst report [--out report.json]             everything, as one JSON document
   gyst findings ack   <id> --by <name>
   gyst findings waive <id> --by <name> --reason <text> [--until YYYY-MM-DD]
 
@@ -74,6 +75,8 @@ func main() {
 		err = cmdProjects(ctx, os.Args[2:])
 	case "findings":
 		err = cmdFindings(ctx, os.Args[2:])
+	case "report":
+		err = cmdReport(ctx, os.Args[2:])
 	case "identity":
 		err = cmdIdentity(ctx, os.Args[2:])
 	case "explain":

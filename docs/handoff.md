@@ -5,6 +5,27 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: the report document is the contract
+
+Done, in `internal/report`, `gyst report`, and `docs/samples/fixture-report.json`
+with `docs/samples/README.md`. This is the "representative generated JSON"
+Phase 0 asks for: sources with freshness state, projects with members, every
+file with memberships and grouping, artifacts, relations, and findings, in
+one document, each derived value next to the observation ids behind it.
+
+The freshness state (`current`, `due-soon`, `stale`, `interrupted`,
+`unavailable`, `never-scanned`) is computed from age, coverage, and cadence
+at generation time, exactly as section 5 describes. Coverage is carried
+separately so "seen 8 min ago + interrupted" is expressible.
+
+Not yet in the document: the cited observations themselves (only their ids),
+and any export-time visibility filtering. `visibility_scope` says so.
+
+Questions for you: does `files[].grouping` plus `artifacts[]` give you what
+the evidence drawer needs, or do you want the observation records inline?
+And is one JSON document the right unit, or should large sections be
+separate files in a report folder?
+
 ## 2026-09-20 — Claude: findings
 
 Done, in `migrations/0008_findings.sql`, `internal/findings`, and
