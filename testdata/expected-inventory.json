@@ -3,15 +3,31 @@
   "fixture_version": "0.1.0",
   "root": "testdata/tree",
   "counts": {
-    "files_total": 20,
-    "files_expected_in_inventory": 19,
+    "files_total": 21,
+    "files_expected_in_inventory": 20,
     "files_expected_ignored": 1,
     "duplicate_pairs": 1,
-    "generated_files": 4
+    "generated_files": 4,
+    "projects": 3,
+    "files_in_two_projects": 10
   },
   "files": [
     {
+      "path": "engineering/.gyst/project.yaml",
+      "projects": [
+        "engineering"
+      ],
+      "size_bytes": 68,
+      "sha256": "76f913347a53582f49af1d28c2fa0cb56aa2521323ebbeb91f337dd7b8ff7676",
+      "mtime_epoch": 1723420800,
+      "ignored": false,
+      "note": "Root manifest of the share. Everything under engineering/ belongs to it, so widget files are members of two projects at once."
+    },
+    {
       "path": "engineering/.gystignore",
+      "projects": [
+        "engineering"
+      ],
       "size_bytes": 15,
       "sha256": "0a55f280a3f586dd75577096cbe27fd842bb9dc92af158884f471c375189dc03",
       "mtime_epoch": 1723420800,
@@ -19,6 +35,9 @@
     },
     {
       "path": "engineering/connectors/connector_123.pdf",
+      "projects": [
+        "engineering"
+      ],
       "size_bytes": 540,
       "sha256": "1307657aee613b9ac0a29cfd2ab8865a5012cfc175cbe4b4a2e5166618596e70",
       "mtime_epoch": 1723420800,
@@ -33,6 +52,9 @@
     },
     {
       "path": "engineering/connectors/connector_124.pdf",
+      "projects": [
+        "engineering"
+      ],
       "size_bytes": 540,
       "sha256": "4ef8fe645a1874255962cda0e21ed60640fc9da53e8a27f84cace520606fc0e7",
       "mtime_epoch": 1723420800,
@@ -46,6 +68,9 @@
     },
     {
       "path": "engineering/désign-notes.md",
+      "projects": [
+        "engineering"
+      ],
       "size_bytes": 40,
       "sha256": "072b57415c5420165538d45c5c37f449b9bb28ed55a80d8b293dfe1ba46c0bbe",
       "mtime_epoch": 1723420800,
@@ -54,6 +79,9 @@
     },
     {
       "path": "engineering/empty.txt",
+      "projects": [
+        "engineering"
+      ],
       "size_bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "mtime_epoch": 1723420800,
@@ -62,6 +90,7 @@
     },
     {
       "path": "engineering/scratch/tmp-ignore-me.log",
+      "projects": [],
       "size_bytes": 6,
       "sha256": "567b37fe7e3b26e1af3c8cb5dc30c8799296941a091d1123b2c8fd4d389b9087",
       "mtime_epoch": 1723420800,
@@ -70,6 +99,9 @@
     },
     {
       "path": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
+      "projects": [
+        "engineering"
+      ],
       "size_bytes": 550,
       "sha256": "20cca3d829e0885ac30819b25d0906a78acc82ea99b2ec7ecb1380b1a0fad822",
       "mtime_epoch": 1723420800,
@@ -84,6 +116,9 @@
     },
     {
       "path": "engineering/vendor-drop/Assembly Notes v2.pdf",
+      "projects": [
+        "engineering"
+      ],
       "size_bytes": 544,
       "sha256": "6d68eff9fb200467b9e4c7b7832db8563bdfebe85ae913ac1e72ba6cb74b0cf0",
       "mtime_epoch": 1723420800,
@@ -98,6 +133,10 @@
     },
     {
       "path": "engineering/widget/.gyst/project.yaml",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 48,
       "sha256": "e5b18fcf384bb0c1afe1cb41e7d83af05b1ba0bb5a2da3bd12aefa63a1b75b12",
       "mtime_epoch": 1723420800,
@@ -106,6 +145,10 @@
     },
     {
       "path": "engineering/widget/output/generation.log",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 66,
       "sha256": "da976965b16471d6e560e1af3c9467f83ba0f641742c196bc820e4929a57b7ad",
       "mtime_epoch": 1723420800,
@@ -115,6 +158,10 @@
     },
     {
       "path": "engineering/widget/output/widget-B_Cu.gbr",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 93,
       "sha256": "a7d10744d19bc17189b704f667668097d17676101d58f89153ac7736699277de",
       "mtime_epoch": 1723420800,
@@ -123,6 +170,10 @@
     },
     {
       "path": "engineering/widget/output/widget-F_Cu.gbr",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 93,
       "sha256": "0c078afdc8ec1ca49a7d5645ae51990086646697933bb6c5f72e5d08ec68f4b1",
       "mtime_epoch": 1723420800,
@@ -131,6 +182,10 @@
     },
     {
       "path": "engineering/widget/output/widget.drl",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 47,
       "sha256": "b94f070e2f5fe1722e8856c772707c012ea072e3ef83d0cb161d8511a3356400",
       "mtime_epoch": 1723420800,
@@ -139,6 +194,10 @@
     },
     {
       "path": "engineering/widget/widget.kicad_pcb",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 79,
       "sha256": "5a88cbd748f627435dc6f7c7a2dab19fc609e01157415e997466fbab8a948d64",
       "mtime_epoch": 1723420800,
@@ -153,6 +212,10 @@
     },
     {
       "path": "engineering/widget/widget_bom (copy).xlsx",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 1715,
       "sha256": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4",
       "mtime_epoch": 1723420800,
@@ -168,6 +231,10 @@
     },
     {
       "path": "engineering/widget/widget_bom.xlsx",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 1715,
       "sha256": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4",
       "mtime_epoch": 1723420800,
@@ -181,6 +248,10 @@
     },
     {
       "path": "engineering/widget/widget_rev2.pdf",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 539,
       "sha256": "ce7072b57fcaa061a6131a3239386a7e3c3519ce970d8ab74be216bb9163e0f6",
       "mtime_epoch": 1723420800,
@@ -195,6 +266,10 @@
     },
     {
       "path": "engineering/widget/widget_rev3.pdf",
+      "projects": [
+        "engineering",
+        "widget"
+      ],
       "size_bytes": 539,
       "sha256": "3cc9e4151db809eab31059fe61f6219037b1bad9cc7d95967ac6e0365c300174",
       "mtime_epoch": 1723420800,
@@ -214,6 +289,9 @@
       "mtime_epoch": null,
       "ignored": false,
       "also_observable_via": "git",
+      "projects": [
+        "marker:firmware"
+      ],
       "note": "Inside a Git working tree. Mtime is not pinned because Git writes it; identity must come from content, not mtime."
     },
     {
@@ -223,8 +301,41 @@
       "mtime_epoch": null,
       "ignored": false,
       "also_observable_via": "git",
+      "projects": [
+        "marker:firmware"
+      ],
       "note": "Inside a Git working tree. Mtime is not pinned because Git writes it; identity must come from content, not mtime."
     }
+  ],
+  "projects": [
+    {
+      "id": "engineering",
+      "basis": "manifest",
+      "declared_by": "engineering/.gyst/project.yaml",
+      "members": [
+        "engineering/**"
+      ]
+    },
+    {
+      "id": "widget",
+      "basis": "manifest",
+      "declared_by": "engineering/widget/.gyst/project.yaml",
+      "members": [
+        "engineering/widget/**"
+      ]
+    },
+    {
+      "id": "marker:firmware",
+      "basis": "native-marker",
+      "folder": "firmware",
+      "markers": [
+        "git"
+      ]
+    }
+  ],
+  "suppressed_markers": [
+    "engineering",
+    "engineering/widget"
   ],
   "git": {
     "path": "firmware",

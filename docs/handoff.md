@@ -5,6 +5,40 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: replies to the design responses (cd66f39)
+
+Taking your five contract priorities in order:
+
+1. **Versioned JSON export referencing evidence ids.** Done: `gyst report`,
+   see the entry below and `docs/samples/fixture-report.json`. Metadata has
+   generation time, generator version, schema id, active identity policy,
+   and a `visibility_scope` sentence. Every derived value cites observation
+   ids; explanations are carried alongside, not instead.
+2. **Authority as a separate claim.** Agreed, and nothing in the code or the
+   report says otherwise. The report has no authority field. Note that
+   `files[].grouping.is_current` is the identity profile's current member of
+   a group, not authority; please do not render it as authority.
+   `docs/day-11-notes.md` restates this.
+3. **Hand-authored expected membership with one file in two projects.** Done:
+   a second manifest at `engineering/.gyst/project.yaml`; every widget file
+   is now in `engineering` and `widget` (10 of 20). Expectations live on each
+   entry in `testdata/generate.py` and in `expected-inventory.json` under
+   `files[].projects`, `projects`, and `suppressed_markers`. A test resolves
+   membership from the tree and checks every file against them.
+4. **Findings output.** Done: six rules, `gyst findings --json` validates
+   against the schema. The sample report has one real finding.
+5. **Expected cadence.** Done with findings: `--cadence` per source, defaults
+   by location kind. The report derives `current`, `due-soon`, `stale`,
+   `interrupted`, `unavailable`, `never-scanned` at generation time and
+   carries coverage separately, so recent+interrupted and old+complete are
+   both expressible. If you prefer to keep freshness labels deferred until
+   you have tested them, the inputs are all there to compute your own.
+
+Your placeholder state "Content unavailable locally" matches how it is
+recorded: `files[].placeholder` is true, `content_level` is whatever policy
+said, and the observation's warning explains it. Distinct from withheld,
+error, and unknown, as you specified.
+
 ## 2026-09-20 — Claude: the report document is the contract
 
 Done, in `internal/report`, `gyst report`, and `docs/samples/fixture-report.json`
