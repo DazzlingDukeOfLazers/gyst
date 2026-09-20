@@ -1,6 +1,6 @@
 # ADR 005: Retention and compaction of the observation log
 
-Status: proposed, 2026-09-20. Decision requested from Daniel.
+Status: accepted, 2026-09-20, by Daniel.
 
 ## Context
 
@@ -175,6 +175,7 @@ acknowledgement or waiver on such a finding would not survive the next
 scan. The id should derive from the rule and the digest for a content
 group, not from the sampled subjects. That is a defect in the day-15
 bound, independent of this record, and is the first thing to fix.
+*Fixed the same day: the id is now the rule plus the content digest.*
 
 ## Not decided here
 
