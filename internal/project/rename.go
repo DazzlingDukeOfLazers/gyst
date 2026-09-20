@@ -181,59 +181,28 @@ func DetectRenames(gone []Gone, arrived []Arrived) RenameReport {
 // Both sides are keyed by observed_at, which every observation in one scan pass
 // shares, so matching stays within a pass.
 func LoadRenameCandidates(ctx context.Context, s *store.Store) ([]Gone, []Arrived, error) {
-	goneRows, err := s.Pool().Query(ctx, `
-		SELECT t.source_id, t.locator, t.observation_id, t.observed_at::text,
-		       coalesce(prior.content_digest_hex, ''), coalesce(prior.size_bytes, 0)
-		FROM observations t
-		LEFT JOIN observations prior
-		       ON prior.seq = (t.claim_payload->>'last_known_seq')::bigint
-		WHERE t.claim_type = 'artifact.absent'
-		ORDER BY t.seq`)
+	tomb, err := s.Tombstones(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	var gone []Gone
-	for goneRows.Next() {
-		var g Gone
-		if err := goneRows.Scan(&g.SourceID, &g.Locator, &g.ObsID, &g.Pass, &g.Digest, &g.Size); err != nil {
-			goneRows.Close()
-			return nil, nil, err
-		}
-		gone = append(gone, g)
-	}
-	goneRows.Close()
-	if err := goneRows.Err(); err != nil {
-		return nil, nil, err
-	}
-	if len(gone) == 0 {
+	if len(tomb) == 0 {
 		return nil, nil, nil
 	}
-
-	arrivedRows, err := s.Pool().Query(ctx, `
-		SELECT o.source_id, o.locator, o.observation_id, o.observed_at::text,
-		       coalesce(o.content_digest_hex,''), coalesce(o.size_bytes,0)
-		FROM observations o
-		WHERE o.subject_kind = 'file'
-		  AND o.claim_type <> 'artifact.absent'
-		  AND o.seq = (
-		        SELECT min(first.seq) FROM observations first
-		        WHERE first.source_id = o.source_id AND first.locator = o.locator
-		          AND first.claim_type <> 'artifact.absent')
-		ORDER BY o.seq`)
+	var gone []Gone
+	for _, t := range tomb {
+		gone = append(gone, Gone{SourceID: t.SourceID, Locator: t.Locator, Digest: t.Digest,
+			Size: t.Size, ObsID: t.ObsID, Pass: t.Pass})
+	}
+	arr, err := s.Arrivals(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer arrivedRows.Close()
-
 	var arrived []Arrived
-	for arrivedRows.Next() {
-		var a Arrived
-		if err := arrivedRows.Scan(&a.SourceID, &a.Locator, &a.ObsID, &a.Pass, &a.Digest, &a.Size); err != nil {
-			return nil, nil, err
-		}
-		arrived = append(arrived, a)
+	for _, a := range arr {
+		arrived = append(arrived, Arrived{SourceID: a.SourceID, Locator: a.Locator, Digest: a.Digest,
+			Size: a.Size, ObsID: a.ObsID, Pass: a.Pass})
 	}
-	return gone, arrived, arrivedRows.Err()
+	return gone, arrived, nil
 }
 
 // ProjectRenames detects renames and stores them as relations.
@@ -250,27 +219,18 @@ func ProjectRenames(ctx context.Context, s *store.Store) (RenameReport, error) {
 		return rep, nil
 	}
 
-	tx, err := s.Pool().Begin(ctx)
-	if err != nil {
-		return rep, err
-	}
-	defer tx.Rollback(ctx)
-
+	var rels []store.RelationRow
 	for _, c := range rep.Calls {
-		relID := "rel_" + shortHash(c.Type, c.To.SourceID+"\x00"+c.To.Locator,
-			c.From.SourceID+"\x00"+c.From.Locator, c.To.Pass)
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO relations (identity_policy_version, relation_id, type,
-				from_source, from_locator, to_source, to_locator,
-				precedence, actor_kind, actor_id, evidence, confidence, explanation)
-			VALUES (NULL,$1,$2,$3,$4,$5,$6,'gyst_suggestion','suggestion','rename-detector/1',$7,$8,$9)
-			ON CONFLICT (relation_id) DO NOTHING`,
-			relID, c.Type,
+		rels = append(rels, store.RelationRow{
+			RelationID: "rel_" + shortHash(c.Type, c.To.SourceID+"\x00"+c.To.Locator,
+				c.From.SourceID+"\x00"+c.From.Locator, c.To.Pass),
+			Type: c.Type,
 			// from is the new locator, to is where it came from: "B renamed-from A".
-			c.To.SourceID, c.To.Locator, c.From.SourceID, c.From.Locator,
-			[]string{c.To.ObsID, c.From.ObsID}, c.Confidence, c.Reason); err != nil {
-			return rep, err
-		}
+			FromSource: c.To.SourceID, FromLocator: c.To.Locator,
+			ToSource:   c.From.SourceID, ToLocator: c.From.Locator,
+			Precedence: "gyst_suggestion", ActorKind: "suggestion", ActorID: "rename-detector/1",
+			Evidence:   []string{c.To.ObsID, c.From.ObsID}, Confidence: c.Confidence, Explanation: c.Reason,
+		})
 	}
-	return rep, tx.Commit(ctx)
+	return rep, s.InsertRelations(ctx, rels)
 }

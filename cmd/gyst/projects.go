@@ -16,44 +16,31 @@ func cmdProjects(ctx context.Context, args []string) error {
 	}
 	defer s.Close()
 
-	rows, err := s.Pool().Query(ctx, `
-		SELECT p.project_id, p.name, p.basis, p.confidence, p.explanation,
-		       (SELECT count(*) FROM file_projects fp WHERE fp.project_id=p.project_id),
-		       (SELECT count(DISTINCT fp.source_id) FROM file_projects fp WHERE fp.project_id=p.project_id),
-		       (SELECT string_agg(m.source_id || ':' || m.pattern, '  ' ORDER BY m.source_id, m.pattern)
-		          FROM project_members m WHERE m.project_id=p.project_id)
-		FROM projects p
-		ORDER BY p.basis, p.name`)
+	rows, err := s.ProjectSummaries(ctx)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "PROJECT\tNAME\tBASIS\tCONF\tFILES\tSOURCES\tMEMBERS")
-	n := 0
-	var notes []string
-	for rows.Next() {
-		var id, name, basis, explanation string
-		var conf float64
-		var files, sources int64
-		var members *string
-		if err := rows.Scan(&id, &name, &basis, &conf, &explanation, &files, &sources, &members); err != nil {
-			return err
-		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%.2f\t%d\t%d\t%s\n",
-			id, name, basis, conf, files, sources, derefStr(members, "-"))
-		notes = append(notes, fmt.Sprintf("%-14s %s", id, wrap(explanation, 64, strings.Repeat(" ", 15))))
-		n++
-	}
-	w.Flush()
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	if n == 0 {
+	if len(rows) == 0 {
 		fmt.Println("no projects: no manifest or marker evidence has been observed")
 		return nil
 	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "PROJECT\tNAME\tBASIS\tCONF\tFILES\tSOURCES\tMEMBERS")
+	var notes []string
+	for _, p := range rows {
+		var members []string
+		for _, m := range p.Members {
+			members = append(members, m.SourceID+":"+m.Pattern)
+		}
+		ms := strings.Join(members, "  ")
+		if ms == "" {
+			ms = "-"
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%.2f\t%d\t%d\t%s\n",
+			p.ProjectID, p.Name, p.Basis, p.Confidence, p.FileCount, len(p.SourceIDs), ms)
+		notes = append(notes, fmt.Sprintf("%-14s %s", p.ProjectID, wrap(p.Explanation, 64, strings.Repeat(" ", 15))))
+	}
+	w.Flush()
 	fmt.Println()
 	for _, l := range notes {
 		fmt.Println(l)

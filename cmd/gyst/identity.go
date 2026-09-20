@@ -227,28 +227,17 @@ func identityStatus(ctx context.Context) error {
 	}
 	fmt.Printf("active policy %s (profile %s)\n", version, profile)
 
-	rows, err := s.Pool().Query(ctx, `
-		SELECT a.grouping_key, a.member_count, a.confidence
-		FROM artifacts a WHERE a.identity_policy_version=$1 AND a.member_count > 1
-		ORDER BY a.confidence, a.grouping_key`, version)
+	rows, err := s.AmbiguousArtifacts(ctx, version)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "CONF\tMEMBERS\tARTIFACT")
-	for rows.Next() {
-		var key string
-		var n int
-		var conf float64
-		if err := rows.Scan(&key, &n, &conf); err != nil {
-			return err
-		}
-		fmt.Fprintf(w, "%.2f\t%d\t%s\n", conf, n, key)
+	for _, a := range rows {
+		fmt.Fprintf(w, "%.2f\t%d\t%s\n", a.Confidence, a.MemberCount, a.GroupingKey)
 	}
 	w.Flush()
-	return rows.Err()
+	return nil
 }
 
 func countMembers(p *identity.Plan) int {

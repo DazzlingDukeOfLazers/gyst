@@ -109,27 +109,15 @@ func cmdGit(ctx context.Context, args []string) error {
 	fmt.Printf("projected  %d commits, %d file touches\n", cs.Commits, cs.Files)
 	fmt.Printf("reconciled %d touches matched a scanned file, %d unmatched\n", cs.Bridged, cs.Orphaned)
 
-	rows, err := s.Pool().Query(ctx, `
-		SELECT native_version_value, claim_payload->>'author', claim_payload->>'message',
-		       jsonb_array_length(coalesce(claim_payload->'changed_paths','[]'::jsonb))
-		FROM observations
-		WHERE source_id=$1 AND claim_type='git.commit'
-		ORDER BY seq DESC LIMIT 10`, sourceID)
+	recent, err := s.RecentCommits(ctx, sourceID, 10)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "\nCOMMIT\tFILES\tAUTHOR\tMESSAGE")
-	for rows.Next() {
-		var oid, author, message string
-		var n int
-		if err := rows.Scan(&oid, &author, &message, &n); err != nil {
-			return err
-		}
-		fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", firstN(oid, 12), n, short(author, 28), short(message, 48))
+	for _, c := range recent {
+		fmt.Fprintf(w, "%s\t%d\t%s\t%s\n", firstN(c.OID, 12), c.Files, short(c.Author, 28), short(c.Message, 48))
 	}
 	w.Flush()
-	return rows.Err()
+	return nil
 }

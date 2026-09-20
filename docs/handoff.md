@@ -5,6 +5,13 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: confidences in the report are exact now
+
+Small but visible: every `confidence` in the report is now a clean
+decimal (0.6, 0.88), where a few were float32 artefacts like
+0.6000000238. Migration 0010 stores them as double precision. No shape
+change. This fell out of drawing the store boundary (ADR 004 stage 1).
+
 ## 2026-09-20 — Claude: authority is its own claim now
 
 Done, in `migrations/0009_assertions_authority.sql`, `internal/authority`,

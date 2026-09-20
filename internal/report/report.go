@@ -13,12 +13,10 @@ package report
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
-	"github.com/DazzlingDukeOfLazers/gyst/internal/identity"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/observe"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
@@ -268,12 +266,12 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 			"whoever holds this file holds all of it.",
 	}}
 
-	polVersion, profile, err := identity.ActivePolicy(ctx, s)
+	polVersion, profile, err := s.ActivePolicy(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if polVersion != "" {
-		doc.Report.IdentityPolicy = &IdentityPolicy{Version: polVersion, Profile: string(profile)}
+		doc.Report.IdentityPolicy = &IdentityPolicy{Version: polVersion, Profile: profile}
 	}
 
 	if doc.Sources, err = sources(ctx, s, now); err != nil {
@@ -330,8 +328,8 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 			c.Placeholders++
 		}
 	}
-	var n int64
-	if err := s.Pool().QueryRow(ctx, `SELECT count(*) FROM observations`).Scan(&n); err != nil {
+	n, err := s.Count(ctx)
+	if err != nil {
 		return nil, err
 	}
 	c.Observations = int(n)
@@ -341,35 +339,20 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 // attachAuthority joins the resolved authority state onto every present
 // file and counts the states.
 func attachAuthority(ctx context.Context, s *store.Store, doc *Document) error {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT source_id, locator, state, basis, authority_source, authority_locator,
-		       confidence, evidence, assertion_id, explanation FROM file_authority`)
+	rows, err := s.AllFileAuthority(ctx)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-	byKey := map[authority.Key]*authority.Authority{}
-	for rows.Next() {
-		var k authority.Key
-		var a authority.Authority
-		var ofSrc, ofLoc, astID *string
-		if err := rows.Scan(&k.SourceID, &k.Locator, &a.State, &a.Basis, &ofSrc, &ofLoc,
-			&a.Confidence, &a.Evidence, &astID, &a.Explanation); err != nil {
-			return err
-		}
-		if ofSrc != nil {
-			a.Of = &authority.Key{SourceID: *ofSrc, Locator: *ofLoc}
-		}
-		if astID != nil {
-			a.AssertionID = *astID
-		}
-		byKey[k] = &a
+	byKey := map[authority.Key]authority.Authority{}
+	for _, r := range rows {
+		byKey[authority.Key{SourceID: r.SourceID, Locator: r.Locator}] = authority.FromRow(r)
 	}
 	c := &doc.Report.Counts
 	for i := range doc.Files {
 		f := &doc.Files[i]
-		if a := byKey[authority.Key{SourceID: f.SourceID, Locator: f.Locator}]; a != nil {
-			f.Authority = a
+		if a, ok := byKey[authority.Key{SourceID: f.SourceID, Locator: f.Locator}]; ok {
+			a := a
+			f.Authority = &a
 			switch a.State {
 			case authority.StateDeclared:
 				c.AuthorityDeclared++
@@ -382,7 +365,7 @@ func attachAuthority(ctx context.Context, s *store.Store, doc *Document) error {
 			}
 		}
 	}
-	return rows.Err()
+	return nil
 }
 
 func sources(ctx context.Context, s *store.Store, now time.Time) ([]Source, error) {
@@ -402,9 +385,8 @@ func sources(ctx context.Context, s *store.Store, now time.Time) ([]Source, erro
 	for _, p := range passes {
 		row := byID[p.SourceID]
 		src := Source{SourceID: p.SourceID, Kind: p.Kind, Root: row.Root, Location: row.Location}
-		var cadence int
-		if err := s.Pool().QueryRow(ctx,
-			`SELECT cadence_seconds FROM sources WHERE source_id=$1`, p.SourceID).Scan(&cadence); err != nil {
+		cadence, err := s.SourceCadence(ctx, p.SourceID)
+		if err != nil {
 			return nil, err
 		}
 		cd := time.Duration(cadence) * time.Second
@@ -425,15 +407,10 @@ func sources(ctx context.Context, s *store.Store, now time.Time) ([]Source, erro
 			src.Freshness.AgeSeconds = &secs
 		}
 		src.Freshness.State = Classify(p.Status, age, cd)
-		if err := s.Pool().QueryRow(ctx,
-			`SELECT count(*) FROM current_files WHERE source_id=$1 AND present`, p.SourceID).Scan(&src.FilesPresent); err != nil {
+		if src.FilesPresent, err = s.CountPresentFiles(ctx, p.SourceID); err != nil {
 			return nil, err
 		}
-		if err := s.Pool().QueryRow(ctx, `
-			SELECT count(*) FROM findings f
-			WHERE f.status IN ('open','acknowledged')
-			  AND EXISTS (SELECT 1 FROM jsonb_array_elements(f.subjects) sj
-			              WHERE sj->'location'->>'source_id' = $1)`, p.SourceID).Scan(&src.FindingsOpen); err != nil {
+		if src.FindingsOpen, err = s.CountOpenFindings(ctx, p.SourceID); err != nil {
 			return nil, err
 		}
 		out = append(out, src)
@@ -442,139 +419,117 @@ func sources(ctx context.Context, s *store.Store, now time.Time) ([]Source, erro
 }
 
 func projects(ctx context.Context, s *store.Store) ([]Project, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT p.project_id, p.name, p.description, p.basis, p.confidence, p.explanation, p.evidence,
-		       (SELECT count(*) FROM file_projects fp WHERE fp.project_id=p.project_id),
-		       (SELECT coalesce(array_agg(DISTINCT fp.source_id ORDER BY fp.source_id), '{}')
-		          FROM file_projects fp WHERE fp.project_id=p.project_id),
-		       (SELECT coalesce(json_agg(json_build_object(
-		            'source_id', m.source_id, 'pattern', m.pattern, 'basis', m.basis,
-		            'confidence', m.confidence, 'evidence', m.evidence) ORDER BY m.source_id, m.pattern), '[]')
-		          FROM project_members m WHERE m.project_id=p.project_id)
-		FROM projects p ORDER BY p.basis, p.name, p.project_id`)
+	rows, err := s.ProjectSummaries(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := []Project{}
-	for rows.Next() {
-		var p Project
-		var members []byte
-		if err := rows.Scan(&p.ProjectID, &p.Name, &p.Description, &p.Basis, &p.Confidence, &p.Explanation,
-			&p.Evidence, &p.FileCount, &p.SourceIDs, &members); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(members, &p.Members); err != nil {
-			return nil, err
+	out := make([]Project, 0, len(rows))
+	for _, r := range rows {
+		p := Project{ProjectID: r.ProjectID, Name: r.Name, Description: r.Description, Basis: r.Basis,
+			Confidence: r.Confidence, Explanation: r.Explanation, Evidence: r.Evidence,
+			FileCount: r.FileCount, SourceIDs: r.SourceIDs, Members: []Member{}}
+		for _, m := range r.Members {
+			p.Members = append(p.Members, Member{SourceID: m.SourceID, Pattern: m.Pattern, Basis: m.Basis,
+				Confidence: m.Confidence, Evidence: m.Evidence})
 		}
 		out = append(out, p)
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func files(ctx context.Context, s *store.Store, policy string) ([]File, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT cf.source_id, cf.locator, cf.present, cf.size_bytes, cf.content_digest_hex,
-		       cf.native_version_value, cf.observed_at, o.observation_id,
-		       coalesce(o.policy->>'content_level',''),
-		       coalesce((o.claim_payload->>'placeholder')::boolean, false),
-		       (SELECT coalesce(json_agg(json_build_object(
-		            'project_id', fp.project_id, 'basis', fp.basis,
-		            'confidence', fp.confidence, 'pattern', fp.pattern) ORDER BY fp.confidence DESC, fp.project_id), '[]')
-		          FROM file_projects fp WHERE fp.source_id=cf.source_id AND fp.locator=cf.locator),
-		       m.artifact_id, a.grouping_key, m.version_label, m.is_current, m.rule, m.confidence, m.explanation
-		FROM current_files cf
-		JOIN observations o ON o.seq = cf.latest_seq
-		LEFT JOIN artifact_members m ON m.identity_policy_version = $1
-		     AND m.source_id = cf.source_id AND m.locator = cf.locator
-		LEFT JOIN artifacts a ON a.identity_policy_version = m.identity_policy_version
-		     AND a.artifact_id = m.artifact_id
-		ORDER BY cf.source_id, cf.locator`, policy)
+	inv, err := s.Inventory(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := []File{}
-	for rows.Next() {
-		var f File
-		var digest *string
-		var projects []byte
-		var g Grouping
-		var artifactID, groupingKey, rule, explanation *string
-		var isCurrent *bool
-		var conf *float64
-		if err := rows.Scan(&f.SourceID, &f.Locator, &f.Present, &f.SizeBytes, &digest,
-			&f.NativeVersion, &f.ObservedAt, &f.ObservationID, &f.ContentLevel, &f.Placeholder, &projects,
-			&artifactID, &groupingKey, &g.VersionLabel, &isCurrent, &rule, &conf, &explanation); err != nil {
+	fps, err := s.AllFileProjects(ctx)
+	if err != nil {
+		return nil, err
+	}
+	projectsOf := map[string][]FileProject{}
+	for _, fp := range fps {
+		k := fp.SourceID + "\x00" + fp.Locator
+		projectsOf[k] = append(projectsOf[k], FileProject{ProjectID: fp.ProjectID, Basis: fp.Basis,
+			Confidence: fp.Confidence, Pattern: fp.Pattern})
+	}
+	groupingOf := map[string]*Grouping{}
+	if policy != "" {
+		arts, err := s.Artifacts(ctx, policy)
+		if err != nil {
 			return nil, err
 		}
-		if digest != nil {
-			f.ContentDigest = &observe.Digest{Algo: "sha256", Hex: *digest}
+		keyOf := map[string]string{}
+		for _, a := range arts {
+			keyOf[a.ArtifactID] = a.GroupingKey
 		}
-		if err := json.Unmarshal(projects, &f.Projects); err != nil {
+		members, err := s.ArtifactMembers(ctx, policy)
+		if err != nil {
 			return nil, err
 		}
-		if artifactID != nil {
-			g.ArtifactID, g.GroupingKey, g.Rule, g.Explanation = *artifactID, *groupingKey, *rule, *explanation
-			g.IsCurrent, g.Confidence = *isCurrent, *conf
-			f.Grouping = &g
+		for _, m := range members {
+			groupingOf[m.SourceID+"\x00"+m.Locator] = &Grouping{ArtifactID: m.ArtifactID, GroupingKey: keyOf[m.ArtifactID],
+				VersionLabel: m.VersionLabel, IsCurrent: m.IsCurrent, Rule: m.Rule, Confidence: m.Confidence, Explanation: m.Explanation}
 		}
+	}
+	out := make([]File, 0, len(inv))
+	for _, r := range inv {
+		f := File{SourceID: r.SourceID, Locator: r.Locator, Present: r.Present, SizeBytes: r.Size,
+			NativeVersion: r.NativeVersion, ObservedAt: r.ObservedAt, ObservationID: r.ObsID,
+			ContentLevel: r.ContentLevel, Placeholder: r.Placeholder, Projects: []FileProject{}}
+		if r.Digest != nil {
+			f.ContentDigest = &observe.Digest{Algo: "sha256", Hex: *r.Digest}
+		}
+		k := r.SourceID + "\x00" + r.Locator
+		if ps := projectsOf[k]; ps != nil {
+			f.Projects = ps
+		}
+		f.Grouping = groupingOf[k]
 		out = append(out, f)
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func artifacts(ctx context.Context, s *store.Store, policy string) ([]Artifact, error) {
 	if policy == "" {
 		return []Artifact{}, nil
 	}
-	rows, err := s.Pool().Query(ctx, `
-		SELECT a.artifact_id, a.source_id, a.grouping_key, a.member_count, a.confidence,
-		       (SELECT coalesce(json_agg(json_build_object(
-		            'locator', m.locator, 'version_label', m.version_label, 'is_current', m.is_current,
-		            'rule', m.rule, 'confidence', m.confidence, 'explanation', m.explanation) ORDER BY m.locator), '[]')
-		          FROM artifact_members m WHERE m.identity_policy_version=a.identity_policy_version
-		           AND m.artifact_id=a.artifact_id)
-		FROM artifacts a WHERE a.identity_policy_version=$1
-		ORDER BY a.source_id, a.grouping_key`, policy)
+	arts, err := s.Artifacts(ctx, policy)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := []Artifact{}
-	for rows.Next() {
-		var a Artifact
-		var members []byte
-		if err := rows.Scan(&a.ArtifactID, &a.SourceID, &a.GroupingKey, &a.MemberCount, &a.Confidence, &members); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(members, &a.Members); err != nil {
-			return nil, err
-		}
-		out = append(out, a)
+	members, err := s.ArtifactMembers(ctx, policy)
+	if err != nil {
+		return nil, err
 	}
-	return out, rows.Err()
+	byArtifact := map[string][]ArtifactMember{}
+	for _, m := range members {
+		byArtifact[m.ArtifactID] = append(byArtifact[m.ArtifactID], ArtifactMember{Locator: m.Locator,
+			VersionLabel: m.VersionLabel, IsCurrent: m.IsCurrent, Rule: m.Rule, Confidence: m.Confidence, Explanation: m.Explanation})
+	}
+	out := make([]Artifact, 0, len(arts))
+	for _, a := range arts {
+		ms := byArtifact[a.ArtifactID]
+		if ms == nil {
+			ms = []ArtifactMember{}
+		}
+		out = append(out, Artifact{ArtifactID: a.ArtifactID, SourceID: a.SourceID, GroupingKey: a.GroupingKey,
+			MemberCount: a.MemberCount, Confidence: a.Confidence, Members: ms})
+	}
+	return out, nil
 }
 
 func relations(ctx context.Context, s *store.Store) ([]Relation, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT relation_id, type, from_source, from_locator, to_source, to_locator,
-		       precedence, actor_kind, actor_id, evidence, confidence, explanation, asserted_at,
-		       identity_policy_version
-		FROM relations ORDER BY type, from_source, from_locator, to_locator`)
+	rows, err := s.AllRelations(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := []Relation{}
-	for rows.Next() {
-		var r Relation
-		if err := rows.Scan(&r.RelationID, &r.Type, &r.From.SourceID, &r.From.Locator,
-			&r.To.SourceID, &r.To.Locator, &r.Precedence, &r.Actor.Kind, &r.Actor.ID,
-			&r.Evidence, &r.Confidence, &r.Explanation, &r.AssertedAt, &r.IdentityPolicy); err != nil {
-			return nil, err
-		}
-		out = append(out, r)
+	out := make([]Relation, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, Relation{RelationID: r.RelationID, Type: r.Type,
+			From: Endpoint{r.FromSource, r.FromLocator}, To: Endpoint{r.ToSource, r.ToLocator},
+			Precedence: r.Precedence, Actor: observe.Actor{Kind: r.ActorKind, ID: r.ActorID},
+			Evidence: r.Evidence, Confidence: r.Confidence, Explanation: r.Explanation,
+			AssertedAt: r.AssertedAt, IdentityPolicy: r.PolicyVersion})
 	}
-	return out, rows.Err()
+	return out, nil
 }
