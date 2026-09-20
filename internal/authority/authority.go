@@ -190,14 +190,20 @@ func resolveOne(f File, byDigest map[string][]Key, groupOf map[Key]*Group,
 		}
 	}
 
-	// 3. Several candidates, nothing to choose between them.
+	// 3. Several candidates, nothing to choose between them. Peers in
+	// another source are named with it, or the same path three times over
+	// reads as one file listed thrice.
 	if len(sorted) > 1 {
 		names := make([]string, 0, len(sorted))
 		for _, k := range sorted {
 			if _, no := denied[k]; no {
 				continue
 			}
-			names = append(names, k.Locator)
+			if k.SourceID == f.SourceID {
+				names = append(names, k.Locator)
+			} else {
+				names = append(names, k.String())
+			}
 		}
 		if len(names) == 1 {
 			// Everything else was ruled out by a person. The remaining one

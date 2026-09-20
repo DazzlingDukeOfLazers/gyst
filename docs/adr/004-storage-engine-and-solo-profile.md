@@ -85,7 +85,9 @@ Option A, in four stages, each a pull request that leaves the tree working:
    `internal/store`, one method per statement, with no behaviour change.
    `gyst verify` and a byte-equal fixture report before and after are the
    check. This stage has value on its own: it is where the pass-id and
-   retention work will also need to sit.
+   retention work will also need to sit. *Done 2026-09-20; see
+   `docs/day-13-notes.md`. Old and new binaries produce identical reports
+   on the same database.*
 2. **Portable where cheap.** Rewrite statements that have a portable
    spelling with no cost on PostgreSQL. Arrays become JSON text; `now()`
    moves to the application clock, which the pass work already began.

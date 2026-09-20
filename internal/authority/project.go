@@ -4,12 +4,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/DazzlingDukeOfLazers/gyst/internal/identity"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
-	"github.com/jackc/pgx/v5"
 )
 
 // Stats counts files by resolved state.
@@ -25,29 +24,22 @@ func Project(ctx context.Context, s *store.Store) (Stats, error) {
 	}
 	res := Resolve(in)
 
-	tx, err := s.Pool().Begin(ctx)
-	if err != nil {
-		return st, err
-	}
-	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx, `DELETE FROM file_authority`); err != nil {
-		return st, err
-	}
-	batch := &pgx.Batch{}
+	rows := make([]store.FileAuthorityRow, 0, len(in.Files))
 	for _, f := range in.Files {
 		a := res[f.Key]
-		var ofSrc, ofLoc *string
+		row := store.FileAuthorityRow{
+			SourceID: f.SourceID, Locator: f.Locator, State: a.State, Basis: a.Basis,
+			Confidence: a.Confidence, Evidence: a.Evidence, Explanation: a.Explanation,
+		}
 		if a.Of != nil {
-			ofSrc, ofLoc = &a.Of.SourceID, &a.Of.Locator
+			src, loc := a.Of.SourceID, a.Of.Locator
+			row.AuthoritySource, row.AuthorityLocator = &src, &loc
 		}
-		var astID *string
 		if a.AssertionID != "" {
-			astID = &a.AssertionID
+			id := a.AssertionID
+			row.AssertionID = &id
 		}
-		batch.Queue(`INSERT INTO file_authority (source_id, locator, state, basis, authority_source,
-			authority_locator, confidence, evidence, assertion_id, explanation)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-			f.SourceID, f.Locator, a.State, a.Basis, ofSrc, ofLoc, a.Confidence, a.Evidence, astID, a.Explanation)
+		rows = append(rows, row)
 		switch a.State {
 		case StateDeclared:
 			st.Declared++
@@ -59,82 +51,48 @@ func Project(ctx context.Context, s *store.Store) (Stats, error) {
 			st.None++
 		}
 	}
-	r := tx.SendBatch(ctx, batch)
-	for range in.Files {
-		if _, err := r.Exec(); err != nil {
-			r.Close()
-			return st, err
-		}
-	}
-	if err := r.Close(); err != nil {
-		return st, err
-	}
-	return st, tx.Commit(ctx)
+	return st, s.ReplaceFileAuthority(ctx, rows)
 }
 
 func load(ctx context.Context, s *store.Store) (Input, error) {
 	var in Input
-	rows, err := s.Pool().Query(ctx, `
-		SELECT cf.source_id, cf.locator, coalesce(cf.content_digest_hex,''), o.observation_id
-		FROM current_files cf JOIN observations o ON o.seq=cf.latest_seq
-		WHERE cf.present ORDER BY cf.source_id, cf.locator`)
+	present, err := s.PresentFiles(ctx)
 	if err != nil {
 		return in, err
 	}
-	for rows.Next() {
-		var f File
-		if err := rows.Scan(&f.SourceID, &f.Locator, &f.Digest, &f.ObsID); err != nil {
-			rows.Close()
-			return in, err
-		}
-		in.Files = append(in.Files, f)
+	for _, f := range present {
+		in.Files = append(in.Files, File{Key: Key{f.SourceID, f.Locator}, Digest: f.Digest, ObsID: f.ObsID})
 	}
-	rows.Close()
 
-	policy, _, err := identity.ActivePolicy(ctx, s)
+	policy, _, err := s.ActivePolicy(ctx)
 	if err != nil {
 		return in, err
 	}
 	if policy != "" {
-		rows, err = s.Pool().Query(ctx, `
-			SELECT artifact_id, source_id, locator, is_current, confidence, rule
-			FROM artifact_members WHERE identity_policy_version=$1
-			ORDER BY artifact_id, locator`, policy)
+		members, err := s.ArtifactMembers(ctx, policy)
 		if err != nil {
 			return in, err
 		}
 		var cur *Group
-		for rows.Next() {
-			var id string
-			var m Member
-			if err := rows.Scan(&id, &m.SourceID, &m.Locator, &m.IsCurrent, &m.Confidence, &m.Rule); err != nil {
-				rows.Close()
-				return in, err
-			}
-			if cur == nil || cur.ArtifactID != id {
-				in.Groups = append(in.Groups, Group{ArtifactID: id})
+		for _, m := range members {
+			if cur == nil || cur.ArtifactID != m.ArtifactID {
+				in.Groups = append(in.Groups, Group{ArtifactID: m.ArtifactID})
 				cur = &in.Groups[len(in.Groups)-1]
 			}
-			cur.Members = append(cur.Members, m)
+			cur.Members = append(cur.Members, Member{Key: Key{m.SourceID, m.Locator},
+				IsCurrent: m.IsCurrent, Confidence: m.Confidence, Rule: m.Rule})
 		}
-		rows.Close()
 	}
 
-	rows, err = s.Pool().Query(ctx, `
-		SELECT assertion_id, kind, source_id, locator, actor_id, reason, evidence
-		FROM assertions WHERE retracted_at IS NULL ORDER BY asserted_at`)
+	asts, err := s.ListAssertions(ctx, false)
 	if err != nil {
 		return in, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var a Assertion
-		if err := rows.Scan(&a.ID, &a.Kind, &a.Subject.SourceID, &a.Subject.Locator, &a.ActorID, &a.Reason, &a.Evidence); err != nil {
-			return in, err
-		}
-		in.Assertions = append(in.Assertions, a)
+	for _, a := range asts {
+		in.Assertions = append(in.Assertions, Assertion{ID: a.AssertionID, Kind: a.Kind,
+			Subject: Key{a.SourceID, a.Locator}, ActorID: a.ActorID, Reason: a.Reason, Evidence: a.Evidence})
 	}
-	return in, rows.Err()
+	return in, nil
 }
 
 // Assert records a person's statement about a file. The subject must be a
@@ -147,21 +105,17 @@ func Assert(ctx context.Context, s *store.Store, kind string, subject Key, by, r
 	if by == "" || reason == "" {
 		return "", fmt.Errorf("an assertion needs who (--by) and why (--reason)")
 	}
-	var obsID string
-	err := s.Pool().QueryRow(ctx, `
-		SELECT o.observation_id FROM current_files cf JOIN observations o ON o.seq=cf.latest_seq
-		WHERE cf.source_id=$1 AND cf.locator=$2 AND cf.present`, subject.SourceID, subject.Locator).Scan(&obsID)
+	f, err := s.PresentFileAt(ctx, subject.SourceID, subject.Locator)
 	if err != nil {
 		return "", fmt.Errorf("%s is not a present file: %w", subject, err)
 	}
 	now := time.Now().UTC()
 	h := sha256.Sum256([]byte(kind + "\x00" + subject.String() + "\x00" + by + "\x00" + now.Format(time.RFC3339Nano)))
 	id := "ast_" + hex.EncodeToString(h[:])[:24]
-	_, err = s.Pool().Exec(ctx, `
-		INSERT INTO assertions (assertion_id, kind, source_id, locator, actor_kind, actor_id, reason, evidence, asserted_at)
-		VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8)`,
-		id, kind, subject.SourceID, subject.Locator, by, reason, []string{obsID}, now)
-	return id, err
+	return id, s.InsertAssertion(ctx, store.AssertionRow{
+		AssertionID: id, Kind: kind, SourceID: subject.SourceID, Locator: subject.Locator,
+		ActorID: by, Reason: reason, Evidence: []string{f.ObsID}, AssertedAt: now,
+	})
 }
 
 // Retract records that an assertion no longer stands. The row remains.
@@ -169,13 +123,11 @@ func Retract(ctx context.Context, s *store.Store, id, by, reason string) error {
 	if by == "" || reason == "" {
 		return fmt.Errorf("a retraction needs who (--by) and why (--reason)")
 	}
-	tag, err := s.Pool().Exec(ctx, `
-		UPDATE assertions SET retracted_at=now(), retracted_by=$2, retract_reason=$3
-		WHERE assertion_id=$1 AND retracted_at IS NULL`, id, by, reason)
+	ok, err := s.RetractAssertion(ctx, id, by, reason)
 	if err != nil {
 		return err
 	}
-	if tag.RowsAffected() == 0 {
+	if !ok {
 		return fmt.Errorf("no active assertion %s", id)
 	}
 	return nil
@@ -191,45 +143,43 @@ type Row struct {
 }
 
 func List(ctx context.Context, s *store.Store, all bool) ([]Row, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT assertion_id, kind, source_id, locator, actor_id, reason, evidence,
-		       asserted_at, retracted_at, retracted_by, retract_reason
-		FROM assertions WHERE $1 OR retracted_at IS NULL ORDER BY asserted_at`, all)
+	rows, err := s.ListAssertions(ctx, all)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var out []Row
-	for rows.Next() {
-		var r Row
-		if err := rows.Scan(&r.ID, &r.Kind, &r.Subject.SourceID, &r.Subject.Locator, &r.ActorID, &r.Reason,
-			&r.Evidence, &r.AssertedAt, &r.RetractedAt, &r.RetractedBy, &r.RetractReason); err != nil {
-			return nil, err
-		}
-		out = append(out, r)
+	out := make([]Row, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, Row{
+			Assertion: Assertion{ID: r.AssertionID, Kind: r.Kind, Subject: Key{r.SourceID, r.Locator},
+				ActorID: r.ActorID, Reason: r.Reason, Evidence: r.Evidence},
+			AssertedAt: r.AssertedAt, RetractedAt: r.RetractedAt, RetractedBy: r.RetractedBy, RetractReason: r.RetractReason,
+		})
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
-// Of returns the resolved authority for one file.
+// FromRow converts a stored projection row.
+func FromRow(r store.FileAuthorityRow) Authority {
+	a := Authority{State: r.State, Basis: r.Basis, Confidence: r.Confidence, Evidence: r.Evidence, Explanation: r.Explanation}
+	if r.AuthoritySource != nil {
+		a.Of = &Key{*r.AuthoritySource, *r.AuthorityLocator}
+	}
+	if r.AssertionID != nil {
+		a.AssertionID = *r.AssertionID
+	}
+	return a
+}
+
+// Of returns the resolved authority for one file, or nil when the
+// projection has not run for it.
 func Of(ctx context.Context, s *store.Store, key Key) (*Authority, error) {
-	var a Authority
-	var ofSrc, ofLoc, astID *string
-	err := s.Pool().QueryRow(ctx, `
-		SELECT state, basis, authority_source, authority_locator, confidence, evidence, assertion_id, explanation
-		FROM file_authority WHERE source_id=$1 AND locator=$2`, key.SourceID, key.Locator).
-		Scan(&a.State, &a.Basis, &ofSrc, &ofLoc, &a.Confidence, &a.Evidence, &astID, &a.Explanation)
-	if err == pgx.ErrNoRows {
+	r, err := s.FileAuthority(ctx, key.SourceID, key.Locator)
+	if errors.Is(err, store.ErrNotFound) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	if ofSrc != nil {
-		a.Of = &Key{*ofSrc, *ofLoc}
-	}
-	if astID != nil {
-		a.AssertionID = *astID
-	}
+	a := FromRow(r)
 	return &a, nil
 }

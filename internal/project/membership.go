@@ -10,7 +10,6 @@ import (
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/manifest"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
-	"github.com/jackc/pgx/v5"
 )
 
 // Membership bases, in precedence order. See migrations/0007_projects.sql.
@@ -183,81 +182,51 @@ func ProjectMembership(ctx context.Context, s *store.Store) (MembershipStats, er
 	st.Projects, st.InvalidManifests, st.SuppressedMarkers =
 		len(plan.Projects), plan.InvalidManifests, plan.SuppressedMarkers
 
-	files, err := currentFiles(ctx, s)
+	files, err := s.PresentFiles(ctx)
 	if err != nil {
 		return st, err
 	}
 
-	tx, err := s.Pool().Begin(ctx)
-	if err != nil {
-		return st, err
-	}
-	defer tx.Rollback(ctx)
-
-	if _, err := tx.Exec(ctx, `DELETE FROM projects`); err != nil {
-		return st, err
-	}
-	batch := &pgx.Batch{}
-	n := 0
+	var projects []store.ProjectRow
+	var members []store.ProjectMemberRow
+	var fileRows []store.FileProjectRow
 	for _, p := range plan.Projects {
-		batch.Queue(`INSERT INTO projects (project_id, name, description, basis, source_id, locator,
-			evidence, confidence, explanation) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-			p.ID, p.Name, p.Description, p.Basis, p.SourceID, p.Locator, p.Evidence, p.Confidence, p.Explanation)
-		n++
+		projects = append(projects, store.ProjectRow{
+			ProjectID: p.ID, Name: p.Name, Description: p.Description, Basis: p.Basis,
+			SourceID: p.SourceID, Locator: p.Locator, Evidence: p.Evidence,
+			Confidence: p.Confidence, Explanation: p.Explanation,
+		})
 		for _, m := range p.Members {
-			batch.Queue(`INSERT INTO project_members (project_id, source_id, pattern, basis, confidence, evidence)
-				VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-				p.ID, m.SourceID, m.Pattern, m.Basis, m.Confidence, m.Evidence)
-			n++
+			members = append(members, store.ProjectMemberRow{
+				ProjectID: p.ID, SourceID: m.SourceID, Pattern: m.Pattern, Basis: m.Basis,
+				Evidence: m.Evidence, Confidence: m.Confidence,
+			})
 			for _, f := range files {
-				if f.source != m.SourceID || !manifest.Match(m.Pattern, f.locator) {
+				if f.SourceID != m.SourceID || !manifest.Match(m.Pattern, f.Locator) {
 					continue
 				}
-				batch.Queue(`INSERT INTO file_projects (source_id, locator, project_id, basis, confidence, pattern)
-					VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-					f.source, f.locator, p.ID, m.Basis, m.Confidence, m.Pattern)
-				n++
+				fileRows = append(fileRows, store.FileProjectRow{
+					SourceID: f.SourceID, Locator: f.Locator, ProjectID: p.ID,
+					Basis: m.Basis, Pattern: m.Pattern, Confidence: m.Confidence,
+				})
 				st.FileMemberships++
 			}
 		}
 	}
-	res := tx.SendBatch(ctx, batch)
-	for i := 0; i < n; i++ {
-		if _, err := res.Exec(); err != nil {
-			res.Close()
-			return st, err
-		}
-	}
-	if err := res.Close(); err != nil {
-		return st, err
-	}
-	return st, tx.Commit(ctx)
+	return st, s.ReplaceProjects(ctx, projects, members, fileRows)
 }
 
 // loadManifests returns the latest manifest observation for every manifest
 // file that is currently present. A deleted manifest's project must vanish
 // with it.
 func loadManifests(ctx context.Context, s *store.Store) ([]ManifestEvidence, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT o.source_id, o.locator, o.observation_id, o.claim_payload
-		FROM (
-			SELECT DISTINCT ON (source_id, locator) source_id, locator, observation_id, claim_payload
-			FROM observations WHERE claim_type='project.manifest'
-			ORDER BY source_id, locator, seq DESC
-		) o
-		JOIN current_files cf ON cf.source_id=o.source_id AND cf.locator=o.locator AND cf.present
-		ORDER BY o.source_id, o.locator`)
+	rows, err := s.LatestManifests(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var out []ManifestEvidence
-	for rows.Next() {
-		var m ManifestEvidence
-		var payload []byte
-		if err := rows.Scan(&m.SourceID, &m.Locator, &m.ObsID, &payload); err != nil {
-			return nil, err
-		}
+	for _, r := range rows {
+		m := ManifestEvidence{SourceID: r.SourceID, Locator: r.Locator, ObsID: r.ObsID}
 		var p struct {
 			Valid       bool     `json:"valid"`
 			Error       string   `json:"error"`
@@ -266,70 +235,30 @@ func loadManifests(ctx context.Context, s *store.Store) ([]ManifestEvidence, err
 			Description string   `json:"description"`
 			Members     []string `json:"members"`
 		}
-		if err := json.Unmarshal(payload, &p); err != nil {
+		if err := json.Unmarshal(r.Payload, &p); err != nil {
 			return nil, err
 		}
 		m.Valid, m.Error, m.ID, m.Name, m.Description, m.Members =
 			p.Valid, p.Error, p.ID, p.Name, p.Description, p.Members
 		out = append(out, m)
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 // loadMarkers returns the latest marker observation for every folder that
-// still has a present file beneath it. Folders get no tombstones, so a
-// folder with nothing present under it is taken to be gone.
+// still has a present file beneath it.
 func loadMarkers(ctx context.Context, s *store.Store) ([]MarkerEvidence, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT o.source_id, o.locator, o.observation_id, o.claim_payload->'markers'
-		FROM (
-			SELECT DISTINCT ON (source_id, locator) source_id, locator, observation_id, claim_payload
-			FROM observations WHERE claim_type='folder.metadata' AND subject_kind='folder'
-			ORDER BY source_id, locator, seq DESC
-		) o
-		WHERE o.locator = '.' OR EXISTS (
-			SELECT 1 FROM current_files cf
-			WHERE cf.source_id=o.source_id AND cf.present AND cf.locator LIKE o.locator || '/%')
-		ORDER BY o.source_id, o.locator`)
+	rows, err := s.LatestMarkers(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var out []MarkerEvidence
-	for rows.Next() {
-		var m MarkerEvidence
-		var markers []byte
-		if err := rows.Scan(&m.SourceID, &m.Locator, &m.ObsID, &markers); err != nil {
-			return nil, err
-		}
-		if err := json.Unmarshal(markers, &m.Markers); err != nil {
-			return nil, err
-		}
-		if len(m.Markers) > 0 {
-			out = append(out, m)
+	for _, r := range rows {
+		if len(r.Markers) > 0 {
+			out = append(out, MarkerEvidence{SourceID: r.SourceID, Locator: r.Locator, ObsID: r.ObsID, Markers: r.Markers})
 		}
 	}
-	return out, rows.Err()
-}
-
-type fileRow struct{ source, locator string }
-
-func currentFiles(ctx context.Context, s *store.Store) ([]fileRow, error) {
-	rows, err := s.Pool().Query(ctx,
-		`SELECT source_id, locator FROM current_files WHERE present ORDER BY source_id, locator`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out []fileRow
-	for rows.Next() {
-		var f fileRow
-		if err := rows.Scan(&f.source, &f.locator); err != nil {
-			return nil, err
-		}
-		out = append(out, f)
-	}
-	return out, rows.Err()
+	return out, nil
 }
 
 // FileProject is one project a file belongs to.
@@ -340,22 +269,14 @@ type FileProject struct {
 
 // ProjectsOf lists the projects a file belongs to, strongest basis first.
 func ProjectsOf(ctx context.Context, s *store.Store, sourceID, locator string) ([]FileProject, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT fp.project_id, p.name, fp.basis, fp.pattern, fp.confidence
-		FROM file_projects fp JOIN projects p ON p.project_id=fp.project_id
-		WHERE fp.source_id=$1 AND fp.locator=$2
-		ORDER BY fp.confidence DESC, fp.project_id`, sourceID, locator)
+	rows, names, err := s.FileProjectsOf(ctx, sourceID, locator)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var out []FileProject
-	for rows.Next() {
-		var f FileProject
-		if err := rows.Scan(&f.ProjectID, &f.Name, &f.Basis, &f.Pattern, &f.Confidence); err != nil {
-			return nil, err
-		}
-		out = append(out, f)
+	out := make([]FileProject, 0, len(rows))
+	for i, r := range rows {
+		out = append(out, FileProject{ProjectID: r.ProjectID, Name: names[i], Basis: r.Basis,
+			Pattern: r.Pattern, Confidence: r.Confidence})
 	}
-	return out, rows.Err()
+	return out, nil
 }

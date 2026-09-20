@@ -4,11 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"sort"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
-	"github.com/jackc/pgx/v5"
 )
 
 // Member is one locator's place in a grouping, before it is written anywhere.
@@ -59,30 +57,19 @@ type Relation struct {
 
 // Build computes a grouping for every current file, without writing anything.
 func Build(ctx context.Context, s *store.Store, profile Profile, version string) (*Plan, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT c.source_id, c.locator, c.latest_seq, coalesce(c.content_digest_hex,''),
-		       coalesce(o.observation_id,'')
-		FROM current_files c
-		LEFT JOIN observations o ON o.seq = c.latest_seq
-		WHERE c.present
-		ORDER BY c.source_id, c.locator`)
+	files, err := s.PresentFiles(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	byKey := map[string]*Group{}
 	obsID := map[string]string{}
 	var order []string
 
-	for rows.Next() {
-		var m Member
-		var observationID string
-		if err := rows.Scan(&m.SourceID, &m.Locator, &m.LatestSeq, &m.Digest, &observationID); err != nil {
-			return nil, err
-		}
+	for _, f := range files {
+		m := Member{SourceID: f.SourceID, Locator: f.Locator, LatestSeq: f.LatestSeq, Digest: f.Digest}
 		m.Match = Classify(profile, m.Locator)
-		obsID[m.SourceID+"\x00"+m.Locator] = observationID
+		obsID[m.SourceID+"\x00"+m.Locator] = f.ObsID
 
 		key := m.SourceID + "\x00" + m.Match.GroupingKey
 		g, seen := byKey[key]
@@ -101,9 +88,6 @@ func Build(ctx context.Context, s *store.Store, profile Profile, version string)
 			g.Confidence = m.Match.Confidence
 		}
 		g.Members = append(g.Members, m)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	plan := &Plan{Profile: profile, Version: version}
@@ -209,66 +193,31 @@ func relationID(version, relType, fromSource, from, toSource, to string) string 
 // Previously active policies are deactivated but retained, so a release that
 // pinned an earlier interpretation can still resolve it.
 func Apply(ctx context.Context, s *store.Store, plan *Plan) error {
-	tx, err := s.Pool().Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	if _, err := tx.Exec(ctx, `UPDATE identity_policies SET active=FALSE WHERE active`); err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO identity_policies (version, profile, active)
-		VALUES ($1,$2,TRUE)
-		ON CONFLICT (version) DO UPDATE SET profile=EXCLUDED.profile, active=TRUE`,
-		plan.Version, string(plan.Profile)); err != nil {
-		return err
-	}
-
-	// Rebuild this version's grouping from scratch. Cascades clear members and
-	// relations, so a rerun cannot leave stale rows behind.
-	if _, err := tx.Exec(ctx, `DELETE FROM artifacts WHERE identity_policy_version=$1`, plan.Version); err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `DELETE FROM relations WHERE identity_policy_version=$1`, plan.Version); err != nil {
-		return err
-	}
-
+	var artifacts []store.ArtifactRow
+	var members []store.ArtifactMemberRow
 	for _, g := range plan.Groups {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO artifacts (identity_policy_version, artifact_id, source_id,
-			                       grouping_key, member_count, confidence)
-			VALUES ($1,$2,$3,$4,$5,$6)`,
-			plan.Version, g.ArtifactID, g.SourceID, g.GroupingKey, len(g.Members), g.Confidence); err != nil {
-			return err
-		}
+		artifacts = append(artifacts, store.ArtifactRow{
+			ArtifactID: g.ArtifactID, SourceID: g.SourceID, GroupingKey: g.GroupingKey,
+			MemberCount: len(g.Members), Confidence: g.Confidence,
+		})
 		for _, m := range g.Members {
-			if _, err := tx.Exec(ctx, `
-				INSERT INTO artifact_members (identity_policy_version, artifact_id, source_id,
-					locator, latest_seq, version_label, is_current, rule, confidence, explanation)
-				VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-				plan.Version, g.ArtifactID, m.SourceID, m.Locator, m.LatestSeq,
-				nullIfEmpty(m.Match.VersionLabel), m.IsCurrent, m.Match.Rule,
-				m.Match.Confidence, m.Match.Explanation); err != nil {
-				return err
-			}
+			members = append(members, store.ArtifactMemberRow{
+				ArtifactID: g.ArtifactID, SourceID: m.SourceID, Locator: m.Locator, LatestSeq: m.LatestSeq,
+				VersionLabel: nullIfEmpty(m.Match.VersionLabel), IsCurrent: m.IsCurrent,
+				Rule: m.Match.Rule, Confidence: m.Match.Confidence, Explanation: m.Match.Explanation,
+			})
 		}
 	}
-
+	var relations []store.RelationRow
 	for _, r := range plan.Relations {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO relations (identity_policy_version, relation_id, type,
-				from_source, from_locator, to_source, to_locator,
-				precedence, actor_kind, actor_id, evidence, confidence, explanation)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-			plan.Version, r.RelationID, r.Type, r.FromSource, r.FromLocator,
-			r.ToSource, r.ToLocator, r.Precedence, r.ActorKind, r.ActorID,
-			r.Evidence, r.Confidence, r.Explanation); err != nil {
-			return fmt.Errorf("relation %s (%s): %w", r.RelationID, r.Type, err)
-		}
+		relations = append(relations, store.RelationRow{
+			RelationID: r.RelationID, Type: r.Type,
+			FromSource: r.FromSource, FromLocator: r.FromLocator, ToSource: r.ToSource, ToLocator: r.ToLocator,
+			Precedence: r.Precedence, ActorKind: r.ActorKind, ActorID: r.ActorID,
+			Evidence: r.Evidence, Confidence: r.Confidence, Explanation: r.Explanation,
+		})
 	}
-	return tx.Commit(ctx)
+	return s.ApplyIdentityPlan(ctx, plan.Version, string(plan.Profile), artifacts, members, relations)
 }
 
 func nullIfEmpty(s string) *string {
@@ -282,35 +231,11 @@ func nullIfEmpty(s string) *string {
 // profile switch is the day 3 exit criterion: grouping may change, evidence
 // may not.
 func LogFingerprint(ctx context.Context, s *store.Store) (string, int64, error) {
-	rows, err := s.Pool().Query(ctx, `
-		SELECT observation_id, locator, native_version_value,
-		       coalesce(content_digest_hex,''), claim_type
-		FROM observations ORDER BY seq`)
-	if err != nil {
-		return "", 0, err
-	}
-	defer rows.Close()
-
-	h := sha256.New()
-	var n int64
-	for rows.Next() {
-		var id, loc, nv, digest, claim string
-		if err := rows.Scan(&id, &loc, &nv, &digest, &claim); err != nil {
-			return "", 0, err
-		}
-		fmt.Fprintf(h, "%s\x00%s\x00%s\x00%s\x00%s\n", id, loc, nv, digest, claim)
-		n++
-	}
-	return hex.EncodeToString(h.Sum(nil)), n, rows.Err()
+	return s.LogFingerprint(ctx)
 }
 
 // ActivePolicy returns the active policy version and profile.
 func ActivePolicy(ctx context.Context, s *store.Store) (version string, profile Profile, err error) {
-	var p string
-	err = s.Pool().QueryRow(ctx,
-		`SELECT version, profile FROM identity_policies WHERE active`).Scan(&version, &p)
-	if err == pgx.ErrNoRows {
-		return "", "", nil
-	}
-	return version, Profile(p), err
+	v, p, err := s.ActivePolicy(ctx)
+	return v, Profile(p), err
 }

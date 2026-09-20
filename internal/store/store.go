@@ -222,8 +222,6 @@ func (s *Store) Count(ctx context.Context) (int64, error) {
 	return n, err
 }
 
-func (s *Store) Pool() *pgxpool.Pool { return s.pool }
-
 // LoggedFile is one observation as the projector consumes it.
 type LoggedFile struct {
 	Seq        int64

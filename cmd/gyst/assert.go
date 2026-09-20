@@ -131,13 +131,9 @@ func assertList(ctx context.Context, args []string) error {
 // resolveLocator finds one present file by exact locator or suffix, the
 // way explain does, so a person can paste a bare filename.
 func resolveLocator(ctx context.Context, s *store.Store, needle string) (authority.Key, error) {
-	var k authority.Key
-	err := s.Pool().QueryRow(ctx, `
-		SELECT source_id, locator FROM current_files
-		WHERE present AND (locator = $1 OR locator LIKE '%' || $1)
-		ORDER BY length(locator) LIMIT 1`, needle).Scan(&k.SourceID, &k.Locator)
+	f, err := s.FindPresentFile(ctx, needle)
 	if err != nil {
-		return k, fmt.Errorf("no current file matching %q", needle)
+		return authority.Key{}, fmt.Errorf("no current file matching %q", needle)
 	}
-	return k, nil
+	return authority.Key{SourceID: f.SourceID, Locator: f.Locator}, nil
 }

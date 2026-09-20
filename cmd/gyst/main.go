@@ -329,36 +329,22 @@ func cmdChanges(ctx context.Context, args []string) error {
 	defer s.Close()
 
 	cutoff := time.Now().Add(-*since)
-	rows, err := s.Pool().Query(ctx, `
-		SELECT o.observed_at, o.claim_type, o.source_id, o.locator,
-		       coalesce(o.content_digest_hex,'-'), coalesce(o.size_bytes,0)
-		FROM observations o
-		WHERE o.observed_at >= $1
-		ORDER BY o.seq DESC LIMIT $2`, cutoff, *limit)
+	rows, err := s.RecentObservations(ctx, cutoff, *limit)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "WHEN\tCLAIM\tSIZE\tDIGEST\tLOCATOR")
-	n := 0
-	for rows.Next() {
-		var at time.Time
-		var claim, src, loc, digest string
-		var size int64
-		if err := rows.Scan(&at, &claim, &src, &loc, &digest, &size); err != nil {
-			return err
-		}
+	for _, o := range rows {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-			at.Local().Format("15:04:05"), short(claim, 24), humanBytes(size), digest[:min(8, len(digest))], loc)
-		n++
+			o.ObservedAt.Local().Format("15:04:05"), short(o.ClaimType, 24), humanBytes(o.Size),
+			o.Digest[:min(8, len(o.Digest))], o.Locator)
 	}
 	w.Flush()
-	if n == 0 {
+	if len(rows) == 0 {
 		fmt.Printf("no observations in the last %s\n", *since)
 	}
-	return rows.Err()
+	return nil
 }
 
 func cmdProject(ctx context.Context, args []string) error {
@@ -373,11 +359,7 @@ func cmdProject(ctx context.Context, args []string) error {
 	defer s.Close()
 
 	if *rebuild {
-		if _, err := s.Pool().Exec(ctx, `DELETE FROM current_files`); err != nil {
-			return err
-		}
-		if _, err := s.Pool().Exec(ctx,
-			`UPDATE projector_state SET last_seq=0 WHERE projector=$1`, project.Name); err != nil {
+		if err := s.ClearProjection(ctx); err != nil {
 			return err
 		}
 		fmt.Println("projection cleared; replaying from seq 0")
