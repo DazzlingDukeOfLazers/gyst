@@ -5,7 +5,7 @@
       "name": "gyst",
       "version": "0.1.0-dev"
     },
-    "generated_at": "2026-09-20T18:15:14.556848Z",
+    "generated_at": "2026-09-20T18:22:40.955908Z",
     "visibility_scope": "Everything the exporting operator could see. No viewer filtering was applied; whoever holds this file holds all of it.",
     "identity_policy": {
       "version": "ip_suffix-as-identity",
@@ -20,7 +20,11 @@
       "artifacts": 20,
       "relations": 3,
       "findings_open": 1,
-      "observations": 27
+      "observations": 27,
+      "authority_declared": 2,
+      "authority_likely": 0,
+      "authority_multiple": 0,
+      "authority_none": 18
     }
   },
   "sources": [
@@ -37,11 +41,11 @@
       },
       "cadence_seconds": 86400,
       "latest_pass": {
-        "pass_id": "pass_dcf6961d2f10550766d37534",
+        "pass_id": "pass_210a898da4f5680a630fdfb0",
         "status": "complete",
         "detail": "walked to the end of history",
-        "started_at": "2026-09-20T13:15:14.503796-05:00",
-        "finished_at": "2026-09-20T13:15:14.520967-05:00",
+        "started_at": "2026-09-20T13:22:40.889156-05:00",
+        "finished_at": "2026-09-20T13:22:40.907164-05:00",
         "resumed": false,
         "scanned": 2,
         "unchanged": 0,
@@ -71,11 +75,11 @@
       },
       "cadence_seconds": 604800,
       "latest_pass": {
-        "pass_id": "pass_650d2be0936920d48c90552c",
+        "pass_id": "pass_0b2e4ff236a08b95367a010c",
         "status": "complete",
         "detail": "complete unresumed pass with no read errors",
-        "started_at": "2026-09-20T13:15:14.472959-05:00",
-        "finished_at": "2026-09-20T13:15:14.478243-05:00",
+        "started_at": "2026-09-20T13:22:40.849654-05:00",
+        "finished_at": "2026-09-20T13:22:40.858903-05:00",
         "resumed": false,
         "scanned": 20,
         "unchanged": 0,
@@ -178,7 +182,7 @@
         "hex": "76f913347a53582f49af1d28c2fa0cb56aa2521323ebbeb91f337dd7b8ff7676"
       },
       "native_version": "1723420800:68",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_c72922305f446974e0fdeeed7396c789",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -198,6 +202,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_c72922305f446974e0fdeeed7396c789"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -210,7 +223,7 @@
         "hex": "0a55f280a3f586dd75577096cbe27fd842bb9dc92af158884f471c375189dc03"
       },
       "native_version": "1723420800:15",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_e4d9df37204059f145c9668277331be6",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -230,6 +243,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_e4d9df37204059f145c9668277331be6"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -242,7 +264,7 @@
         "hex": "1307657aee613b9ac0a29cfd2ab8865a5012cfc175cbe4b4a2e5166618596e70"
       },
       "native_version": "1723420800:540",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_81d67c9e44e49e6c8951538a217688c8",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -262,6 +284,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_81d67c9e44e49e6c8951538a217688c8"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -274,7 +305,7 @@
         "hex": "4ef8fe645a1874255962cda0e21ed60640fc9da53e8a27f84cace520606fc0e7"
       },
       "native_version": "1723420800:540",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_e6f761d644d31bf3d67f5213b7d8f5ef",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -294,6 +325,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_e6f761d644d31bf3d67f5213b7d8f5ef"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -306,7 +346,7 @@
         "hex": "072b57415c5420165538d45c5c37f449b9bb28ed55a80d8b293dfe1ba46c0bbe"
       },
       "native_version": "1723420800:40",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_f8b56356f94fe0415046d7459237cae5",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -326,6 +366,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_f8b56356f94fe0415046d7459237cae5"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -338,7 +387,7 @@
         "hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "native_version": "1723420800:0",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_0aa47b7fc6f2b66e332accf04794c60d",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -358,6 +407,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_0aa47b7fc6f2b66e332accf04794c60d"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -370,7 +428,7 @@
         "hex": "20cca3d829e0885ac30819b25d0906a78acc82ea99b2ec7ecb1380b1a0fad822"
       },
       "native_version": "1723420800:550",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_072044431371fe8c7290317a954a97e8",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -390,6 +448,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_072044431371fe8c7290317a954a97e8"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -402,7 +469,7 @@
         "hex": "6d68eff9fb200467b9e4c7b7832db8563bdfebe85ae913ac1e72ba6cb74b0cf0"
       },
       "native_version": "1723420800:544",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_2f679bd5d01bdcf713d145fb2776499a",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -422,6 +489,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_2f679bd5d01bdcf713d145fb2776499a"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -434,7 +510,7 @@
         "hex": "e5b18fcf384bb0c1afe1cb41e7d83af05b1ba0bb5a2da3bd12aefa63a1b75b12"
       },
       "native_version": "1723420800:48",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_bb45042660bd53270ff183fc2c2522d9",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -460,6 +536,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_bb45042660bd53270ff183fc2c2522d9"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -472,7 +557,7 @@
         "hex": "da976965b16471d6e560e1af3c9467f83ba0f641742c196bc820e4929a57b7ad"
       },
       "native_version": "1723420800:66",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_7e45973e355207989d634e623fda15bf",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -498,6 +583,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_7e45973e355207989d634e623fda15bf"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -510,7 +604,7 @@
         "hex": "a7d10744d19bc17189b704f667668097d17676101d58f89153ac7736699277de"
       },
       "native_version": "1723420800:93",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_d1aa8674952deaeb376fa146bad3a722",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -536,6 +630,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_d1aa8674952deaeb376fa146bad3a722"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -548,7 +651,7 @@
         "hex": "0c078afdc8ec1ca49a7d5645ae51990086646697933bb6c5f72e5d08ec68f4b1"
       },
       "native_version": "1723420800:93",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_771efb84b06e79fd41396f8034e94417",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -574,6 +677,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_771efb84b06e79fd41396f8034e94417"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -586,7 +698,7 @@
         "hex": "b94f070e2f5fe1722e8856c772707c012ea072e3ef83d0cb161d8511a3356400"
       },
       "native_version": "1723420800:47",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_ebabb04a2acb9b464b90571361d57f4e",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -612,6 +724,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_ebabb04a2acb9b464b90571361d57f4e"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -624,7 +745,7 @@
         "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
       },
       "native_version": "1723420800:1715",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_19e12ea2ccc94facee119344ce4daf24",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -650,6 +771,20 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "declared",
+        "basis": "explicit",
+        "authority": {
+          "source_id": "src_local_eng_share",
+          "locator": "engineering/widget/widget_bom.xlsx"
+        },
+        "confidence": 1,
+        "evidence": [
+          "obs_63810b52b2fe8f5844f6092f794626d5"
+        ],
+        "assertion_id": "ast_dff79ab2845bb00283daf948",
+        "explanation": "example asserted engineering/widget/widget_bom.xlsx is the authority: the workbook the release is built from"
       }
     },
     {
@@ -662,7 +797,7 @@
         "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
       },
       "native_version": "1723420800:1715",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_63810b52b2fe8f5844f6092f794626d5",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -688,6 +823,20 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "declared",
+        "basis": "explicit",
+        "authority": {
+          "source_id": "src_local_eng_share",
+          "locator": "engineering/widget/widget_bom.xlsx"
+        },
+        "confidence": 1,
+        "evidence": [
+          "obs_63810b52b2fe8f5844f6092f794626d5"
+        ],
+        "assertion_id": "ast_dff79ab2845bb00283daf948",
+        "explanation": "example asserted engineering/widget/widget_bom.xlsx is the authority: the workbook the release is built from"
       }
     },
     {
@@ -700,7 +849,7 @@
         "hex": "ce7072b57fcaa061a6131a3239386a7e3c3519ce970d8ab74be216bb9163e0f6"
       },
       "native_version": "1723420800:539",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_91a38e7db7e777139cec8fe543d6fbb7",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -726,6 +875,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_91a38e7db7e777139cec8fe543d6fbb7"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -738,7 +896,7 @@
         "hex": "3cc9e4151db809eab31059fe61f6219037b1bad9cc7d95967ac6e0365c300174"
       },
       "native_version": "1723420800:539",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_bbe17e3c36e235e7a8ca83ed922eb65b",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -764,6 +922,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_bbe17e3c36e235e7a8ca83ed922eb65b"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -776,7 +943,7 @@
         "hex": "5a88cbd748f627435dc6f7c7a2dab19fc609e01157415e997466fbab8a948d64"
       },
       "native_version": "1723420800:79",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_76bd0e0974e641ab05926f642d161f13",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -802,6 +969,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_76bd0e0974e641ab05926f642d161f13"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -814,7 +990,7 @@
         "hex": "f56698c90018f0d9c693540f8af2896eb5350faed2f9f5e38f9107c8a4f382f4"
       },
       "native_version": "1789928110:11",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_696d214372b6209984714cc2d2cc4b66",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -834,6 +1010,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_696d214372b6209984714cc2d2cc4b66"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     },
     {
@@ -846,7 +1031,7 @@
         "hex": "4aad389fd6623f6e521d049dc98f84101203821016159525e419703cf0fe051c"
       },
       "native_version": "1789928110:63",
-      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observed_at": "2026-09-20T13:22:40.849654-05:00",
       "observation_id": "obs_b2dbe773243bc6848511db2a47ae3527",
       "content_level": "fingerprint",
       "placeholder": false,
@@ -866,6 +1051,15 @@
         "rule": "stem-identity",
         "confidence": 1,
         "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      },
+      "authority": {
+        "state": "none",
+        "basis": "",
+        "confidence": 0,
+        "evidence": [
+          "obs_b2dbe773243bc6848511db2a47ae3527"
+        ],
+        "explanation": "the only copy observed, and nothing declared"
       }
     }
   ],
@@ -1234,7 +1428,7 @@
       ],
       "confidence": 1,
       "explanation": "commit 95b5fdd15884 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T13:15:14.522482-05:00",
+      "asserted_at": "2026-09-20T13:22:40.908542-05:00",
       "identity_policy_version": null
     },
     {
@@ -1259,7 +1453,7 @@
       ],
       "confidence": 1,
       "explanation": "commit f80aff2cefa7 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T13:15:14.522482-05:00",
+      "asserted_at": "2026-09-20T13:22:40.908542-05:00",
       "identity_policy_version": null
     },
     {
@@ -1284,7 +1478,7 @@
       ],
       "confidence": 1,
       "explanation": "commit f80aff2cefa7 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T13:15:14.522482-05:00",
+      "asserted_at": "2026-09-20T13:22:40.908542-05:00",
       "identity_policy_version": null
     }
   ],
@@ -1332,7 +1526,7 @@
         "obs_19e12ea2ccc94facee119344ce4daf24",
         "obs_63810b52b2fe8f5844f6092f794626d5"
       ],
-      "detected_at": "2026-09-20T13:15:14.482902-05:00",
+      "detected_at": "2026-09-20T13:22:40.86408-05:00",
       "confidence": 1,
       "summary": "2 byte-identical files (sha256 1d75bf1ea16f) in one source: engineering/widget/widget_bom (copy).xlsx, engineering/widget/widget_bom.xlsx. None is marked authoritative, so a reader cannot tell which to use.",
       "remediation": {
@@ -1340,6 +1534,28 @@
         "reversible": true,
         "requires_approval": true
       }
+    }
+  ],
+  "assertions": [
+    {
+      "assertion_id": "ast_dff79ab2845bb00283daf948",
+      "kind": "authority",
+      "subject": {
+        "source_id": "src_local_eng_share",
+        "locator": "engineering/widget/widget_bom.xlsx"
+      },
+      "actor": {
+        "kind": "user",
+        "id": "example"
+      },
+      "reason": "the workbook the release is built from",
+      "evidence": [
+        "obs_63810b52b2fe8f5844f6092f794626d5"
+      ],
+      "asserted_at": "2026-09-20T13:22:40.942347-05:00",
+      "retracted_at": null,
+      "retracted_by": null,
+      "retract_reason": null
     }
   ]
 }

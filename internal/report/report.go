@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/identity"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
@@ -26,13 +27,30 @@ import (
 const Schema = "gyst.report/0.1.0"
 
 type Document struct {
-	Report    Meta               `json:"report"`
-	Sources   []Source           `json:"sources"`
-	Projects  []Project          `json:"projects"`
-	Files     []File             `json:"files"`
-	Artifacts []Artifact         `json:"artifacts"`
-	Relations []Relation         `json:"relations"`
-	Findings  []findings.Finding `json:"findings"`
+	Report     Meta               `json:"report"`
+	Sources    []Source           `json:"sources"`
+	Projects   []Project          `json:"projects"`
+	Files      []File             `json:"files"`
+	Artifacts  []Artifact         `json:"artifacts"`
+	Relations  []Relation         `json:"relations"`
+	Findings   []findings.Finding `json:"findings"`
+	Assertions []AssertionRecord  `json:"assertions"`
+}
+
+// AssertionRecord is a person's statement, active or retracted. Retracted
+// ones stay in the document: the history of what was asserted is part of
+// the evidence.
+type AssertionRecord struct {
+	AssertionID   string        `json:"assertion_id"`
+	Kind          string        `json:"kind"`
+	Subject       authority.Key `json:"subject"`
+	Actor         observe.Actor `json:"actor"`
+	Reason        string        `json:"reason"`
+	Evidence      []string      `json:"evidence"`
+	AssertedAt    time.Time     `json:"asserted_at"`
+	RetractedAt   *time.Time    `json:"retracted_at"`
+	RetractedBy   *string       `json:"retracted_by"`
+	RetractReason *string       `json:"retract_reason"`
 }
 
 type Meta struct {
@@ -64,6 +82,12 @@ type Counts struct {
 	Relations    int `json:"relations"`
 	FindingsOpen int `json:"findings_open"`
 	Observations int `json:"observations"`
+	// Authority states across present files. "none" is a legitimate
+	// outcome and is counted, not hidden.
+	AuthorityDeclared int `json:"authority_declared"`
+	AuthorityLikely   int `json:"authority_likely"`
+	AuthorityMultiple int `json:"authority_multiple"`
+	AuthorityNone     int `json:"authority_none"`
 }
 
 // Freshness states, as the design names them. Age and coverage are two
@@ -163,6 +187,11 @@ type File struct {
 	Placeholder   bool            `json:"placeholder"`
 	Projects      []FileProject   `json:"projects"`
 	Grouping      *Grouping       `json:"grouping"`
+	// Authority is separate from grouping and from membership. A manifest
+	// declares membership; a profile marks a current version; neither is
+	// authority. Only an assertion declares it, and absent one this says
+	// likely, multiple, or none.
+	Authority *authority.Authority `json:"authority"`
 }
 
 type ArtifactMember struct {
@@ -262,6 +291,21 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 	if doc.Relations, err = relations(ctx, s); err != nil {
 		return nil, err
 	}
+	if err := attachAuthority(ctx, s, doc); err != nil {
+		return nil, err
+	}
+	asts, err := authority.List(ctx, s, true)
+	if err != nil {
+		return nil, err
+	}
+	doc.Assertions = make([]AssertionRecord, 0, len(asts))
+	for _, a := range asts {
+		doc.Assertions = append(doc.Assertions, AssertionRecord{
+			AssertionID: a.ID, Kind: a.Kind, Subject: a.Subject,
+			Actor: observe.Actor{Kind: "user", ID: a.ActorID}, Reason: a.Reason, Evidence: a.Evidence,
+			AssertedAt: a.AssertedAt, RetractedAt: a.RetractedAt, RetractedBy: a.RetractedBy, RetractReason: a.RetractReason,
+		})
+	}
 	rows, err := findings.List(ctx, s, true)
 	if err != nil {
 		return nil, err
@@ -292,6 +336,53 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 	}
 	c.Observations = int(n)
 	return doc, nil
+}
+
+// attachAuthority joins the resolved authority state onto every present
+// file and counts the states.
+func attachAuthority(ctx context.Context, s *store.Store, doc *Document) error {
+	rows, err := s.Pool().Query(ctx, `
+		SELECT source_id, locator, state, basis, authority_source, authority_locator,
+		       confidence, evidence, assertion_id, explanation FROM file_authority`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	byKey := map[authority.Key]*authority.Authority{}
+	for rows.Next() {
+		var k authority.Key
+		var a authority.Authority
+		var ofSrc, ofLoc, astID *string
+		if err := rows.Scan(&k.SourceID, &k.Locator, &a.State, &a.Basis, &ofSrc, &ofLoc,
+			&a.Confidence, &a.Evidence, &astID, &a.Explanation); err != nil {
+			return err
+		}
+		if ofSrc != nil {
+			a.Of = &authority.Key{SourceID: *ofSrc, Locator: *ofLoc}
+		}
+		if astID != nil {
+			a.AssertionID = *astID
+		}
+		byKey[k] = &a
+	}
+	c := &doc.Report.Counts
+	for i := range doc.Files {
+		f := &doc.Files[i]
+		if a := byKey[authority.Key{SourceID: f.SourceID, Locator: f.Locator}]; a != nil {
+			f.Authority = a
+			switch a.State {
+			case authority.StateDeclared:
+				c.AuthorityDeclared++
+			case authority.StateLikely:
+				c.AuthorityLikely++
+			case authority.StateMultiple:
+				c.AuthorityMultiple++
+			default:
+				c.AuthorityNone++
+			}
+		}
+	}
+	return rows.Err()
 }
 
 func sources(ctx context.Context, s *store.Store, now time.Time) ([]Source, error) {

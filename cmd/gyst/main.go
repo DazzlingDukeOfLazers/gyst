@@ -13,6 +13,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/connector/localfolder"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
@@ -33,6 +34,10 @@ Usage:
   gyst projects                               projects and where membership comes from
   gyst findings [--all] [--json]              what needs attention
   gyst report [--out report.json]             everything, as one JSON document
+  gyst assert authority     <locator> --by <name> --reason <text>
+  gyst assert not-authority <locator> --by <name> --reason <text>
+  gyst assert retract <id>  --by <name> --reason <text>
+  gyst assert list [--all]
   gyst findings ack   <id> --by <name>
   gyst findings waive <id> --by <name> --reason <text> [--until YYYY-MM-DD]
 
@@ -77,6 +82,8 @@ func main() {
 		err = cmdFindings(ctx, os.Args[2:])
 	case "report":
 		err = cmdReport(ctx, os.Args[2:])
+	case "assert":
+		err = cmdAssert(ctx, os.Args[2:])
 	case "identity":
 		err = cmdIdentity(ctx, os.Args[2:])
 	case "explain":
@@ -239,6 +246,10 @@ func cmdScan(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	auth, err := authority.Project(ctx, s)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("source     %s\n", sourceID)
 	fmt.Printf("location   %s   %s\n", loc, loc.Evidence)
@@ -282,6 +293,8 @@ func cmdScan(ctx context.Context, args []string) error {
 	if members.InvalidManifests > 0 {
 		fmt.Printf("           %d manifest(s) could not be parsed; see gyst explain\n", members.InvalidManifests)
 	}
+	fmt.Printf("authority  %d declared, %d likely, %d multiple candidates, %d none\n",
+		auth.Declared, auth.Likely, auth.Multiple, auth.None)
 	fmt.Printf("findings   %d open (%d new, %d reopened, %d resolved this pass)\n",
 		fnd.Open, fnd.New, fnd.Reopened, fnd.Resolved)
 	fmt.Printf("coverage   %s: %s\n", cov.Status, cov.Detail)

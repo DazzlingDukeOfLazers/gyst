@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/identity"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/project"
@@ -51,6 +52,9 @@ func cmdExplain(ctx context.Context, args []string) error {
 	fmt.Printf("  size       %s\n", humanBytes(derefInt(size)))
 	fmt.Printf("  digest     %s\n", derefStr(digest, "(not read under effective policy)"))
 
+	if err := explainAuthority(ctx, s, sourceID, locator); err != nil {
+		return err
+	}
 	if err := explainProjects(ctx, s, sourceID, locator); err != nil {
 		return err
 	}
@@ -208,6 +212,28 @@ func firstN(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+// explainAuthority says where the authority is, or that nobody knows.
+func explainAuthority(ctx context.Context, s *store.Store, sourceID, locator string) error {
+	a, err := authority.Of(ctx, s, authority.Key{SourceID: sourceID, Locator: locator})
+	if err != nil {
+		return err
+	}
+	if a == nil {
+		fmt.Printf("  authority  not resolved yet; run a scan\n")
+		return nil
+	}
+	head := map[string]string{
+		authority.StateDeclared: "declared", authority.StateLikely: "likely",
+		authority.StateMultiple: "multiple candidates", authority.StateNone: "none identified",
+	}[a.State]
+	if a.Of != nil {
+		head += fmt.Sprintf(": %s (%s %.2f)", a.Of.Locator, a.Basis, a.Confidence)
+	}
+	fmt.Printf("  authority  %s\n", head)
+	fmt.Printf("             %s\n", wrap(a.Explanation, 60, "             "))
+	return nil
 }
 
 // explainProjects lists the projects a file belongs to and on what basis.
