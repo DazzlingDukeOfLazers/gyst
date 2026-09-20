@@ -23,7 +23,7 @@ vendored, and a tree that shows them by default shows nothing else.
 
 **Findings** groups open findings by rule and by the folder of their
 first subject, largest group first, each expandable. The 1,412 findings
-of the real tree become forty groups, which a person can read.
+of the real tree become twelve groups, one per project, which a person can read.
 
 **The drawer** shows, for a file: what was observed, with digest, native
 version, time, and observation id; the authority state with its reason
