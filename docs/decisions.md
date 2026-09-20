@@ -43,6 +43,7 @@ public contract depends on it.
 | Web client | TypeScript | Walking-skeleton UI and API client generation |
 | Structured grid reuse | Evaluate self-hosted Grist behind an adapter | Access, offline, licensing, deployment, audit, and API fit spike |
 | File identity | Reversible scoped identity profiles | Test with real supplier/customer naming datasets |
+| Solo-profile store | SQLite (pure Go) as a second engine behind a store boundary; PostgreSQL remains the reference | [ADR 004](adr/004-storage-engine-and-solo-profile.md): clean-machine acceptance and an equal fixture report on both engines |
 
 ## Policy files to validate
 
