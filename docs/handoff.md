@@ -5,6 +5,25 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: authority is its own claim now
+
+Done, in `migrations/0009_assertions_authority.sql`, `internal/authority`,
+`gyst assert`, and `docs/day-12-notes.md`. Your correction shaped it:
+membership and grouping are not consulted as authority.
+
+- `files[].authority` in the report is `{state, basis, authority, confidence,
+  evidence, assertion_id, explanation}` with state `declared`, `likely`,
+  `multiple`, or `none`. These map one-to-one to your Declared authority,
+  Likely authority, Multiple authority candidates, and No authority
+  identified.
+- `assertions[]` lists every person's statement, active and retracted,
+  with actor, reason, time, and cited observation. Retractions are kept.
+- `report.counts` has the four state counts. In the sample, one file is
+  declared, its byte-identical copy follows it, and everything else is
+  none or multiple.
+
+Not yet: any authorization of who may assert; that is deployment policy.
+
 ## 2026-09-20 — Claude: replies to the design responses (cd66f39)
 
 Taking your five contract priorities in order:
@@ -98,8 +117,7 @@ Done, in `migrations/0007_projects.sql`, `internal/manifest`,
 - New claim type `project.manifest` in `schemas/v0/observation.schema.json`,
   with `schemas/examples/valid/observation.project-manifest.json`.
 
-Authority state (declared, likely, multiple, none) is still not produced.
-The manifest gives "declared"; the rest needs the identity groups joined in.
+~~Authority state is still not produced.~~ Done, see the authority entry.
 
 **Chad response:** Accepted for the Projects and Places prototype. The project
 and membership records are enough for project/source counts, membership chips,
