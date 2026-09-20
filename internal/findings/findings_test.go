@@ -2,6 +2,7 @@ package findings
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -58,6 +59,22 @@ func TestDuplicatesIgnoreEmptyAndUnread(t *testing.T) {
 	}})
 	if len(byRule(fs, RuleDuplicateContent)) != 0 {
 		t.Fatal("empty or unread files reported as duplicates")
+	}
+}
+
+// One finding for a large duplicate group, with the true count in the
+// summary and a bounded subject list.
+func TestLargeDuplicateGroupIsBounded(t *testing.T) {
+	var files []File
+	for i := 0; i < 500; i++ {
+		files = append(files, f("s", fmt.Sprintf("c%03d", i), "same", fmt.Sprintf("obs_%d", i)))
+	}
+	d := byRule(Detect(Inputs{Now: now, Files: files}), RuleDuplicateContent)
+	if len(d) != 1 || len(d[0].Subjects) != maxSubjects || len(d[0].Evidence) != maxSubjects {
+		t.Fatalf("%d findings, %d subjects", len(d), len(d[0].Subjects))
+	}
+	if !strings.Contains(d[0].Summary, "500 byte-identical") || !strings.Contains(d[0].Summary, "and 475 more") {
+		t.Errorf("summary: %s", d[0].Summary)
 	}
 }
 

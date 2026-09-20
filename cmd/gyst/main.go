@@ -54,6 +54,7 @@ Profiles:
 
 Environment:
   GYST_DATABASE_URL   default postgres:///gyst
+                      sqlite:<path> uses a SQLite file and needs no server
 `
 
 func main() {

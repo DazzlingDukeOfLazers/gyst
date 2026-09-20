@@ -3,10 +3,9 @@ package store
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // Pass statuses. See migrations/0005_scan_passes.sql for their meaning.
@@ -75,13 +74,13 @@ func PassID(sourceID string, startedAt time.Time) string {
 // itself is safe under concurrency, this table is only bookkeeping.
 func (s *Store) BeginPass(ctx context.Context, p PassStart) (string, error) {
 	id := PassID(p.SourceID, p.StartedAt)
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.db.begin(ctx)
 	if err != nil {
 		return "", err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 
-	if _, err := tx.Exec(ctx, `
+	if _, err := tx.exec(ctx, `
 		UPDATE scan_passes
 		SET status=$2, finished_at=$4,
 		    detail='a later pass on this source began before this one reported a result'
@@ -89,19 +88,19 @@ func (s *Store) BeginPass(ctx context.Context, p PassStart) (string, error) {
 		p.SourceID, PassInterrupted, PassRunning, time.Now().UTC()); err != nil {
 		return "", err
 	}
-	if _, err := tx.Exec(ctx, `
+	if _, err := tx.exec(ctx, `
 		INSERT INTO scan_passes (pass_id, source_id, connector, started_at, status, resumed)
 		VALUES ($1,$2,$3,$4,$5,$6)
 		ON CONFLICT (pass_id) DO NOTHING`,
 		id, p.SourceID, p.Connector, p.StartedAt, PassRunning, p.Resumed); err != nil {
 		return "", err
 	}
-	return id, tx.Commit(ctx)
+	return id, tx.Commit()
 }
 
 // FinishPass records how a pass ended.
 func (s *Store) FinishPass(ctx context.Context, passID string, r PassResult) error {
-	_, err := s.pool.Exec(ctx, `
+	_, err := s.db.exec(ctx, `
 		UPDATE scan_passes SET
 			finished_at=$14, status=$2, detail=$3,
 			scanned=$4, unchanged=$5, skipped=$6, ignored=$7, unstable=$8,
@@ -119,7 +118,7 @@ func (s *Store) FinishPass(ctx context.Context, passID string, r PassResult) err
 // source with no pass at all is returned with an empty Status: "never
 // scanned" is a state the report needs, not an absent row.
 func (s *Store) LatestPasses(ctx context.Context) ([]Pass, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT src.source_id, src.kind, src.root,
 		       src.location_kind || CASE WHEN src.location_provider='' THEN '' ELSE '/' || src.location_provider END,
 		       coalesce(p.pass_id,''), coalesce(p.connector,''),
@@ -141,7 +140,7 @@ func (s *Store) LatestPasses(ctx context.Context) ([]Pass, error) {
 		var p Pass
 		var started *time.Time
 		if err := rows.Scan(&p.SourceID, &p.Kind, &p.Root, &p.Location,
-			&p.PassID, &p.Connector, &started, &p.FinishedAt,
+			&p.PassID, &p.Connector, tsp(&started), tsp(&p.FinishedAt),
 			&p.Status, &p.Detail, &p.Resumed,
 			&p.Scanned, &p.Unchanged, &p.Skipped, &p.Appended); err != nil {
 			return nil, err
@@ -151,7 +150,7 @@ func (s *Store) LatestPasses(ctx context.Context) ([]Pass, error) {
 		}
 		out = append(out, p)
 	}
-	if err := rows.Err(); err != nil && err != pgx.ErrNoRows {
+	if err := rows.Err(); err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
 	return out, nil

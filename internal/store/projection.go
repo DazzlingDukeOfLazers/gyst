@@ -3,12 +3,11 @@ package store
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // ProjectorName is the projector_state key for current_files.
@@ -75,7 +74,7 @@ func (s *Store) ApplyCurrentFiles(ctx context.Context) (ProjectionStats, error) 
 		if len(batch) == 0 {
 			break
 		}
-		tx, err := s.pool.Begin(ctx)
+		tx, err := s.db.begin(ctx)
 		if err != nil {
 			return st, err
 		}
@@ -85,23 +84,23 @@ func (s *Store) ApplyCurrentFiles(ctx context.Context) (ProjectionStats, error) 
 				continue
 			}
 			present := f.ClaimType != "artifact.absent"
-			if _, err := tx.Exec(ctx, upsertCurrentFile,
+			if _, err := tx.exec(ctx, upsertCurrentFile,
 				f.SourceID, f.Locator, f.Seq, f.DigestHex, f.SizeBytes, f.ObservedAt, present, f.NativeVer); err != nil {
-				tx.Rollback(ctx)
+				tx.Rollback()
 				return st, err
 			}
 			last = f.Seq
 			st.Applied++
 		}
-		if _, err := tx.Exec(ctx, `
+		if _, err := tx.exec(ctx, `
 			INSERT INTO projector_state (projector, last_seq, updated_at)
 			VALUES ($1,$2,$3)
 			ON CONFLICT (projector) DO UPDATE SET last_seq=EXCLUDED.last_seq, updated_at=EXCLUDED.updated_at`,
 			ProjectorName, last, time.Now().UTC()); err != nil {
-			tx.Rollback(ctx)
+			tx.Rollback()
 			return st, err
 		}
-		if err := tx.Commit(ctx); err != nil {
+		if err := tx.Commit(); err != nil {
 			return st, err
 		}
 	}
@@ -111,9 +110,9 @@ func (s *Store) ApplyCurrentFiles(ctx context.Context) (ProjectionStats, error) 
 
 func (s *Store) projectorSeq(ctx context.Context) (int64, error) {
 	var seq int64
-	err := s.pool.QueryRow(ctx,
+	err := s.db.queryRow(ctx,
 		`SELECT last_seq FROM projector_state WHERE projector=$1`, ProjectorName).Scan(&seq)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
 	return seq, err
@@ -122,10 +121,10 @@ func (s *Store) projectorSeq(ctx context.Context) (int64, error) {
 // ClearProjection drops current_files and rewinds the projector, so the
 // next apply replays the whole log.
 func (s *Store) ClearProjection(ctx context.Context) error {
-	if _, err := s.pool.Exec(ctx, `DELETE FROM current_files`); err != nil {
+	if _, err := s.db.exec(ctx, `DELETE FROM current_files`); err != nil {
 		return err
 	}
-	_, err := s.pool.Exec(ctx, `UPDATE projector_state SET last_seq=0 WHERE projector=$1`, ProjectorName)
+	_, err := s.db.exec(ctx, `UPDATE projector_state SET last_seq=0 WHERE projector=$1`, ProjectorName)
 	return err
 }
 
@@ -135,15 +134,11 @@ func (s *Store) ClearProjection(ctx context.Context) error {
 // order can hold the same current state, and the projection is a claim
 // about state, not about arrival.
 func (s *Store) ProjectionFingerprint(ctx context.Context) (string, int64, error) {
-	return fingerprintRows(ctx, s.pool)
-}
-
-type querier interface {
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	return fingerprintRows(ctx, s.db)
 }
 
 func fingerprintRows(ctx context.Context, q querier) (string, int64, error) {
-	rows, err := q.Query(ctx, `
+	rows, err := q.query(ctx, `
 		SELECT source_id, locator, content_digest_hex, size_bytes, present
 		FROM current_files ORDER BY source_id, locator`)
 	if err != nil {
@@ -182,15 +177,15 @@ func (s *Store) VerifyProjection(ctx context.Context) (before, after string, row
 	if err != nil {
 		return
 	}
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.db.begin(ctx)
 	if err != nil {
 		return
 	}
-	defer tx.Rollback(ctx)
-	if _, err = tx.Exec(ctx, `DELETE FROM current_files`); err != nil {
+	defer tx.Rollback()
+	if _, err = tx.exec(ctx, `DELETE FROM current_files`); err != nil {
 		return
 	}
-	if _, err = tx.Exec(ctx, `UPDATE projector_state SET last_seq=0 WHERE projector=$1`, ProjectorName); err != nil {
+	if _, err = tx.exec(ctx, `UPDATE projector_state SET last_seq=0 WHERE projector=$1`, ProjectorName); err != nil {
 		return
 	}
 	var last int64
@@ -209,7 +204,7 @@ func (s *Store) VerifyProjection(ctx context.Context) (before, after string, row
 				continue
 			}
 			present := f.ClaimType != "artifact.absent"
-			if _, e := tx.Exec(ctx, upsertCurrentFile,
+			if _, e := tx.exec(ctx, upsertCurrentFile,
 				f.SourceID, f.Locator, f.Seq, f.DigestHex, f.SizeBytes, f.ObservedAt, present, f.NativeVer); e != nil {
 				err = e
 				return
@@ -222,7 +217,7 @@ func (s *Store) VerifyProjection(ctx context.Context) (before, after string, row
 }
 
 func sinceIn(ctx context.Context, q querier, seq int64, limit int) ([]LoggedFile, error) {
-	rows, err := q.Query(ctx, `
+	rows, err := q.query(ctx, `
 		SELECT seq, source_id, locator, content_digest_hex, size_bytes, observed_at,
 		       claim_type, native_version_value, subject_kind
 		FROM observations WHERE seq > $1 ORDER BY seq LIMIT $2`, seq, limit)
@@ -234,7 +229,7 @@ func sinceIn(ctx context.Context, q querier, seq int64, limit int) ([]LoggedFile
 	for rows.Next() {
 		var f LoggedFile
 		if err := rows.Scan(&f.Seq, &f.SourceID, &f.Locator, &f.DigestHex,
-			&f.SizeBytes, &f.ObservedAt, &f.ClaimType, &f.NativeVer, &f.Kind); err != nil {
+			&f.SizeBytes, ts(&f.ObservedAt), &f.ClaimType, &f.NativeVer, &f.Kind); err != nil {
 			return nil, err
 		}
 		out = append(out, f)

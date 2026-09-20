@@ -1,6 +1,7 @@
 package authority
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -130,5 +131,23 @@ func TestEveryStateExplainsItself(t *testing.T) {
 		if a.Explanation == "" {
 			t.Errorf("%s: %s with no explanation", key, a.State)
 		}
+	}
+}
+
+// A thousand identical files must not each carry a thousand-entry record.
+func TestMultipleCandidatesAreBounded(t *testing.T) {
+	var files []File
+	for i := 0; i < 1000; i++ {
+		files = append(files, f(fmt.Sprintf("copy%04d.bin", i), "same"))
+	}
+	a := Resolve(Input{Files: files})[k("copy0000.bin")]
+	if a.State != StateMultiple {
+		t.Fatalf("%s", a.State)
+	}
+	if len(a.Evidence) > maxNamedPeers+1 {
+		t.Errorf("%d evidence ids cited; the cost of citing every peer is quadratic", len(a.Evidence))
+	}
+	if !strings.Contains(a.Explanation, "1000 files") || !strings.Contains(a.Explanation, "and 995 more") {
+		t.Errorf("explanation must give the total and say the list is cut: %s", a.Explanation)
 	}
 }

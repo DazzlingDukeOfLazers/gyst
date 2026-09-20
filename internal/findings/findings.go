@@ -41,6 +41,12 @@ const (
 	RuleSourceUnavail    = "source.unavailable"
 	RuleSourceInterrupt  = "source.interrupted"
 	RuleVersion          = "1"
+
+	// maxSubjects bounds how many files one duplicate finding names. The
+	// summary always carries the true count; the subjects are the first
+	// few a person would open. A group of five thousand identical files is
+	// one finding, not five thousand subjects.
+	maxSubjects = 25
 )
 
 // Finding mirrors schemas/v0/finding.schema.json.
@@ -191,15 +197,20 @@ func duplicates(in Inputs) []Finding {
 			}
 			return group[i].Locator < group[j].Locator
 		})
-		subjects := make([]observe.ArtifactRef, 0, len(group))
-		evidence := make([]string, 0, len(group))
+		subjects := make([]observe.ArtifactRef, 0, min(len(group), maxSubjects))
+		evidence := make([]string, 0, min(len(group), maxSubjects))
 		srcs := map[string]bool{}
-		names := make([]string, 0, len(group))
-		for _, f := range group {
-			subjects = append(subjects, fileRef(f))
-			evidence = append(evidence, f.ObsID)
+		names := make([]string, 0, min(len(group), maxSubjects))
+		for i, f := range group {
 			srcs[f.SourceID] = true
-			names = append(names, f.Locator)
+			if i < maxSubjects {
+				subjects = append(subjects, fileRef(f))
+				evidence = append(evidence, f.ObsID)
+				names = append(names, f.Locator)
+			}
+		}
+		if len(group) > maxSubjects {
+			names = append(names, fmt.Sprintf("and %d more", len(group)-maxSubjects))
 		}
 		where := "one source"
 		if len(srcs) > 1 {

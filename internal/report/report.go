@@ -13,6 +13,7 @@ package report
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
@@ -316,6 +317,8 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 		}
 	}
 
+	sortDocument(doc)
+
 	c := &doc.Report.Counts
 	c.Sources, c.Projects, c.Artifacts, c.Relations = len(doc.Sources), len(doc.Projects), len(doc.Artifacts), len(doc.Relations)
 	for _, f := range doc.Files {
@@ -334,6 +337,78 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 	}
 	c.Observations = int(n)
 	return doc, nil
+}
+
+// sortDocument puts every list in byte order in Go. Databases sort text by
+// collation, and collations differ between engines and between machines;
+// the report is a contract and must come out the same everywhere.
+func sortDocument(doc *Document) {
+	sort.Slice(doc.Sources, func(i, j int) bool { return doc.Sources[i].SourceID < doc.Sources[j].SourceID })
+	sort.Slice(doc.Projects, func(i, j int) bool {
+		a, b := doc.Projects[i], doc.Projects[j]
+		if a.Basis != b.Basis {
+			return a.Basis < b.Basis
+		}
+		if a.Name != b.Name {
+			return a.Name < b.Name
+		}
+		return a.ProjectID < b.ProjectID
+	})
+	for i := range doc.Projects {
+		m := doc.Projects[i].Members
+		sort.Slice(m, func(a, b int) bool {
+			if m[a].SourceID != m[b].SourceID {
+				return m[a].SourceID < m[b].SourceID
+			}
+			return m[a].Pattern < m[b].Pattern
+		})
+		sort.Strings(doc.Projects[i].SourceIDs)
+	}
+	sort.Slice(doc.Files, func(i, j int) bool {
+		a, b := doc.Files[i], doc.Files[j]
+		if a.SourceID != b.SourceID {
+			return a.SourceID < b.SourceID
+		}
+		return a.Locator < b.Locator
+	})
+	sort.Slice(doc.Artifacts, func(i, j int) bool {
+		a, b := doc.Artifacts[i], doc.Artifacts[j]
+		if a.SourceID != b.SourceID {
+			return a.SourceID < b.SourceID
+		}
+		return a.GroupingKey < b.GroupingKey
+	})
+	for i := range doc.Artifacts {
+		m := doc.Artifacts[i].Members
+		sort.Slice(m, func(a, b int) bool { return m[a].Locator < m[b].Locator })
+	}
+	sort.Slice(doc.Relations, func(i, j int) bool {
+		a, b := doc.Relations[i], doc.Relations[j]
+		if a.Type != b.Type {
+			return a.Type < b.Type
+		}
+		if a.From.SourceID != b.From.SourceID {
+			return a.From.SourceID < b.From.SourceID
+		}
+		if a.From.Locator != b.From.Locator {
+			return a.From.Locator < b.From.Locator
+		}
+		return a.To.Locator < b.To.Locator
+	})
+	rank := map[string]int{"high": 0, "medium": 1, "low": 2, "info": 3}
+	sort.Slice(doc.Findings, func(i, j int) bool {
+		a, b := doc.Findings[i], doc.Findings[j]
+		if rank[a.Severity] != rank[b.Severity] {
+			return rank[a.Severity] < rank[b.Severity]
+		}
+		if a.Status != b.Status {
+			return a.Status < b.Status
+		}
+		return a.FindingID < b.FindingID
+	})
+	sort.Slice(doc.Assertions, func(i, j int) bool {
+		return doc.Assertions[i].AssertedAt.Before(doc.Assertions[j].AssertedAt)
+	})
 }
 
 // attachAuthority joins the resolved authority state onto every present

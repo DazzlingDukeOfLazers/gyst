@@ -36,6 +36,13 @@ const (
 	// profile itself is confident. Below this a version series is a
 	// compare-set, and a compare-set has candidates, not a likely answer.
 	likelyThreshold = 0.8
+
+	// maxNamedPeers bounds how many candidates a "multiple" state names
+	// and cites. Beyond a handful the list stops being a question a person
+	// can answer, and a thousand identical files would otherwise each
+	// carry a thousand-entry record: the cost is quadratic and was
+	// measured at a gigabyte for a hundred thousand files.
+	maxNamedPeers = 5
 )
 
 type Key struct {
@@ -195,8 +202,13 @@ func resolveOne(f File, byDigest map[string][]Key, groupOf map[Key]*Group,
 	// reads as one file listed thrice.
 	if len(sorted) > 1 {
 		names := make([]string, 0, len(sorted))
+		var live []Key
 		for _, k := range sorted {
 			if _, no := denied[k]; no {
+				continue
+			}
+			live = append(live, k)
+			if len(names) >= maxNamedPeers {
 				continue
 			}
 			if k.SourceID == f.SourceID {
@@ -205,17 +217,19 @@ func resolveOne(f File, byDigest map[string][]Key, groupOf map[Key]*Group,
 				names = append(names, k.String())
 			}
 		}
-		if len(names) == 1 {
+		if more := len(live) - len(names); more > 0 {
+			names = append(names, fmt.Sprintf("and %d more", more))
+		}
+		if len(live) == 1 {
 			// Everything else was ruled out by a person. The remaining one
 			// is not thereby declared, but it is no longer ambiguous.
-			only := keyFor(sorted, names[0])
-			return Authority{State: StateNone, Basis: "", Confidence: 0, Evidence: evidenceKeys(sorted, fileObs),
+			return Authority{State: StateNone, Basis: "", Confidence: 0, Evidence: evidenceKeys(cited(f.Key, sorted), fileObs),
 				Explanation: fmt.Sprintf("every other copy was asserted not to be the authority; %s remains but has not been declared",
-					only.Locator)}
+					live[0].Locator)}
 		}
-		return Authority{State: StateMultiple, Basis: "", Confidence: 0, Evidence: evidenceKeys(sorted, fileObs),
+		return Authority{State: StateMultiple, Basis: "", Confidence: 0, Evidence: evidenceKeys(cited(f.Key, live), fileObs),
 			Explanation: fmt.Sprintf("%d files could each be the authority and nothing distinguishes them: %s",
-				len(names), strings.Join(names, ", "))}
+				len(live), strings.Join(names, ", "))}
 	}
 
 	return Authority{State: StateNone, Basis: "", Confidence: 0, Evidence: []string{fileObs[f.Key]},
@@ -242,11 +256,18 @@ func evidenceKeys(ks []Key, fileObs map[Key]string) []string {
 	return out
 }
 
-func keyFor(ks []Key, locator string) Key {
-	for _, k := range ks {
-		if k.Locator == locator {
-			return k
+// cited is the file itself plus the first few peers: the evidence a
+// person would look at, not the whole group.
+func cited(self Key, peers []Key) []Key {
+	out := []Key{self}
+	for _, k := range peers {
+		if k == self {
+			continue
 		}
+		if len(out) > maxNamedPeers {
+			break
+		}
+		out = append(out, k)
 	}
-	return Key{}
+	return out
 }
