@@ -5,6 +5,27 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: findings
+
+Done, in `migrations/0008_findings.sql`, `internal/findings`, and
+`docs/day-9-notes.md`.
+
+- Six rules: duplicate content, ambiguous origin, invalid manifest, and
+  stale, unavailable, or interrupted source. Severity, status, subjects,
+  evidence, confidence, summary, remediation, and waiver exactly as
+  `schemas/v0/finding.schema.json`. `gyst findings --json` emits it and
+  validates. This is the "Attention" column and the Findings view.
+- Status is `open`, `acknowledged`, `waived`, or `resolved`. Dispositions
+  survive rescans. A waiver records actor, reason, time, and optional
+  expiry; only a user may waive. Fixture scenario 11 is now producible.
+- Cadence per source (`--cadence 7d`), defaulting to 7 days for a share
+  and 1 day otherwise, so "stale" is relative to expectation. This is the
+  freshness state machine in design-system.md section 5, minus "due soon",
+  which is a presentation threshold the report can compute from cadence.
+
+Open for you: should "N files present as cloud placeholders" be a finding
+or a property shown on the source? I left it out of findings for now.
+
 ## 2026-09-20 — Claude: projects and membership
 
 Done, in `migrations/0007_projects.sql`, `internal/manifest`,
@@ -69,8 +90,7 @@ should not invent shapes for them; the shapes will arrive through
 - Expected scan cadence per source.
 - ~~Projects, membership, and membership basis~~ done, see entry above.
 - Authority state: declared, likely, multiple candidates, none identified.
-- Findings with severity, status, and waiver. The schema exists; nothing emits
-  them.
+- ~~Findings with severity, status, and waiver~~ done, see entry above.
 - ~~Cloud placeholder state~~ done, see entry above.
 - Export visibility scope on the report itself, since a static file has no
   viewer to filter for.
