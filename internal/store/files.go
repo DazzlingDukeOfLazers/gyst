@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -103,6 +104,17 @@ func (s *Store) PresentFileAt(ctx context.Context, sourceID, locator string) (Pr
 	return f, nil
 }
 
+// jsonString reads one string field from a JSON object without a SQL
+// dialect: the same decode on every engine.
+func jsonString(blob []byte, key string) string {
+	var m map[string]any
+	if json.Unmarshal(blob, &m) != nil {
+		return ""
+	}
+	s, _ := m[key].(string)
+	return s
+}
+
 func deref(p *string) string {
 	if p == nil {
 		return ""
@@ -131,7 +143,7 @@ func (s *Store) ObservationsOf(ctx context.Context, sourceID, locator string) ([
 	rows, err := s.pool.Query(ctx, `
 		SELECT observation_id, seq, observed_at, claim_type,
 		       coalesce(content_digest_hex,''), native_version_value,
-		       coalesce(policy->>'content_level',''), connector, connector_version
+		       policy, connector, connector_version
 		FROM observations WHERE source_id=$1 AND locator=$2 ORDER BY seq`, sourceID, locator)
 	if err != nil {
 		return nil, err
@@ -140,10 +152,12 @@ func (s *Store) ObservationsOf(ctx context.Context, sourceID, locator string) ([
 	var out []ObservationRow
 	for rows.Next() {
 		var o ObservationRow
+		var policy []byte
 		if err := rows.Scan(&o.ObservationID, &o.Seq, &o.ObservedAt, &o.ClaimType, &o.Digest,
-			&o.NativeVersion, &o.ContentLevel, &o.Connector, &o.ConnectorVersion); err != nil {
+			&o.NativeVersion, &policy, &o.Connector, &o.ConnectorVersion); err != nil {
 			return nil, err
 		}
+		o.ContentLevel = jsonString(policy, "content_level")
 		o.SourceID, o.Locator = sourceID, locator
 		out = append(out, o)
 	}

@@ -2,6 +2,9 @@ package store
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -139,35 +142,106 @@ type GoneFile struct {
 	Size                                   int64
 }
 
+// passKey formats a pass clock the same way on every engine. Rename
+// detection pairs a disappearance with an arrival only within one pass and
+// identifies the pass by this string.
+func passKey(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }
+
 // Tombstones lists disappearances with the digest recovered from the
-// observation each tombstone superseded, via last_known_seq.
+// observation each tombstone superseded, via the last_known_seq in its
+// payload. Two queries rather than a JSON-typed join, so the SQL is the
+// same on every engine.
 func (s *Store) Tombstones(ctx context.Context) ([]GoneFile, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT t.source_id, t.locator, t.observation_id, t.observed_at::text,
-		       coalesce(prior.content_digest_hex, ''), coalesce(prior.size_bytes, 0)
-		FROM observations t
-		LEFT JOIN observations prior ON prior.seq = (t.claim_payload->>'last_known_seq')::bigint
-		WHERE t.claim_type = 'artifact.absent' ORDER BY t.seq`)
+		SELECT source_id, locator, observation_id, observed_at, claim_payload
+		FROM observations WHERE claim_type = 'artifact.absent' ORDER BY seq`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var out []GoneFile
+	var priorSeqs []int64
 	for rows.Next() {
 		var g GoneFile
-		if err := rows.Scan(&g.SourceID, &g.Locator, &g.ObsID, &g.Pass, &g.Digest, &g.Size); err != nil {
+		var at time.Time
+		var payload []byte
+		if err := rows.Scan(&g.SourceID, &g.Locator, &g.ObsID, &at, &payload); err != nil {
+			rows.Close()
 			return nil, err
 		}
+		g.Pass = passKey(at)
+		var p struct {
+			LastKnownSeq int64 `json:"last_known_seq"`
+		}
+		_ = json.Unmarshal(payload, &p)
+		priorSeqs = append(priorSeqs, p.LastKnownSeq)
 		out = append(out, g)
 	}
-	return out, rows.Err()
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	digests, err := s.digestsBySeq(ctx, priorSeqs)
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		if d, ok := digests[priorSeqs[i]]; ok {
+			out[i].Digest, out[i].Size = d.digest, d.size
+		}
+	}
+	return out, nil
+}
+
+type digestSize struct {
+	digest string
+	size   int64
+}
+
+// digestsBySeq fetches content digests for a set of observation seqs, in
+// chunks so the placeholder list stays bounded.
+func (s *Store) digestsBySeq(ctx context.Context, seqs []int64) (map[int64]digestSize, error) {
+	out := map[int64]digestSize{}
+	const chunk = 500
+	for i := 0; i < len(seqs); i += chunk {
+		end := i + chunk
+		if end > len(seqs) {
+			end = len(seqs)
+		}
+		part := seqs[i:end]
+		args := make([]any, 0, len(part))
+		ph := make([]string, 0, len(part))
+		for j, seq := range part {
+			args = append(args, seq)
+			ph = append(ph, fmt.Sprintf("$%d", j+1))
+		}
+		rows, err := s.pool.Query(ctx, `
+			SELECT seq, coalesce(content_digest_hex,''), coalesce(size_bytes,0)
+			FROM observations WHERE seq IN (`+strings.Join(ph, ",")+`)`, args...)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var seq int64
+			var d digestSize
+			if err := rows.Scan(&seq, &d.digest, &d.size); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			out[seq] = d
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 // Arrivals lists the first observation of every locator: a file that merely
 // changed is not an arrival.
 func (s *Store) Arrivals(ctx context.Context) ([]GoneFile, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT o.source_id, o.locator, o.observation_id, o.observed_at::text,
+		SELECT o.source_id, o.locator, o.observation_id, o.observed_at,
 		       coalesce(o.content_digest_hex,''), coalesce(o.size_bytes,0)
 		FROM observations o
 		WHERE o.subject_kind = 'file' AND o.claim_type <> 'artifact.absent'
@@ -182,9 +256,11 @@ func (s *Store) Arrivals(ctx context.Context) ([]GoneFile, error) {
 	var out []GoneFile
 	for rows.Next() {
 		var a GoneFile
-		if err := rows.Scan(&a.SourceID, &a.Locator, &a.ObsID, &a.Pass, &a.Digest, &a.Size); err != nil {
+		var at time.Time
+		if err := rows.Scan(&a.SourceID, &a.Locator, &a.ObsID, &at, &a.Digest, &a.Size); err != nil {
 			return nil, err
 		}
+		a.Pass = passKey(at)
 		out = append(out, a)
 	}
 	return out, rows.Err()

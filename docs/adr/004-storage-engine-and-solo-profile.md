@@ -91,6 +91,8 @@ Option A, in four stages, each a pull request that leaves the tree working:
 2. **Portable where cheap.** Rewrite statements that have a portable
    spelling with no cost on PostgreSQL. Arrays become JSON text; `now()`
    moves to the application clock, which the pass work already began.
+   *Done 2026-09-20; see `docs/day-14-notes.md`. No dialect-specific SQL
+   remains in the store; only the migrations are PostgreSQL's.*
 3. **Add the SQLite engine.** The fifteen divergent statements get a
    variant. Migrations get a second directory or a dialect switch. Both
    engines run the whole test suite and produce an equal fixture report.

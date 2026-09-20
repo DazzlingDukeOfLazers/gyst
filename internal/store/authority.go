@@ -36,8 +36,8 @@ func (s *Store) InsertAssertion(ctx context.Context, a AssertionRow) error {
 // false when there was no active assertion with that id.
 func (s *Store) RetractAssertion(ctx context.Context, id, by, reason string) (bool, error) {
 	tag, err := s.pool.Exec(ctx, `
-		UPDATE assertions SET retracted_at=now(), retracted_by=$2, retract_reason=$3
-		WHERE assertion_id=$1 AND retracted_at IS NULL`, id, by, reason)
+		UPDATE assertions SET retracted_at=$4, retracted_by=$2, retract_reason=$3
+		WHERE assertion_id=$1 AND retracted_at IS NULL`, id, by, reason, time.Now().UTC())
 	return tag.RowsAffected() > 0, err
 }
 

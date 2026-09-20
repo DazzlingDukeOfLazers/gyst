@@ -83,10 +83,10 @@ func (s *Store) BeginPass(ctx context.Context, p PassStart) (string, error) {
 
 	if _, err := tx.Exec(ctx, `
 		UPDATE scan_passes
-		SET status=$2, finished_at=now(),
+		SET status=$2, finished_at=$4,
 		    detail='a later pass on this source began before this one reported a result'
 		WHERE source_id=$1 AND status=$3`,
-		p.SourceID, PassInterrupted, PassRunning); err != nil {
+		p.SourceID, PassInterrupted, PassRunning, time.Now().UTC()); err != nil {
 		return "", err
 	}
 	if _, err := tx.Exec(ctx, `
@@ -103,7 +103,7 @@ func (s *Store) BeginPass(ctx context.Context, p PassStart) (string, error) {
 func (s *Store) FinishPass(ctx context.Context, passID string, r PassResult) error {
 	_, err := s.pool.Exec(ctx, `
 		UPDATE scan_passes SET
-			finished_at=now(), status=$2, detail=$3,
+			finished_at=$14, status=$2, detail=$3,
 			scanned=$4, unchanged=$5, skipped=$6, ignored=$7, unstable=$8,
 			bytes=$9, hashed_bytes=$10, appended=$11,
 			absence_checked=$12, absence_reason=$13
@@ -111,7 +111,7 @@ func (s *Store) FinishPass(ctx context.Context, passID string, r PassResult) err
 		passID, r.Status, r.Detail,
 		r.Scanned, r.Unchanged, r.Skipped, r.Ignored, r.Unstable,
 		r.Bytes, r.HashedBytes, r.Appended,
-		r.AbsenceChecked, r.AbsenceReason)
+		r.AbsenceChecked, r.AbsenceReason, time.Now().UTC())
 	return err
 }
 
@@ -128,11 +128,8 @@ func (s *Store) LatestPasses(ctx context.Context) ([]Pass, error) {
 		       coalesce(p.scanned,0), coalesce(p.unchanged,0), coalesce(p.skipped,0),
 		       coalesce(p.appended,0)
 		FROM sources src
-		LEFT JOIN LATERAL (
-			SELECT * FROM scan_passes sp
-			WHERE sp.source_id = src.source_id
-			ORDER BY sp.started_at DESC LIMIT 1
-		) p ON true
+		LEFT JOIN scan_passes p ON p.source_id = src.source_id
+		     AND p.started_at = (SELECT max(sp.started_at) FROM scan_passes sp WHERE sp.source_id = src.source_id)
 		ORDER BY src.source_id`)
 	if err != nil {
 		return nil, err
