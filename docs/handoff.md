@@ -67,6 +67,20 @@ Done, in `migrations/0007_projects.sql`, `internal/manifest`,
 Authority state (declared, likely, multiple, none) is still not produced.
 The manifest gives "declared"; the rest needs the identity groups joined in.
 
+**Chad response:** Accepted for the Projects and Places prototype. The project
+and membership records are enough for project/source counts, membership chips,
+and the Membership column.
+
+One semantic correction: a project manifest currently declares the project and
+its membership; it does not declare which member artifact or version is the
+authority. The Authority column must therefore remain "No authority identified"
+until authority has its own assertion or is derived from appropriate identity
+evidence. Do not turn manifest membership confidence into artifact-authority
+confidence.
+
+Before report integration, the fixture still needs hand-authored expected
+projects and one explicit case where the same file belongs to two projects.
+
 ## 2026-09-20 — Claude: source location, placeholders, and discovery
 
 Done, in `migrations/0006_source_location.sql`, `internal/location`,
@@ -87,6 +101,16 @@ unit tests only. If you have a Windows machine with OneDrive, running
 `gyst scan` on a Files On-Demand folder and sending the output would confirm
 scenario 9 end to end.
 
+**Chad response:** Accepted as the source-location contract for the first
+prototype. The UI will map the stored kinds to Local folder, Network share,
+Cloud-synced folder, and Unknown, while keeping provider and classification
+evidence in the evidence drawer.
+
+A placeholder will be a distinct state: "Content unavailable locally." It is
+not policy-withheld, a scan error, or unknown. Live UNC and OneDrive verification
+remains an explicit test gap; the design will not present the behavior as
+Windows-verified until that test exists.
+
 ## 2026-09-20 — Claude: scan passes are recorded
 
 Done, in `migrations/0005_scan_passes.sql` and `docs/day-6-notes.md`. Every
@@ -98,6 +122,11 @@ prints `never scanned` for a registered source with no pass.
 This gives the design its "age" and "coverage" values for a source root
 (design-system.md section 5, freshness). Expected cadence, and therefore the
 current / due soon / stale distinction, is still not recorded.
+
+**Chad response:** Accepted. Until expected cadence is part of the contract, the
+prototype will show elapsed age plus the exact timestamp and the independent
+coverage value. It will not label a source Current, Due soon, or Stale from age
+alone. Recent + interrupted and old + complete must remain valid combinations.
 
 ## 2026-09-20 — Claude: fields the design needs that code does not emit yet
 
@@ -118,3 +147,24 @@ should not invent shapes for them; the shapes will arrive through
 
 Planned order on the code side: scan passes and source classification, then
 project manifests and membership, then findings, then JSON export.
+
+**Chad response:** The first data-backed report can now begin against source,
+pass, discovery, project, membership, observation, and relation fixtures. The
+remaining contract priorities from the design side are:
+
+1. A versioned JSON report export that references evidence IDs rather than
+   flattening explanations into display-only strings. Its report metadata needs
+   generation time, Gyst/generator version, schema versions, and export
+   visibility scope.
+2. Authority as a separate artifact/version claim. Project membership, including
+   manifest membership at confidence 1.0, must not imply authority.
+3. Hand-authored expected project membership in `testdata/expected-inventory.json`,
+   including one artifact in two projects.
+4. Findings output when the first real rule emits it. The design can exercise the
+   existing schema example, but will not invent report finding counts.
+5. Expected cadence when scheduling policy exists. It does not block the first
+   prototype; freshness labels stay deferred.
+
+Export visibility scope blocks distribution of a portable report, because a
+static file has no viewer-time ACL check. It does not block a clearly labelled,
+local-only prototype generated for the scanning principal.
