@@ -27,8 +27,9 @@ const (
 // arguments the drivers would otherwise disagree on, and nothing else: the
 // SQL itself is the same on both (ADR 004 stage 2).
 type engine struct {
-	db   *sql.DB
-	kind string
+	db               *sql.DB
+	kind             string
+	rowsPerStatement int
 }
 
 // timeLayout is how SQLite stores every timestamp: UTC, fixed width to the
@@ -251,7 +252,7 @@ func openEngine(ctx context.Context, dsn string) (*engine, error) {
 			db.Close()
 			return nil, fmt.Errorf("connect %s: %w", dsn, err)
 		}
-		return &engine{db: db, kind: EnginePostgres}, nil
+		return &engine{db: db, kind: EnginePostgres, rowsPerStatement: postgresRowsPerStatement}, nil
 	}
 }
 
@@ -271,7 +272,7 @@ func openSQLite(ctx context.Context, path string) (*engine, error) {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
-	e := &engine{db: db, kind: EngineSQLite}
+	e := &engine{db: db, kind: EngineSQLite, rowsPerStatement: sqliteRowsPerStatement}
 	if err := e.migrateSQLite(ctx); err != nil {
 		db.Close()
 		return nil, err
@@ -309,6 +310,45 @@ func (e *engine) migrateSQLite(ctx context.Context) error {
 // Engine reports which database this store is on.
 func (s *Store) Engine() string { return s.db.kind }
 
+// insertPrepared prepares one single-row INSERT and executes it per row.
+func (x *tx) insertPrepared(ctx context.Context, table string, columns []string, rows [][]any, suffix string) (int64, error) {
+	var b strings.Builder
+	b.WriteString("INSERT INTO ")
+	b.WriteString(table)
+	b.WriteString(" (")
+	b.WriteString(strings.Join(columns, ", "))
+	b.WriteString(") VALUES (")
+	for j := range columns {
+		if j > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteByte('$')
+		b.WriteString(itoa(j + 1))
+	}
+	b.WriteByte(')')
+	if suffix != "" {
+		b.WriteByte(' ')
+		b.WriteString(suffix)
+	}
+	stmt, err := x.t.PrepareContext(ctx, x.e.sql(b.String()))
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+	var total int64
+	for _, r := range rows {
+		if len(r) != len(columns) {
+			return total, fmt.Errorf("insertRows %s: row has %d values for %d columns", table, len(r), len(columns))
+		}
+		res, err := stmt.ExecContext(ctx, x.e.args(r)...)
+		if err != nil {
+			return total, err
+		}
+		total += affected(res)
+	}
+	return total, nil
+}
+
 // affected reads a result's row count, treating a driver that cannot say
 // as zero.
 func affected(res sql.Result) int64 {
@@ -323,3 +363,84 @@ func affected(res sql.Result) int64 {
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }
+
+// Rows per INSERT statement, per engine, from measurement (day-17 notes).
+// SQLite's pure-Go driver takes a prepared single-row statement executed
+// per row at 0.3 s for twenty thousand rows and degrades superlinearly
+// with parameters: five hundred rows per statement took 52 s. PostgreSQL
+// halves its time at about twenty rows per statement and gains nothing
+// beyond that.
+const (
+	sqliteRowsPerStatement   = 1
+	postgresRowsPerStatement = 20
+)
+
+// maxParams bounds the placeholders in one multi-row INSERT. SQLite's
+// default ceiling is 32,766 and PostgreSQL's is 65,535.
+const maxParams = 16000
+
+// insertRows writes rows to a table in as few statements as the parameter
+// limit allows. suffix is an ON CONFLICT clause or empty. It returns the
+// number of rows the engine reports as written, which for DO NOTHING is
+// the number actually inserted.
+//
+// Row-by-row inserts were most of a hundred-thousand-file scan. A
+// multi-row VALUES list is portable and removes one round trip per row.
+func (x *tx) insertRows(ctx context.Context, table string, columns []string, rows [][]any, suffix string) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	if x.e.rowsPerStatement <= 1 {
+		return x.insertPrepared(ctx, table, columns, rows, suffix)
+	}
+	perStmt := x.e.rowsPerStatement
+	if perStmt*len(columns) > maxParams {
+		perStmt = maxParams / len(columns)
+	}
+	if perStmt < 1 {
+		perStmt = 1
+	}
+	var total int64
+	for start := 0; start < len(rows); start += perStmt {
+		end := start + perStmt
+		if end > len(rows) {
+			end = len(rows)
+		}
+		chunk := rows[start:end]
+		var b strings.Builder
+		b.WriteString("INSERT INTO ")
+		b.WriteString(table)
+		b.WriteString(" (")
+		b.WriteString(strings.Join(columns, ", "))
+		b.WriteString(") VALUES ")
+		args := make([]any, 0, len(chunk)*len(columns))
+		for i, r := range chunk {
+			if len(r) != len(columns) {
+				return total, fmt.Errorf("insertRows %s: row has %d values for %d columns", table, len(r), len(columns))
+			}
+			if i > 0 {
+				b.WriteByte(',')
+			}
+			b.WriteByte('(')
+			for j := range r {
+				if j > 0 {
+					b.WriteByte(',')
+				}
+				b.WriteByte('$')
+				b.WriteString(itoa(len(args) + 1))
+				args = append(args, r[j])
+			}
+			b.WriteByte(')')
+		}
+		if suffix != "" {
+			b.WriteByte(' ')
+			b.WriteString(suffix)
+		}
+		res, err := x.exec(ctx, b.String(), args...)
+		if err != nil {
+			return total, err
+		}
+		total += affected(res)
+	}
+	return total, nil
+}

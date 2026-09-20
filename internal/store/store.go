@@ -88,6 +88,7 @@ func (s *Store) Append(ctx context.Context, obs []observe.Observation) (inserted
 	}
 	defer tx.Rollback()
 	recorded := time.Now().UTC()
+	rows := make([][]any, 0, len(obs))
 	for i := range obs {
 		o := &obs[i]
 		var digestAlgo, digestHex *string
@@ -102,30 +103,26 @@ func (s *Store) Append(ctx context.Context, obs []observe.Observation) (inserted
 		extractor, _ := json.Marshal(o.Extractor)
 		policy, _ := json.Marshal(o.Policy)
 		visibility, _ := json.Marshal(o.Visibility)
-
-		res, err := tx.exec(ctx, `
-			INSERT INTO observations (
-				observation_id, schema_version, source_id, connector, connector_version,
-				cursor, observed_at, recorded_at, subject_kind, locator,
-				native_version_scheme, native_version_value,
-				content_digest_algo, content_digest_hex, size_bytes,
-				claim_type, claim_payload, extractor, policy, visibility, corrects)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
-			ON CONFLICT (observation_id) DO NOTHING`,
+		rows = append(rows, []any{
 			o.ObservationID, o.SchemaVersion, o.Source.SourceID, o.Source.Connector,
 			o.Source.ConnectorVersion, nullable(o.Source.Cursor), o.ObservedAt, recorded,
 			o.Subject.Kind, o.Subject.Location.Locator,
 			o.Subject.Location.NativeVersion.Scheme, o.Subject.Location.NativeVersion.Value,
 			digestAlgo, digestHex, size,
 			o.Claim.Type, payload, extractor, policy, visibility, nullable(o.Corrects),
-		)
-		if err != nil {
-			return inserted, err
-		}
-		n, _ := res.RowsAffected()
-		inserted += int(n)
+		})
 	}
-	return inserted, tx.Commit()
+	n, err := tx.insertRows(ctx, "observations", []string{
+		"observation_id", "schema_version", "source_id", "connector", "connector_version",
+		"cursor", "observed_at", "recorded_at", "subject_kind", "locator",
+		"native_version_scheme", "native_version_value",
+		"content_digest_algo", "content_digest_hex", "size_bytes",
+		"claim_type", "claim_payload", "extractor", "policy", "visibility", "corrects",
+	}, rows, "ON CONFLICT (observation_id) DO NOTHING")
+	if err != nil {
+		return 0, err
+	}
+	return int(n), tx.Commit()
 }
 
 func nullable(s string) *string {

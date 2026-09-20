@@ -87,10 +87,9 @@ each other. Scanned on a SQLite file on this laptop:
 | Database file | 134 MB | |
 | Replay verification | passes | |
 
-The projections dominate, and within them the row-by-row inserts that
-replaced the PostgreSQL driver's batch API. That is the next thing to
-measure and the obvious place to win back time; it is not a correctness
-concern and the memory stays bounded.
+The projections dominate. Day 15 guessed the row-by-row inserts were the
+cost; day 17 measured and found the authority resolver instead. See
+`docs/day-17-notes.md`.
 
 ## What the benchmark found
 

@@ -55,26 +55,29 @@ func (s *Store) WriteCommits(ctx context.Context, commits []CommitRow, relations
 		return err
 	}
 	defer tx.Rollback()
+	crows := make([][]any, 0, len(commits))
+	var frows [][]any
+	seen := map[string]bool{}
 	for _, c := range commits {
-		if _, err := tx.exec(ctx, `
-			INSERT INTO commits (source_id, oid, seq, observation_id, author, message, authored_at, parents)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-			ON CONFLICT (source_id, oid) DO UPDATE SET seq=EXCLUDED.seq, observation_id=EXCLUDED.observation_id`,
-			c.SourceID, c.OID, c.Seq, c.ObsID, c.Author, c.Message, c.AuthoredAt, c.Parents); err != nil {
-			return err
-		}
+		crows = append(crows, []any{c.SourceID, c.OID, c.Seq, c.ObsID, c.Author, c.Message, c.AuthoredAt, c.Parents})
 		for _, p := range c.ChangedPaths {
-			if _, err := tx.exec(ctx, `
-				INSERT INTO commit_files (source_id, oid, locator) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
-				c.SourceID, c.OID, p); err != nil {
-				return err
+			k := c.SourceID + "\x00" + c.OID + "\x00" + p
+			if seen[k] {
+				continue
 			}
+			seen[k] = true
+			frows = append(frows, []any{c.SourceID, c.OID, p})
 		}
 	}
-	for _, r := range relations {
-		if err := execRelation(ctx, tx, r); err != nil {
-			return err
-		}
+	if _, err := tx.insertRows(ctx, "commits", []string{"source_id", "oid", "seq", "observation_id", "author", "message", "authored_at", "parents"},
+		crows, "ON CONFLICT (source_id, oid) DO UPDATE SET seq=EXCLUDED.seq, observation_id=EXCLUDED.observation_id"); err != nil {
+		return err
+	}
+	if _, err := tx.insertRows(ctx, "commit_files", []string{"source_id", "oid", "locator"}, frows, "ON CONFLICT DO NOTHING"); err != nil {
+		return err
+	}
+	if err := insertRelations(ctx, tx, relations); err != nil {
+		return err
 	}
 	return tx.Commit()
 }

@@ -28,13 +28,6 @@ type RelationRow struct {
 	AssertedAt    time.Time
 }
 
-const insertRelation = `
-	INSERT INTO relations (identity_policy_version, relation_id, type,
-		from_source, from_locator, to_source, to_locator,
-		precedence, actor_kind, actor_id, evidence, confidence, explanation, asserted_at)
-	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-	ON CONFLICT (relation_id) DO NOTHING`
-
 // InsertRelations adds relations, ignoring ones already present.
 func (s *Store) InsertRelations(ctx context.Context, rels []RelationRow) error {
 	if len(rels) == 0 {
@@ -45,22 +38,36 @@ func (s *Store) InsertRelations(ctx context.Context, rels []RelationRow) error {
 		return err
 	}
 	defer tx.Rollback()
-	for _, r := range rels {
-		if err := execRelation(ctx, tx, r); err != nil {
-			return err
-		}
+	if err := insertRelations(ctx, tx, rels); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
 
-func execRelation(ctx context.Context, tx *tx, r RelationRow) error {
-	at := r.AssertedAt
-	if at.IsZero() {
-		at = time.Now().UTC()
+var relationColumns = []string{"identity_policy_version", "relation_id", "type",
+	"from_source", "from_locator", "to_source", "to_locator",
+	"precedence", "actor_kind", "actor_id", "evidence", "confidence", "explanation", "asserted_at"}
+
+// insertRelations writes relations in bulk, skipping ids already present.
+// Duplicate ids within one call are also skipped, since the multi-row
+// insert may not touch a key twice.
+func insertRelations(ctx context.Context, tx *tx, rels []RelationRow) error {
+	now := time.Now().UTC()
+	seen := map[string]bool{}
+	rows := make([][]any, 0, len(rels))
+	for _, r := range rels {
+		if seen[r.RelationID] {
+			continue
+		}
+		seen[r.RelationID] = true
+		at := r.AssertedAt
+		if at.IsZero() {
+			at = now
+		}
+		rows = append(rows, []any{r.PolicyVersion, r.RelationID, r.Type, r.FromSource, r.FromLocator, r.ToSource, r.ToLocator,
+			r.Precedence, r.ActorKind, r.ActorID, r.Evidence, r.Confidence, r.Explanation, at})
 	}
-	_, err := tx.exec(ctx, insertRelation, r.PolicyVersion, r.RelationID, r.Type,
-		r.FromSource, r.FromLocator, r.ToSource, r.ToLocator,
-		r.Precedence, r.ActorKind, r.ActorID, r.Evidence, r.Confidence, r.Explanation, at)
+	_, err := tx.insertRows(ctx, "relations", relationColumns, rows, "ON CONFLICT (relation_id) DO NOTHING")
 	return err
 }
 

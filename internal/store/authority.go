@@ -84,14 +84,14 @@ func (s *Store) ReplaceFileAuthority(ctx context.Context, rows []FileAuthorityRo
 	if _, err := tx.exec(ctx, `DELETE FROM file_authority`); err != nil {
 		return err
 	}
+	vals := make([][]any, 0, len(rows))
 	for _, r := range rows {
-		if _, err := tx.exec(ctx, `INSERT INTO file_authority (source_id, locator, state, basis, authority_source,
-			authority_locator, confidence, evidence, assertion_id, explanation)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-			r.SourceID, r.Locator, r.State, r.Basis, r.AuthoritySource, r.AuthorityLocator,
-			r.Confidence, r.Evidence, r.AssertionID, r.Explanation); err != nil {
-			return err
-		}
+		vals = append(vals, []any{r.SourceID, r.Locator, r.State, r.Basis, r.AuthoritySource, r.AuthorityLocator,
+			r.Confidence, r.Evidence, r.AssertionID, r.Explanation})
+	}
+	if _, err := tx.insertRows(ctx, "file_authority", []string{"source_id", "locator", "state", "basis", "authority_source",
+		"authority_locator", "confidence", "evidence", "assertion_id", "explanation"}, vals, ""); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
