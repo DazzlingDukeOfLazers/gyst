@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -94,9 +95,9 @@ func (s *Store) ApplyCurrentFiles(ctx context.Context) (ProjectionStats, error) 
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO projector_state (projector, last_seq, updated_at)
-			VALUES ($1,$2,now())
-			ON CONFLICT (projector) DO UPDATE SET last_seq=EXCLUDED.last_seq, updated_at=now()`,
-			ProjectorName, last); err != nil {
+			VALUES ($1,$2,$3)
+			ON CONFLICT (projector) DO UPDATE SET last_seq=EXCLUDED.last_seq, updated_at=EXCLUDED.updated_at`,
+			ProjectorName, last, time.Now().UTC()); err != nil {
 			tx.Rollback(ctx)
 			return st, err
 		}

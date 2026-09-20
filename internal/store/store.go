@@ -121,9 +121,9 @@ func (s *Store) Cursor(ctx context.Context, sourceID string) (string, error) {
 func (s *Store) SetCursor(ctx context.Context, sourceID, cursor string) error {
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO source_cursors (source_id, cursor, updated_at)
-		VALUES ($1,$2,now())
-		ON CONFLICT (source_id) DO UPDATE SET cursor=EXCLUDED.cursor, updated_at=now()`,
-		sourceID, cursor)
+		VALUES ($1,$2,$3)
+		ON CONFLICT (source_id) DO UPDATE SET cursor=EXCLUDED.cursor, updated_at=EXCLUDED.updated_at`,
+		sourceID, cursor, time.Now().UTC())
 	return err
 }
 
@@ -165,15 +165,15 @@ func (s *Store) RegisterSource(ctx context.Context, sourceID, kind, root string,
 	}
 	_, err = s.pool.Exec(ctx, `
 		INSERT INTO sources (source_id, kind, root,
-			location_kind, location_provider, location_mount, location_evidence, location_confidence)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+			location_kind, location_provider, location_mount, location_evidence, location_confidence, last_seen)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 		ON CONFLICT (source_id) DO UPDATE SET
-			kind=EXCLUDED.kind, root=EXCLUDED.root, last_seen=now(),
+			kind=EXCLUDED.kind, root=EXCLUDED.root, last_seen=EXCLUDED.last_seen,
 			location_kind=EXCLUDED.location_kind, location_provider=EXCLUDED.location_provider,
 			location_mount=EXCLUDED.location_mount, location_evidence=EXCLUDED.location_evidence,
 			location_confidence=EXCLUDED.location_confidence`,
 		sourceID, kind, abs,
-		string(loc.Kind), loc.Provider, loc.Mount, loc.Evidence, loc.Confidence)
+		string(loc.Kind), loc.Provider, loc.Mount, loc.Evidence, loc.Confidence, time.Now().UTC())
 	return err
 }
 

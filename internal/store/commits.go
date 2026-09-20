@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"encoding/json"
-	"time"
 )
 
 // CommitObservation is a git.commit log entry with its payload decoded.
@@ -89,8 +88,7 @@ type RecentCommit struct {
 // RecentCommits lists the newest commit observations of a source.
 func (s *Store) RecentCommits(ctx context.Context, sourceID string, limit int) ([]RecentCommit, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT native_version_value, claim_payload->>'author', claim_payload->>'message',
-		       jsonb_array_length(coalesce(claim_payload->'changed_paths','[]'::jsonb))
+		SELECT native_version_value, claim_payload
 		FROM observations WHERE source_id=$1 AND claim_type='git.commit'
 		ORDER BY seq DESC LIMIT $2`, sourceID, limit)
 	if err != nil {
@@ -100,9 +98,17 @@ func (s *Store) RecentCommits(ctx context.Context, sourceID string, limit int) (
 	var out []RecentCommit
 	for rows.Next() {
 		var c RecentCommit
-		if err := rows.Scan(&c.OID, &c.Author, &c.Message, &c.Files); err != nil {
+		var raw []byte
+		if err := rows.Scan(&c.OID, &raw); err != nil {
 			return nil, err
 		}
+		var p struct {
+			Author  string   `json:"author"`
+			Message string   `json:"message"`
+			Changed []string `json:"changed_paths"`
+		}
+		_ = json.Unmarshal(raw, &p)
+		c.Author, c.Message, c.Files = p.Author, p.Message, len(p.Changed)
 		out = append(out, c)
 	}
 	return out, rows.Err()
@@ -124,12 +130,4 @@ func (s *Store) SourceRoots(ctx context.Context) (map[string]string, error) {
 		out[id] = root
 	}
 	return out, rows.Err()
-}
-
-// Now is the database clock, for callers that record a wall time the
-// engine should agree with.
-func (s *Store) Now(ctx context.Context) (time.Time, error) {
-	var t time.Time
-	err := s.pool.QueryRow(ctx, `SELECT now()`).Scan(&t)
-	return t, err
 }

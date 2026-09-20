@@ -233,12 +233,23 @@ func duplicates(in Inputs) []Finding {
 func ambiguous(in Inputs) []Finding {
 	var out []Finding
 	for _, a := range in.Ambiguities {
-		if len(a.Candidates) < 2 {
+		// The same candidate can be offered by relations from several
+		// passes. One file is one candidate.
+		seen := map[string]bool{}
+		var cands []File
+		for _, c := range a.Candidates {
+			k := c.SourceID + "\x00" + c.Locator
+			if !seen[k] {
+				seen[k] = true
+				cands = append(cands, c)
+			}
+		}
+		if len(cands) < 2 {
 			continue
 		}
 		subjects := []observe.ArtifactRef{fileRef(a.Gone)}
-		names := make([]string, 0, len(a.Candidates))
-		for _, c := range a.Candidates {
+		names := make([]string, 0, len(cands))
+		for _, c := range cands {
 			subjects = append(subjects, fileRef(c))
 			names = append(names, c.Locator)
 		}
@@ -253,7 +264,7 @@ func ambiguous(in Inputs) []Finding {
 			DetectedAt:    in.Now,
 			Confidence:    0.9,
 			Summary: fmt.Sprintf("%s is gone and %d present files match its content: %s. The evidence cannot say which, if any, is where it went.",
-				a.Gone.Locator, len(a.Candidates), strings.Join(names, ", ")),
+				a.Gone.Locator, len(cands), strings.Join(names, ", ")),
 			Remediation: &Remediation{
 				Proposal:         "Compare the candidates and record which one, if any, continues the missing file.",
 				Reversible:       true,

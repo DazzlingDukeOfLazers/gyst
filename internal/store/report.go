@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -24,9 +25,7 @@ type InventoryRow struct {
 func (s *Store) Inventory(ctx context.Context) ([]InventoryRow, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT cf.source_id, cf.locator, cf.present, cf.size_bytes, cf.content_digest_hex,
-		       cf.native_version_value, cf.observed_at, o.observation_id,
-		       coalesce(o.policy->>'content_level',''),
-		       coalesce((o.claim_payload->>'placeholder')::boolean, false)
+		       cf.native_version_value, cf.observed_at, o.observation_id, o.policy, o.claim_payload
 		FROM current_files cf JOIN observations o ON o.seq = cf.latest_seq
 		ORDER BY cf.source_id, cf.locator`)
 	if err != nil {
@@ -36,10 +35,17 @@ func (s *Store) Inventory(ctx context.Context) ([]InventoryRow, error) {
 	var out []InventoryRow
 	for rows.Next() {
 		var r InventoryRow
+		var policy, payload []byte
 		if err := rows.Scan(&r.SourceID, &r.Locator, &r.Present, &r.Size, &r.Digest, &r.NativeVersion,
-			&r.ObservedAt, &r.ObsID, &r.ContentLevel, &r.Placeholder); err != nil {
+			&r.ObservedAt, &r.ObsID, &policy, &payload); err != nil {
 			return nil, err
 		}
+		r.ContentLevel = jsonString(policy, "content_level")
+		var p struct {
+			Placeholder bool `json:"placeholder"`
+		}
+		_ = json.Unmarshal(payload, &p)
+		r.Placeholder = p.Placeholder
 		out = append(out, r)
 	}
 	return out, rows.Err()

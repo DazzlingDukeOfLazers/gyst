@@ -90,6 +90,28 @@ func TestAmbiguousOriginNeedsTwoCandidates(t *testing.T) {
 	}
 }
 
+// Relations from two passes can offer the same candidate twice. One file
+// is one candidate, and one candidate offered twice is not an ambiguity.
+func TestAmbiguityDeduplicatesCandidates(t *testing.T) {
+	fs := Detect(Inputs{Now: now, Ambiguities: []Ambiguity{{
+		Gone:       f("s", "gone.pdf", "d", "obs_g"),
+		Candidates: []File{f("s", "a.pdf", "d", "obs_a"), f("s", "a.pdf", "d", "obs_a2")},
+		Evidence:   []string{"obs_g", "obs_a"},
+	}}})
+	if len(byRule(fs, RuleAmbiguousOrigin)) != 0 {
+		t.Fatal("a single candidate listed twice was reported as an ambiguity")
+	}
+	fs = Detect(Inputs{Now: now, Ambiguities: []Ambiguity{{
+		Gone:       f("s", "gone.pdf", "d", "obs_g"),
+		Candidates: []File{f("s", "a.pdf", "d", "obs_a"), f("s", "b.pdf", "d", "obs_b"), f("s", "a.pdf", "d", "obs_a2")},
+		Evidence:   []string{"obs_g", "obs_a", "obs_b"},
+	}}})
+	am := byRule(fs, RuleAmbiguousOrigin)
+	if len(am) != 1 || len(am[0].Subjects) != 3 || !strings.Contains(am[0].Summary, "2 present files") {
+		t.Fatalf("%+v", am)
+	}
+}
+
 func TestSourceFreshness(t *testing.T) {
 	src := func(status string, age time.Duration, kind string, cadence time.Duration) SourceState {
 		return SourceState{SourceID: "s", LocationKind: kind, PassStatus: status,

@@ -13,18 +13,22 @@ type ManifestRow struct {
 	Payload                  []byte
 }
 
+// latestClaim is the newest observation of a claim type per locator, joined
+// to the present inventory. The max(seq) subquery is the portable spelling
+// of DISTINCT ON.
+const latestClaim = `
+	SELECT o.source_id, o.locator, o.observation_id, o.claim_payload, cf.native_version_value, coalesce(cf.size_bytes,0)
+	FROM observations o
+	JOIN current_files cf ON cf.source_id=o.source_id AND cf.locator=o.locator AND cf.present
+	WHERE o.claim_type = $1
+	  AND o.seq = (SELECT max(x.seq) FROM observations x
+	               WHERE x.source_id=o.source_id AND x.locator=o.locator AND x.claim_type=$1)
+	ORDER BY o.source_id, o.locator`
+
 // LatestManifests returns the newest manifest observation for every
 // manifest file that is currently present.
 func (s *Store) LatestManifests(ctx context.Context) ([]ManifestRow, error) {
-	rows, err := s.pool.Query(ctx, `
-		SELECT o.source_id, o.locator, o.observation_id, o.claim_payload
-		FROM (
-			SELECT DISTINCT ON (source_id, locator) source_id, locator, observation_id, claim_payload
-			FROM observations WHERE claim_type='project.manifest'
-			ORDER BY source_id, locator, seq DESC
-		) o
-		JOIN current_files cf ON cf.source_id=o.source_id AND cf.locator=o.locator AND cf.present
-		ORDER BY o.source_id, o.locator`)
+	rows, err := s.pool.Query(ctx, latestClaim, "project.manifest")
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +36,9 @@ func (s *Store) LatestManifests(ctx context.Context) ([]ManifestRow, error) {
 	var out []ManifestRow
 	for rows.Next() {
 		var m ManifestRow
-		if err := rows.Scan(&m.SourceID, &m.Locator, &m.ObsID, &m.Payload); err != nil {
+		var nv string
+		var size int64
+		if err := rows.Scan(&m.SourceID, &m.Locator, &m.ObsID, &m.Payload, &nv, &size); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
@@ -51,15 +57,14 @@ type MarkerRow struct {
 // folder with nothing present under it is taken to be gone.
 func (s *Store) LatestMarkers(ctx context.Context) ([]MarkerRow, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT o.source_id, o.locator, o.observation_id, o.claim_payload->'markers'
-		FROM (
-			SELECT DISTINCT ON (source_id, locator) source_id, locator, observation_id, claim_payload
-			FROM observations WHERE claim_type='folder.metadata' AND subject_kind='folder'
-			ORDER BY source_id, locator, seq DESC
-		) o
-		WHERE o.locator = '.' OR EXISTS (
+		SELECT o.source_id, o.locator, o.observation_id, o.claim_payload
+		FROM observations o
+		WHERE o.claim_type = 'folder.metadata' AND o.subject_kind = 'folder'
+		  AND o.seq = (SELECT max(x.seq) FROM observations x
+		               WHERE x.source_id=o.source_id AND x.locator=o.locator AND x.claim_type='folder.metadata')
+		  AND (o.locator = '.' OR EXISTS (
 			SELECT 1 FROM current_files cf
-			WHERE cf.source_id=o.source_id AND cf.present AND cf.locator LIKE o.locator || '/%')
+			WHERE cf.source_id=o.source_id AND cf.present AND cf.locator LIKE o.locator || '/%'))
 		ORDER BY o.source_id, o.locator`)
 	if err != nil {
 		return nil, err
@@ -72,9 +77,11 @@ func (s *Store) LatestMarkers(ctx context.Context) ([]MarkerRow, error) {
 		if err := rows.Scan(&m.SourceID, &m.Locator, &m.ObsID, &raw); err != nil {
 			return nil, err
 		}
-		if err := json.Unmarshal(raw, &m.Markers); err != nil {
-			return nil, err
+		var p struct {
+			Markers []string `json:"markers"`
 		}
+		_ = json.Unmarshal(raw, &p)
+		m.Markers = p.Markers
 		out = append(out, m)
 	}
 	return out, rows.Err()
@@ -83,17 +90,7 @@ func (s *Store) LatestMarkers(ctx context.Context) ([]MarkerRow, error) {
 // InvalidManifests returns present manifests whose latest observation says
 // they did not parse, with the error.
 func (s *Store) InvalidManifests(ctx context.Context) ([]PresentFile, []string, error) {
-	rows, err := s.pool.Query(ctx, `
-		SELECT o.source_id, o.locator, cf.native_version_value, coalesce(cf.size_bytes,0),
-		       o.observation_id, coalesce(o.claim_payload->>'error','')
-		FROM (
-			SELECT DISTINCT ON (source_id, locator) source_id, locator, observation_id, claim_payload
-			FROM observations WHERE claim_type='project.manifest'
-			ORDER BY source_id, locator, seq DESC
-		) o
-		JOIN current_files cf ON cf.source_id=o.source_id AND cf.locator=o.locator AND cf.present
-		WHERE (o.claim_payload->>'valid')::boolean = false
-		ORDER BY o.source_id, o.locator`)
+	rows, err := s.pool.Query(ctx, latestClaim, "project.manifest")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -102,12 +99,19 @@ func (s *Store) InvalidManifests(ctx context.Context) ([]PresentFile, []string, 
 	var errs []string
 	for rows.Next() {
 		var f PresentFile
-		var e string
-		if err := rows.Scan(&f.SourceID, &f.Locator, &f.NativeVersion, &f.Size, &f.ObsID, &e); err != nil {
+		var raw []byte
+		if err := rows.Scan(&f.SourceID, &f.Locator, &f.ObsID, &raw, &f.NativeVersion, &f.Size); err != nil {
 			return nil, nil, err
 		}
+		var p struct {
+			Valid bool   `json:"valid"`
+			Error string `json:"error"`
+		}
+		if json.Unmarshal(raw, &p) != nil || p.Valid {
+			continue
+		}
 		files = append(files, f)
-		errs = append(errs, e)
+		errs = append(errs, p.Error)
 	}
 	return files, errs, rows.Err()
 }
@@ -212,47 +216,76 @@ type ProjectSummary struct {
 	Members   []ProjectMemberRow
 }
 
-// ProjectSummaries lists every project with counts and members.
+// ProjectSummaries lists every project with counts and members, assembled
+// from three plain queries rather than JSON aggregates.
 func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT p.project_id, p.name, p.description, p.basis, p.source_id, p.locator, p.evidence, p.confidence, p.explanation,
-		       (SELECT count(*) FROM file_projects fp WHERE fp.project_id=p.project_id),
-		       (SELECT coalesce(array_agg(DISTINCT fp.source_id ORDER BY fp.source_id), '{}')
-		          FROM file_projects fp WHERE fp.project_id=p.project_id),
-		       (SELECT coalesce(json_agg(json_build_object(
-		            'project_id', m.project_id, 'source_id', m.source_id, 'pattern', m.pattern, 'basis', m.basis,
-		            'confidence', m.confidence, 'evidence', m.evidence) ORDER BY m.source_id, m.pattern), '[]')
-		          FROM project_members m WHERE m.project_id=p.project_id)
-		FROM projects p ORDER BY p.basis, p.name, p.project_id`)
+		SELECT project_id, name, description, basis, source_id, locator, evidence, confidence, explanation
+		FROM projects ORDER BY basis, name, project_id`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var out []ProjectSummary
+	index := map[string]int{}
 	for rows.Next() {
 		var p ProjectSummary
-		var members []byte
 		if err := rows.Scan(&p.ProjectID, &p.Name, &p.Description, &p.Basis, &p.SourceID, &p.Locator,
-			&p.Evidence, &p.Confidence, &p.Explanation, &p.FileCount, &p.SourceIDs, &members); err != nil {
+			&p.Evidence, &p.Confidence, &p.Explanation); err != nil {
+			rows.Close()
 			return nil, err
 		}
-		var ms []struct {
-			ProjectID  string  `json:"project_id"`
-			SourceID   string  `json:"source_id"`
-			Pattern    string  `json:"pattern"`
-			Basis      string  `json:"basis"`
-			Confidence float64 `json:"confidence"`
-			Evidence   string  `json:"evidence"`
-		}
-		if err := json.Unmarshal(members, &ms); err != nil {
-			return nil, err
-		}
-		for _, m := range ms {
-			p.Members = append(p.Members, ProjectMemberRow{m.ProjectID, m.SourceID, m.Pattern, m.Basis, m.Evidence, m.Confidence})
-		}
+		p.SourceIDs = []string{}
+		index[p.ProjectID] = len(out)
 		out = append(out, p)
 	}
-	return out, rows.Err()
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	mrows, err := s.pool.Query(ctx, `
+		SELECT project_id, source_id, pattern, basis, confidence, evidence
+		FROM project_members ORDER BY project_id, source_id, pattern`)
+	if err != nil {
+		return nil, err
+	}
+	for mrows.Next() {
+		var m ProjectMemberRow
+		if err := mrows.Scan(&m.ProjectID, &m.SourceID, &m.Pattern, &m.Basis, &m.Confidence, &m.Evidence); err != nil {
+			mrows.Close()
+			return nil, err
+		}
+		if i, ok := index[m.ProjectID]; ok {
+			out[i].Members = append(out[i].Members, m)
+		}
+	}
+	mrows.Close()
+	if err := mrows.Err(); err != nil {
+		return nil, err
+	}
+
+	frows, err := s.pool.Query(ctx, `SELECT project_id, source_id FROM file_projects ORDER BY project_id, source_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer frows.Close()
+	seen := map[string]bool{}
+	for frows.Next() {
+		var pid, src string
+		if err := frows.Scan(&pid, &src); err != nil {
+			return nil, err
+		}
+		i, ok := index[pid]
+		if !ok {
+			continue
+		}
+		out[i].FileCount++
+		if !seen[pid+"\x00"+src] {
+			seen[pid+"\x00"+src] = true
+			out[i].SourceIDs = append(out[i].SourceIDs, src)
+		}
+	}
+	return out, frows.Err()
 }
 
 // AllFileProjects lists every file membership, by file then confidence.
