@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/observe"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -152,20 +153,60 @@ func (s *Store) KnownState(ctx context.Context, sourceID string) (map[string]obs
 	return out, rows.Err()
 }
 
-// RegisterSource records where a source's locators are rooted. Without it a
-// locator cannot be resolved to a filesystem path, and two sources observing
-// the same file cannot be recognised as such.
-func (s *Store) RegisterSource(ctx context.Context, sourceID, kind, root string) error {
+// RegisterSource records where a source's locators are rooted and where that
+// root physically lives. Without the root a locator cannot be resolved to a
+// filesystem path, and two sources observing the same file cannot be
+// recognised as such. Without the location a share and a local folder look
+// the same, and they are not governed the same way.
+func (s *Store) RegisterSource(ctx context.Context, sourceID, kind, root string, loc location.Location) error {
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return err
 	}
 	_, err = s.pool.Exec(ctx, `
-		INSERT INTO sources (source_id, kind, root) VALUES ($1,$2,$3)
+		INSERT INTO sources (source_id, kind, root,
+			location_kind, location_provider, location_mount, location_evidence, location_confidence)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 		ON CONFLICT (source_id) DO UPDATE SET
-			kind=EXCLUDED.kind, root=EXCLUDED.root, last_seen=now()`,
-		sourceID, kind, abs)
+			kind=EXCLUDED.kind, root=EXCLUDED.root, last_seen=now(),
+			location_kind=EXCLUDED.location_kind, location_provider=EXCLUDED.location_provider,
+			location_mount=EXCLUDED.location_mount, location_evidence=EXCLUDED.location_evidence,
+			location_confidence=EXCLUDED.location_confidence`,
+		sourceID, kind, abs,
+		string(loc.Kind), loc.Provider, loc.Mount, loc.Evidence, loc.Confidence)
 	return err
+}
+
+// SourceRow is a registered source as read back.
+type SourceRow struct {
+	SourceID string
+	Kind     string
+	Root     string
+	Location location.Location
+}
+
+// Sources lists every registered source.
+func (s *Store) Sources(ctx context.Context) ([]SourceRow, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT source_id, kind, root,
+		       location_kind, location_provider, location_mount, location_evidence, location_confidence
+		FROM sources ORDER BY source_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SourceRow
+	for rows.Next() {
+		var r SourceRow
+		var kind string
+		if err := rows.Scan(&r.SourceID, &r.Kind, &r.Root, &kind, &r.Location.Provider,
+			&r.Location.Mount, &r.Location.Evidence, &r.Location.Confidence); err != nil {
+			return nil, err
+		}
+		r.Location.Kind = location.Kind(kind)
+		out = append(out, r)
+	}
+	return out, rows.Err()
 }
 
 func (s *Store) Count(ctx context.Context) (int64, error) {

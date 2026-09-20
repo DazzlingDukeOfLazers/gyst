@@ -78,7 +78,11 @@ type Result struct {
 	Skipped   int
 	Ignored   int
 	Unstable  int
-	Bytes     int64
+	// Placeholders are files present in the tree whose content is not on
+	// disk: a cloud sync engine holds the bytes elsewhere. They are observed
+	// by metadata only and never opened, because opening one downloads it.
+	Placeholders int
+	Bytes        int64
 	// HashedBytes is what was actually read. On an incremental pass it is far
 	// below Bytes, and the gap is the point of Known.
 	HashedBytes int64
@@ -207,7 +211,7 @@ func Discover(opts Options) (*Result, error) {
 			return nil
 		}
 
-		obs, oerr := observeFile(p, rel, info, nv, known.Seq, opts, now)
+		obs, placeholder, oerr := observeFile(p, rel, info, nv, known.Seq, opts, now)
 		if oerr != nil {
 			res.Skipped++
 			return nil
@@ -215,7 +219,11 @@ func Discover(opts Options) (*Result, error) {
 		res.Observations = append(res.Observations, obs)
 		res.NextCursor = rel
 		res.Scanned++
-		res.HashedBytes += info.Size()
+		if placeholder {
+			res.Placeholders++
+		} else if obs.Subject.Version.ContentDigest != nil {
+			res.HashedBytes += info.Size()
+		}
 		return nil
 	})
 	if err != nil {
@@ -231,22 +239,35 @@ func nativeVersion(info fs.FileInfo) observe.NativeVersion {
 	}
 }
 
+// observeFile builds the observation for one file. The returned bool reports
+// a placeholder: a file whose content a sync engine holds elsewhere. Such a
+// file is observed by metadata only and is never opened, whatever the policy
+// says, because opening it is a download the user did not ask for.
 func observeFile(abs, rel string, info fs.FileInfo, nv observe.NativeVersion,
-	priorSeq int64, opts Options, now time.Time) (observe.Observation, error) {
+	priorSeq int64, opts Options, now time.Time) (observe.Observation, bool, error) {
 
 	version := &observe.Version{SizeBytes: info.Size()}
+	payload := map[string]any{
+		"extension": path.Ext(rel),
+		"mode":      info.Mode().String(),
+	}
 
 	claimType := "file.metadata"
 	warnings := []string{}
+	placeholder := isPlaceholder(info)
 
-	if observe.PermitsDigest(opts.ContentLevel) {
+	switch {
+	case placeholder:
+		payload["placeholder"] = true
+		warnings = append(warnings, "content not present locally: cloud placeholder, not read")
+	case observe.PermitsDigest(opts.ContentLevel):
 		sum, err := hashFile(abs)
 		if err != nil {
-			return observe.Observation{}, err
+			return observe.Observation{}, false, err
 		}
 		version.ContentDigest = &observe.Digest{Algo: "sha256", Hex: sum}
 		claimType = "file.content_fingerprint"
-	} else {
+	default:
 		warnings = append(warnings, "content withheld by effective policy")
 	}
 
@@ -268,11 +289,8 @@ func observeFile(abs, rel string, info fs.FileInfo, nv observe.NativeVersion,
 			Version: version,
 		},
 		Claim: observe.Claim{
-			Type: claimType,
-			Payload: map[string]any{
-				"extension": path.Ext(rel),
-				"mode":      info.Mode().String(),
-			},
+			Type:    claimType,
+			Payload: payload,
 		},
 		Extractor: observe.Extractor{
 			Name:         "file-fingerprint",
@@ -292,7 +310,7 @@ func observeFile(abs, rel string, info fs.FileInfo, nv observe.NativeVersion,
 		},
 	}
 	obs.ObservationID = observe.DeriveID(&obs, priorSeq)
-	return obs, nil
+	return obs, placeholder, nil
 }
 
 // stable re-stats a recently modified file to catch one that is still being

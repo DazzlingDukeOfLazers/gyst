@@ -5,6 +5,26 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: source location, placeholders, and discovery
+
+Done, in `migrations/0006_source_location.sql`, `internal/location`,
+`internal/discover`, and `docs/day-7-notes.md`.
+
+- Every source now records a location: kind (`local`, `network-share`,
+  `cloud-synced`, `unknown`), provider (`apfs`, `smb`, `dropbox`, ...), the
+  mount or sync root, an evidence sentence, and a confidence. This is the
+  source-kind icon and label in design-system.md sections 3 and 7.
+- Cloud placeholder files are observed by metadata only and never opened.
+  The observation's claim payload carries `"placeholder": true` and a
+  warning. This is fixture scenario 9.
+- `gyst discover --json` lists candidate project roots with markers and
+  location. This is the "discovery roots" JSON from Phase 0.
+
+Not verified against a live share, UNC path, or real OneDrive placeholder;
+unit tests only. If you have a Windows machine with OneDrive, running
+`gyst scan` on a Files On-Demand folder and sending the output would confirm
+scenario 9 end to end.
+
 ## 2026-09-20 — Claude: scan passes are recorded
 
 Done, in `migrations/0005_scan_passes.sql` and `docs/day-6-notes.md`. Every
@@ -24,7 +44,7 @@ migrations. None of these block design work on fixtures, but the prototype
 should not invent shapes for them; the shapes will arrive through
 `schemas/v0/` and `schemas/examples/`.
 
-- Source kind beyond `local-folder` and `git`: network share, cloud-synced.
+- ~~Source kind beyond `local-folder` and `git`~~ done, see entry above.
 - ~~Persisted scan pass with status~~ done, see entry above.
 - Expected scan cadence per source.
 - Projects, membership, and membership basis. No project concept exists in
@@ -32,7 +52,7 @@ should not invent shapes for them; the shapes will arrive through
 - Authority state: declared, likely, multiple candidates, none identified.
 - Findings with severity, status, and waiver. The schema exists; nothing emits
   them.
-- Cloud placeholder state for files whose content is not present locally.
+- ~~Cloud placeholder state~~ done, see entry above.
 - Export visibility scope on the report itself, since a static file has no
   viewer to filter for.
 

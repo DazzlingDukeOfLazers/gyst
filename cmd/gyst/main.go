@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/connector/localfolder"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/project"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
@@ -27,6 +28,7 @@ Usage:
   gyst verify
   gyst status
   gyst git     --repo <path> [--ref HEAD] [--resume]
+  gyst discover [--root <path>]... [--depth 6] [--nested] [--json]
 
   gyst identity preview --profile <profile>   show grouping without writing it
   gyst identity apply   --profile <profile>   activate a grouping
@@ -61,6 +63,8 @@ func main() {
 		err = cmdVerify(ctx)
 	case "git":
 		err = cmdGit(ctx, os.Args[2:])
+	case "discover":
+		err = cmdDiscover(ctx, os.Args[2:])
 	case "identity":
 		err = cmdIdentity(ctx, os.Args[2:])
 	case "explain":
@@ -112,7 +116,10 @@ func cmdScan(ctx context.Context, args []string) error {
 		}
 	}
 
-	if err := s.RegisterSource(ctx, sourceID, "local-folder", *root); err != nil {
+	// Where the root lives decides how it is governed, so it is recorded
+	// with the source and printed with every scan.
+	loc := location.Probe(*root)
+	if err := s.RegisterSource(ctx, sourceID, "local-folder", *root, loc); err != nil {
 		return err
 	}
 
@@ -204,10 +211,15 @@ func cmdScan(ctx context.Context, args []string) error {
 	}
 
 	fmt.Printf("source     %s\n", sourceID)
+	fmt.Printf("location   %s   %s\n", loc, loc.Evidence)
 	fmt.Printf("seen       %d files, %s\n", res.Scanned+res.Unchanged, humanBytes(res.Bytes))
 	fmt.Printf("unchanged  %d (not read)   changed %d, %s hashed\n",
 		res.Unchanged, res.Scanned, humanBytes(res.HashedBytes))
 	fmt.Printf("ignored    %d   skipped %d   unstable %d\n", res.Ignored, res.Skipped, res.Unstable)
+	if res.Placeholders > 0 {
+		fmt.Printf("placeholder %d file(s) whose content is held by a sync engine; observed by metadata, not read\n",
+			res.Placeholders)
+	}
 	if tomb.Eligible {
 		fmt.Printf("absent     %d file(s) gone", len(tomb.Tombstones))
 		if tomb.Suppressed > 0 {
@@ -384,10 +396,10 @@ func cmdStatus(ctx context.Context) error {
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "\nSOURCE\tKIND\tLAST PASS\tCOVERAGE\tDETAIL")
+	fmt.Fprintln(w, "\nSOURCE\tKIND\tLOCATION\tLAST PASS\tCOVERAGE\tDETAIL")
 	for _, p := range passes {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-			p.SourceID, p.Kind, passAge(p), passStatus(p), short(passDetail(p), 72))
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+			p.SourceID, p.Kind, p.Location, passAge(p), passStatus(p), short(passDetail(p), 64))
 	}
 	w.Flush()
 	return nil
