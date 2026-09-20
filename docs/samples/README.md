@@ -7,7 +7,13 @@ profile applied, and one authority assertion so the declared state appears. It i
 [`design-system.md`](../design-system.md) and the "representative generated
 JSON" its Phase 0 asks for.
 
-Regenerate it with:
+Regenerate it with either engine. On a SQLite file, no server is needed:
+
+```sh
+export GYST_DATABASE_URL=sqlite:/tmp/gyst-fixture.db
+```
+
+On PostgreSQL:
 
 ```sh
 createdb gyst_fixture && for f in migrations/*.sql; do psql -q -d gyst_fixture -f "$f"; done
@@ -20,5 +26,7 @@ gyst assert authority widget_bom.xlsx --by example --reason "the workbook the re
 gyst report --out docs/samples/fixture-report.json
 ```
 
-The home directory in `root` paths has been replaced with `/home/example`.
+The two engines produce the same document apart from clocks and the ids
+derived from them; the committed sample came from the SQLite path. The home
+directory in `root` paths has been replaced with `/home/example`.
 Timestamps are whatever the clock said; nothing else is edited.

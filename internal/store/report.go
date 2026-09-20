@@ -23,7 +23,7 @@ type InventoryRow struct {
 
 // Inventory lists every locator the projection knows, present or not.
 func (s *Store) Inventory(ctx context.Context) ([]InventoryRow, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT cf.source_id, cf.locator, cf.present, cf.size_bytes, cf.content_digest_hex,
 		       cf.native_version_value, cf.observed_at, o.observation_id, o.policy, o.claim_payload
 		FROM current_files cf JOIN observations o ON o.seq = cf.latest_seq
@@ -37,7 +37,7 @@ func (s *Store) Inventory(ctx context.Context) ([]InventoryRow, error) {
 		var r InventoryRow
 		var policy, payload []byte
 		if err := rows.Scan(&r.SourceID, &r.Locator, &r.Present, &r.Size, &r.Digest, &r.NativeVersion,
-			&r.ObservedAt, &r.ObsID, &policy, &payload); err != nil {
+			ts(&r.ObservedAt), &r.ObsID, &policy, &payload); err != nil {
 			return nil, err
 		}
 		r.ContentLevel = jsonString(policy, "content_level")
@@ -54,7 +54,7 @@ func (s *Store) Inventory(ctx context.Context) ([]InventoryRow, error) {
 // CountPresentFiles counts present files in a source.
 func (s *Store) CountPresentFiles(ctx context.Context, sourceID string) (int, error) {
 	var n int
-	err := s.pool.QueryRow(ctx, `SELECT count(*) FROM current_files WHERE source_id=$1 AND present`, sourceID).Scan(&n)
+	err := s.db.queryRow(ctx, `SELECT count(*) FROM current_files WHERE source_id=$1 AND present`, sourceID).Scan(&n)
 	return n, err
 }
 
@@ -62,6 +62,6 @@ func (s *Store) CountPresentFiles(ctx context.Context, sourceID string) (int, er
 // unset.
 func (s *Store) SourceCadence(ctx context.Context, sourceID string) (int, error) {
 	var n int
-	err := s.pool.QueryRow(ctx, `SELECT cadence_seconds FROM sources WHERE source_id=$1`, sourceID).Scan(&n)
+	err := s.db.queryRow(ctx, `SELECT cadence_seconds FROM sources WHERE source_id=$1`, sourceID).Scan(&n)
 	return n, notFound(err)
 }

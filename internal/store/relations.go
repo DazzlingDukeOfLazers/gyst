@@ -2,12 +2,11 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // RelationRow mirrors the relations table. PolicyVersion is nil for a
@@ -32,8 +31,8 @@ type RelationRow struct {
 const insertRelation = `
 	INSERT INTO relations (identity_policy_version, relation_id, type,
 		from_source, from_locator, to_source, to_locator,
-		precedence, actor_kind, actor_id, evidence, confidence, explanation)
-	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		precedence, actor_kind, actor_id, evidence, confidence, explanation, asserted_at)
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 	ON CONFLICT (relation_id) DO NOTHING`
 
 // InsertRelations adds relations, ignoring ones already present.
@@ -41,34 +40,38 @@ func (s *Store) InsertRelations(ctx context.Context, rels []RelationRow) error {
 	if len(rels) == 0 {
 		return nil
 	}
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.db.begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback()
 	for _, r := range rels {
 		if err := execRelation(ctx, tx, r); err != nil {
 			return err
 		}
 	}
-	return tx.Commit(ctx)
+	return tx.Commit()
 }
 
-func execRelation(ctx context.Context, tx pgx.Tx, r RelationRow) error {
-	_, err := tx.Exec(ctx, insertRelation, r.PolicyVersion, r.RelationID, r.Type,
+func execRelation(ctx context.Context, tx *tx, r RelationRow) error {
+	at := r.AssertedAt
+	if at.IsZero() {
+		at = time.Now().UTC()
+	}
+	_, err := tx.exec(ctx, insertRelation, r.PolicyVersion, r.RelationID, r.Type,
 		r.FromSource, r.FromLocator, r.ToSource, r.ToLocator,
-		r.Precedence, r.ActorKind, r.ActorID, r.Evidence, r.Confidence, r.Explanation)
+		r.Precedence, r.ActorKind, r.ActorID, r.Evidence, r.Confidence, r.Explanation, at)
 	return err
 }
 
-func scanRelations(rows pgx.Rows) ([]RelationRow, error) {
+func scanRelations(rows *sql.Rows) ([]RelationRow, error) {
 	defer rows.Close()
 	var out []RelationRow
 	for rows.Next() {
 		var r RelationRow
 		if err := rows.Scan(&r.RelationID, &r.Type, &r.FromSource, &r.FromLocator, &r.ToSource, &r.ToLocator,
-			&r.Precedence, &r.ActorKind, &r.ActorID, &r.Evidence, &r.Confidence, &r.Explanation,
-			&r.AssertedAt, &r.PolicyVersion); err != nil {
+			&r.Precedence, &r.ActorKind, &r.ActorID, jsl(&r.Evidence), &r.Confidence, &r.Explanation,
+			ts(&r.AssertedAt), &r.PolicyVersion); err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -83,7 +86,7 @@ const selectRelation = `
 
 // AllRelations lists every relation, in a stable order.
 func (s *Store) AllRelations(ctx context.Context) ([]RelationRow, error) {
-	rows, err := s.pool.Query(ctx, selectRelation+`ORDER BY type, from_source, from_locator, to_locator`)
+	rows, err := s.db.query(ctx, selectRelation+`ORDER BY type, from_source, from_locator, to_locator`)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +96,7 @@ func (s *Store) AllRelations(ctx context.Context) ([]RelationRow, error) {
 // RelationsOf lists relations touching a locator under a policy version or
 // derived from native evidence.
 func (s *Store) RelationsOf(ctx context.Context, policyVersion, sourceID, locator string) ([]RelationRow, error) {
-	rows, err := s.pool.Query(ctx, selectRelation+`
+	rows, err := s.db.query(ctx, selectRelation+`
 		WHERE (identity_policy_version IS NULL OR identity_policy_version=$1)
 		  AND ((from_source=$2 AND from_locator=$3) OR (to_source=$2 AND to_locator=$3))
 		ORDER BY type, to_locator`, policyVersion, sourceID, locator)
@@ -115,7 +118,7 @@ type CommitTouch struct {
 
 // GitHistoryOf lists the commits whose contains relations point at a file.
 func (s *Store) GitHistoryOf(ctx context.Context, sourceID, locator string) ([]CommitTouch, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT c.oid, c.author, c.message, c.authored_at, r.evidence
 		FROM relations r
 		JOIN commits c ON (c.source_id || '@' || c.oid) = r.from_locator AND c.source_id = r.from_source
@@ -128,7 +131,7 @@ func (s *Store) GitHistoryOf(ctx context.Context, sourceID, locator string) ([]C
 	var out []CommitTouch
 	for rows.Next() {
 		var t CommitTouch
-		if err := rows.Scan(&t.OID, &t.Author, &t.Message, &t.AuthoredAt, &t.Evidence); err != nil {
+		if err := rows.Scan(&t.OID, &t.Author, &t.Message, ts(&t.AuthoredAt), jsl(&t.Evidence)); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -152,7 +155,7 @@ func passKey(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }
 // payload. Two queries rather than a JSON-typed join, so the SQL is the
 // same on every engine.
 func (s *Store) Tombstones(ctx context.Context) ([]GoneFile, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT source_id, locator, observation_id, observed_at, claim_payload
 		FROM observations WHERE claim_type = 'artifact.absent' ORDER BY seq`)
 	if err != nil {
@@ -164,7 +167,7 @@ func (s *Store) Tombstones(ctx context.Context) ([]GoneFile, error) {
 		var g GoneFile
 		var at time.Time
 		var payload []byte
-		if err := rows.Scan(&g.SourceID, &g.Locator, &g.ObsID, &at, &payload); err != nil {
+		if err := rows.Scan(&g.SourceID, &g.Locator, &g.ObsID, ts(&at), &payload); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -214,7 +217,7 @@ func (s *Store) digestsBySeq(ctx context.Context, seqs []int64) (map[int64]diges
 			args = append(args, seq)
 			ph = append(ph, fmt.Sprintf("$%d", j+1))
 		}
-		rows, err := s.pool.Query(ctx, `
+		rows, err := s.db.query(ctx, `
 			SELECT seq, coalesce(content_digest_hex,''), coalesce(size_bytes,0)
 			FROM observations WHERE seq IN (`+strings.Join(ph, ",")+`)`, args...)
 		if err != nil {
@@ -240,7 +243,7 @@ func (s *Store) digestsBySeq(ctx context.Context, seqs []int64) (map[int64]diges
 // Arrivals lists the first observation of every locator: a file that merely
 // changed is not an arrival.
 func (s *Store) Arrivals(ctx context.Context) ([]GoneFile, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT o.source_id, o.locator, o.observation_id, o.observed_at,
 		       coalesce(o.content_digest_hex,''), coalesce(o.size_bytes,0)
 		FROM observations o
@@ -257,7 +260,7 @@ func (s *Store) Arrivals(ctx context.Context) ([]GoneFile, error) {
 	for rows.Next() {
 		var a GoneFile
 		var at time.Time
-		if err := rows.Scan(&a.SourceID, &a.Locator, &a.ObsID, &at, &a.Digest, &a.Size); err != nil {
+		if err := rows.Scan(&a.SourceID, &a.Locator, &a.ObsID, ts(&at), &a.Digest, &a.Size); err != nil {
 			return nil, err
 		}
 		a.Pass = passKey(at)
@@ -279,7 +282,7 @@ type AmbiguityRow struct {
 // Ambiguities lists live compare-set-with relations, grouped by gone file
 // through the ordering.
 func (s *Store) Ambiguities(ctx context.Context) ([]AmbiguityRow, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT r.to_source, r.to_locator, t.native_version_value, t.observation_id,
 		       r.from_source, r.from_locator, cf.native_version_value, coalesce(cf.size_bytes,0),
 		       coalesce(cf.content_digest_hex,''), o.observation_id, r.evidence, r.confidence
@@ -299,7 +302,7 @@ func (s *Store) Ambiguities(ctx context.Context) ([]AmbiguityRow, error) {
 		var a AmbiguityRow
 		if err := rows.Scan(&a.GoneSource, &a.GoneLocator, &a.GoneNativeVersion, &a.GoneObsID,
 			&a.CandSource, &a.CandLocator, &a.CandNativeVersion, &a.CandSize, &a.CandDigest, &a.CandObsID,
-			&a.Evidence, &a.Confidence); err != nil {
+			jsl(&a.Evidence), &a.Confidence); err != nil {
 			return nil, err
 		}
 		out = append(out, a)

@@ -3,8 +3,6 @@ package store
 import (
 	"context"
 	"encoding/json"
-
-	"github.com/jackc/pgx/v5"
 )
 
 // ManifestRow is the latest project.manifest observation of a present file.
@@ -28,7 +26,7 @@ const latestClaim = `
 // LatestManifests returns the newest manifest observation for every
 // manifest file that is currently present.
 func (s *Store) LatestManifests(ctx context.Context) ([]ManifestRow, error) {
-	rows, err := s.pool.Query(ctx, latestClaim, "project.manifest")
+	rows, err := s.db.query(ctx, latestClaim, "project.manifest")
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +54,7 @@ type MarkerRow struct {
 // LatestMarkers returns marker folders. Folders get no tombstones, so a
 // folder with nothing present under it is taken to be gone.
 func (s *Store) LatestMarkers(ctx context.Context) ([]MarkerRow, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT o.source_id, o.locator, o.observation_id, o.claim_payload
 		FROM observations o
 		WHERE o.claim_type = 'folder.metadata' AND o.subject_kind = 'folder'
@@ -90,7 +88,7 @@ func (s *Store) LatestMarkers(ctx context.Context) ([]MarkerRow, error) {
 // InvalidManifests returns present manifests whose latest observation says
 // they did not parse, with the error.
 func (s *Store) InvalidManifests(ctx context.Context) ([]PresentFile, []string, error) {
-	rows, err := s.pool.Query(ctx, latestClaim, "project.manifest")
+	rows, err := s.db.query(ctx, latestClaim, "project.manifest")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -137,54 +135,42 @@ type FileProjectRow struct {
 
 // ReplaceProjects rebuilds the three project tables in one transaction.
 func (s *Store) ReplaceProjects(ctx context.Context, projects []ProjectRow, members []ProjectMemberRow, files []FileProjectRow) error {
-	tx, err := s.pool.Begin(ctx)
+	tx, err := s.db.begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx, `DELETE FROM projects`); err != nil {
+	defer tx.Rollback()
+	if _, err := tx.exec(ctx, `DELETE FROM projects`); err != nil {
 		return err
 	}
-	batch := &pgx.Batch{}
 	for _, p := range projects {
-		batch.Queue(`INSERT INTO projects (project_id, name, description, basis, source_id, locator,
+		if _, err := tx.exec(ctx, `INSERT INTO projects (project_id, name, description, basis, source_id, locator,
 			evidence, confidence, explanation) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-			p.ProjectID, p.Name, p.Description, p.Basis, p.SourceID, p.Locator, p.Evidence, p.Confidence, p.Explanation)
-	}
-	for _, m := range members {
-		batch.Queue(`INSERT INTO project_members (project_id, source_id, pattern, basis, confidence, evidence)
-			VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-			m.ProjectID, m.SourceID, m.Pattern, m.Basis, m.Confidence, m.Evidence)
-	}
-	for _, f := range files {
-		batch.Queue(`INSERT INTO file_projects (source_id, locator, project_id, basis, confidence, pattern)
-			VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-			f.SourceID, f.Locator, f.ProjectID, f.Basis, f.Confidence, f.Pattern)
-	}
-	if err := sendBatch(ctx, tx, batch); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
-}
-
-func sendBatch(ctx context.Context, tx pgx.Tx, batch *pgx.Batch) error {
-	if batch.Len() == 0 {
-		return nil
-	}
-	res := tx.SendBatch(ctx, batch)
-	for i := 0; i < batch.Len(); i++ {
-		if _, err := res.Exec(); err != nil {
-			res.Close()
+			p.ProjectID, p.Name, p.Description, p.Basis, p.SourceID, p.Locator, p.Evidence, p.Confidence, p.Explanation); err != nil {
 			return err
 		}
 	}
-	return res.Close()
+	for _, m := range members {
+		if _, err := tx.exec(ctx, `INSERT INTO project_members (project_id, source_id, pattern, basis, confidence, evidence)
+			VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
+			m.ProjectID, m.SourceID, m.Pattern, m.Basis, m.Confidence, m.Evidence); err != nil {
+			return err
+		}
+	}
+	for _, f := range files {
+		if _, err := tx.exec(ctx, `INSERT INTO file_projects (source_id, locator, project_id, basis, confidence, pattern)
+			VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
+			f.SourceID, f.Locator, f.ProjectID, f.Basis, f.Confidence, f.Pattern); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // FileProjectsOf lists the projects a file belongs to, strongest first,
 // with the project's name.
 func (s *Store) FileProjectsOf(ctx context.Context, sourceID, locator string) ([]FileProjectRow, []string, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT fp.project_id, p.name, fp.basis, fp.pattern, fp.confidence
 		FROM file_projects fp JOIN projects p ON p.project_id=fp.project_id
 		WHERE fp.source_id=$1 AND fp.locator=$2
@@ -219,7 +205,7 @@ type ProjectSummary struct {
 // ProjectSummaries lists every project with counts and members, assembled
 // from three plain queries rather than JSON aggregates.
 func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT project_id, name, description, basis, source_id, locator, evidence, confidence, explanation
 		FROM projects ORDER BY basis, name, project_id`)
 	if err != nil {
@@ -230,7 +216,7 @@ func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) 
 	for rows.Next() {
 		var p ProjectSummary
 		if err := rows.Scan(&p.ProjectID, &p.Name, &p.Description, &p.Basis, &p.SourceID, &p.Locator,
-			&p.Evidence, &p.Confidence, &p.Explanation); err != nil {
+			jsl(&p.Evidence), &p.Confidence, &p.Explanation); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -243,7 +229,7 @@ func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) 
 		return nil, err
 	}
 
-	mrows, err := s.pool.Query(ctx, `
+	mrows, err := s.db.query(ctx, `
 		SELECT project_id, source_id, pattern, basis, confidence, evidence
 		FROM project_members ORDER BY project_id, source_id, pattern`)
 	if err != nil {
@@ -264,7 +250,7 @@ func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) 
 		return nil, err
 	}
 
-	frows, err := s.pool.Query(ctx, `SELECT project_id, source_id FROM file_projects ORDER BY project_id, source_id`)
+	frows, err := s.db.query(ctx, `SELECT project_id, source_id FROM file_projects ORDER BY project_id, source_id`)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +276,7 @@ func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) 
 
 // AllFileProjects lists every file membership, by file then confidence.
 func (s *Store) AllFileProjects(ctx context.Context) ([]FileProjectRow, error) {
-	rows, err := s.pool.Query(ctx, `
+	rows, err := s.db.query(ctx, `
 		SELECT source_id, locator, project_id, basis, pattern, confidence
 		FROM file_projects ORDER BY source_id, locator, confidence DESC, project_id`)
 	if err != nil {

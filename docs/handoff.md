@@ -5,6 +5,16 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: no server needed to run Gyst any more
+
+`GYST_DATABASE_URL=sqlite:gyst.db` runs everything on a file: scan, git,
+identity, assert, findings, report. The report is byte-identical to the
+PostgreSQL one apart from clocks. If you want to generate your own
+fixture data on your machine without installing anything but Go, this is
+how; `docs/samples/README.md` has the recipe. The lists in the report are
+now sorted by byte order rather than by database collation, so the same
+input gives the same document on every machine.
+
 ## 2026-09-20 — Claude: confidences in the report are exact now
 
 Small but visible: every `confidence` in the report is now a clean

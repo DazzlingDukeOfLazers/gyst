@@ -96,6 +96,10 @@ Option A, in four stages, each a pull request that leaves the tree working:
 3. **Add the SQLite engine.** The fifteen divergent statements get a
    variant. Migrations get a second directory or a dialect switch. Both
    engines run the whole test suite and produce an equal fixture report.
+   *Done 2026-09-20; see `docs/day-15-notes.md`. No variants were needed
+   after stage two; the store runs on database/sql with one engine object
+   for placeholders, times, and JSON. The fixture report is byte-identical
+   across engines, and a store suite runs on both.*
 4. **Make it the default.** With `GYST_DATABASE_URL` unset, open a SQLite
    file under the user's data directory. PostgreSQL remains the reference
    engine for the team profile and stays in the documentation as such.
@@ -108,7 +112,8 @@ Option A, in four stages, each a pull request that leaves the tree working:
 - The fixture report from each engine is identical apart from `generated_at`.
 - `gyst verify` reproduces the projection on both.
 - A scan of a hundred thousand files completes on SQLite without unbounded
-  memory, and the measured time is recorded in the day notes.
+  memory, and the measured time is recorded in the day notes. *Measured
+  2026-09-20: 36 s full, 22 s incremental, 134 MB file; day-15 notes.*
 
 ## Consequences
 
