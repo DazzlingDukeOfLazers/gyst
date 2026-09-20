@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/discover"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/manifest"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/observe"
 )
 
@@ -82,7 +84,11 @@ type Result struct {
 	// disk: a cloud sync engine holds the bytes elsewhere. They are observed
 	// by metadata only and never opened, because opening one downloads it.
 	Placeholders int
-	Bytes        int64
+	// Manifests and MarkedFolders count the project evidence found: parsed
+	// .gyst/project.yaml files and folders carrying a native project marker.
+	Manifests     int
+	MarkedFolders int
+	Bytes         int64
 	// HashedBytes is what was actually read. On an incremental pass it is far
 	// below Bytes, and the gap is the point of Known.
 	HashedBytes int64
@@ -152,12 +158,17 @@ func Discover(opts Options) (*Result, error) {
 			return nil
 		}
 		rel, rerr := filepath.Rel(root, p)
-		if rerr != nil || rel == "." {
+		if rerr != nil {
 			return nil
 		}
 		rel = observe.NormalizeLocator(rel)
 
 		if d.IsDir() {
+			if rel == "." {
+				// The root itself: only its markers matter.
+				res.observeMarkers(p, ".", opts, now)
+				return nil
+			}
 			// Never follow a symlinked directory: it can leave the configured
 			// root entirely, which policy forbids.
 			if ig.match(rel, true) {
@@ -168,6 +179,7 @@ func Discover(opts Options) (*Result, error) {
 			if rel == ".git" || strings.HasSuffix(rel, "/.git") {
 				return filepath.SkipDir
 			}
+			res.observeMarkers(p, rel, opts, now)
 			return nil
 		}
 		if !d.Type().IsRegular() {
@@ -201,6 +213,18 @@ func Discover(opts Options) (*Result, error) {
 		if seen && known.NativeVersion == nv.Value {
 			res.Unchanged++
 			res.NextCursor = rel
+			// A manifest is re-read even when unchanged. Its observation is
+			// derived deterministically from the same version, so a repeat
+			// collides harmlessly in the log; what this buys is that a
+			// manifest first seen by an older scanner, or one whose
+			// observation was never projected, cannot go missing. One small
+			// file per project per pass.
+			if manifest.IsManifest(rel) && !isPlaceholder(info) {
+				if m, ok := observeManifest(p, rel, info, nv, known.Seq, opts, now); ok {
+					res.Observations = append(res.Observations, m)
+					res.Manifests++
+				}
+			}
 			return nil
 		}
 
@@ -223,6 +247,12 @@ func Discover(opts Options) (*Result, error) {
 			res.Placeholders++
 		} else if obs.Subject.Version.ContentDigest != nil {
 			res.HashedBytes += info.Size()
+		}
+		if manifest.IsManifest(rel) && !placeholder {
+			if m, ok := observeManifest(p, rel, info, nv, known.Seq, opts, now); ok {
+				res.Observations = append(res.Observations, m)
+				res.Manifests++
+			}
 		}
 		return nil
 	})
@@ -311,6 +341,134 @@ func observeFile(abs, rel string, info fs.FileInfo, nv observe.NativeVersion,
 	}
 	obs.ObservationID = observe.DeriveID(&obs, priorSeq)
 	return obs, placeholder, nil
+}
+
+// observeMarkers records the native project markers a directory carries: a
+// .git, a go.mod, a KiCad project file. The markers are facts about the
+// folder, recorded at confidence 1.0; that they suggest a project is an
+// interpretation the projection makes at lower confidence.
+//
+// One extra directory read per directory. Cheap, and the alternative --
+// deriving markers from the file observations later -- cannot see .git,
+// which the walk never enters.
+func (r *Result) observeMarkers(abs, rel string, opts Options, now time.Time) {
+	entries, err := os.ReadDir(abs)
+	if err != nil {
+		return
+	}
+	markers := discover.Markers(entries)
+	if len(markers) == 0 {
+		return
+	}
+	info, err := os.Stat(abs)
+	if err != nil {
+		return
+	}
+	obs := observe.Observation{
+		SchemaVersion: observe.SchemaVersion,
+		ObservedAt:    now,
+		Source: observe.Source{
+			SourceID: opts.SourceID, Connector: ConnectorName, ConnectorVersion: ConnectorVersion,
+		},
+		Subject: observe.ArtifactRef{
+			Kind: "folder",
+			Location: observe.Location{
+				SourceID: opts.SourceID,
+				Locator:  rel,
+				NativeVersion: observe.NativeVersion{Scheme: "mtime",
+					Value: fmt.Sprintf("%d", info.ModTime().UTC().Unix())},
+			},
+		},
+		Claim: observe.Claim{
+			Type:    "folder.metadata",
+			Payload: map[string]any{"markers": markers},
+		},
+		Extractor: observe.Extractor{
+			Name: "project-markers", Version: ConnectorVersion,
+			OutputSchema: "gyst.claim.folder.metadata/0.1.0",
+			Warnings:     []string{}, Confidence: 1.0,
+		},
+		Policy: policyFor(opts),
+		Visibility: observe.Visibility{
+			Labels: []string{"src:" + opts.SourceID + ":read"}, SourceACLComplete: true,
+		},
+	}
+	obs.ObservationID = observe.DeriveID(&obs, 0)
+	r.Observations = append(r.Observations, obs)
+	r.MarkedFolders++
+}
+
+// observeManifest reads a .gyst/project.yaml and records what it declares.
+//
+// The file is read under any content level except exclude. It is not
+// engineering data: it is the tree's owners describing the tree to Gyst,
+// and a policy that forbids Gyst from reading its own configuration would
+// forbid the project from ever being declared. Under exclude the path is
+// never enumerated in the first place.
+//
+// A manifest that cannot be parsed is still observed, with valid=false and
+// the error, so a broken manifest is visible rather than silently absent.
+func observeManifest(abs, rel string, info fs.FileInfo, nv observe.NativeVersion,
+	priorSeq int64, opts Options, now time.Time) (observe.Observation, bool) {
+
+	body, err := os.ReadFile(abs)
+	if err != nil {
+		return observe.Observation{}, false
+	}
+	payload := map[string]any{"valid": true}
+	warnings := []string{}
+	confidence := 1.0
+	m, warn, perr := manifest.Parse(body, manifest.Dir(rel))
+	warnings = append(warnings, warn...)
+	if perr != nil {
+		payload["valid"] = false
+		payload["error"] = perr.Error()
+		confidence = 0
+	} else {
+		payload["id"] = m.ID
+		payload["name"] = m.Name
+		payload["description"] = m.Description
+		payload["members"] = m.Members
+		payload["owners"] = m.Owners
+	}
+
+	version := &observe.Version{SizeBytes: info.Size()}
+	if observe.PermitsDigest(opts.ContentLevel) {
+		sum := sha256.Sum256(body)
+		version.ContentDigest = &observe.Digest{Algo: "sha256", Hex: hex.EncodeToString(sum[:])}
+	}
+	obs := observe.Observation{
+		SchemaVersion: observe.SchemaVersion,
+		ObservedAt:    now,
+		Source: observe.Source{
+			SourceID: opts.SourceID, Connector: ConnectorName, ConnectorVersion: ConnectorVersion,
+		},
+		Subject: observe.ArtifactRef{
+			Kind:     "file",
+			Location: observe.Location{SourceID: opts.SourceID, Locator: rel, NativeVersion: nv},
+			Version:  version,
+		},
+		Claim: observe.Claim{Type: "project.manifest", Payload: payload},
+		Extractor: observe.Extractor{
+			Name: "project-manifest", Version: "0.1.0",
+			OutputSchema: "gyst.claim.project.manifest/0.1.0",
+			Warnings:     warnings, Confidence: confidence,
+		},
+		Policy: policyFor(opts),
+		Visibility: observe.Visibility{
+			Labels: []string{"src:" + opts.SourceID + ":read"}, SourceACLComplete: true,
+		},
+	}
+	obs.ObservationID = observe.DeriveID(&obs, priorSeq)
+	return obs, true
+}
+
+func policyFor(opts Options) observe.Policy {
+	return observe.Policy{
+		ContentLevel:           opts.ContentLevel,
+		Egress:                 opts.Egress,
+		EffectivePolicyVersion: opts.PolicyVersion,
+	}
 }
 
 // stable re-stats a recently modified file to catch one that is still being

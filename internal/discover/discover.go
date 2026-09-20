@@ -138,7 +138,7 @@ func walk(root, dir string, depth int, home string, opts *Options, out *[]Candid
 	}
 	stats.Dirs++
 
-	markers := markersIn(entries)
+	markers := Markers(entries)
 	if len(markers) > 0 {
 		*out = append(*out, Candidate{
 			Path: dir, Markers: markers, Location: opts.Classify(dir), Depth: depth,
@@ -164,8 +164,9 @@ func walk(root, dir string, depth int, home string, opts *Options, out *[]Candid
 	}
 }
 
-// markersIn returns the sorted, de-duplicated marker labels among entries.
-func markersIn(entries []fs.DirEntry) []string {
+// Markers returns the sorted, de-duplicated project-marker labels among a
+// directory's entries.
+func Markers(entries []fs.DirEntry) []string {
 	found := map[string]bool{}
 	for _, e := range entries {
 		name := e.Name()

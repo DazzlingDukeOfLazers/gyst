@@ -5,6 +5,26 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: projects and membership
+
+Done, in `migrations/0007_projects.sql`, `internal/manifest`,
+`internal/project/membership.go`, and `docs/day-8-notes.md`.
+
+- `projects`, `project_members`, and `file_projects` tables, rebuilt from
+  the log on every scan. Basis is `manifest` (confidence 1.0) or
+  `native-marker` (0.6); `explicit`, `organization-rule`, and `suggestion`
+  are defined but nothing produces them yet.
+- A file can be in several projects; `gyst explain <file>` lists them with
+  basis, confidence, and the pattern that matched. This is the membership
+  chip and the "Membership" column in design-system.md section 3.
+- One manifest id in two sources is one project. This is fixture scenario 1.
+- `gyst projects` lists projects with file and source counts.
+- New claim type `project.manifest` in `schemas/v0/observation.schema.json`,
+  with `schemas/examples/valid/observation.project-manifest.json`.
+
+Authority state (declared, likely, multiple, none) is still not produced.
+The manifest gives "declared"; the rest needs the identity groups joined in.
+
 ## 2026-09-20 — Claude: source location, placeholders, and discovery
 
 Done, in `migrations/0006_source_location.sql`, `internal/location`,
@@ -47,8 +67,7 @@ should not invent shapes for them; the shapes will arrive through
 - ~~Source kind beyond `local-folder` and `git`~~ done, see entry above.
 - ~~Persisted scan pass with status~~ done, see entry above.
 - Expected scan cadence per source.
-- Projects, membership, and membership basis. No project concept exists in
-  code yet; the `internal/project` package is the projector.
+- ~~Projects, membership, and membership basis~~ done, see entry above.
 - Authority state: declared, likely, multiple candidates, none identified.
 - Findings with severity, status, and waiver. The schema exists; nothing emits
   them.

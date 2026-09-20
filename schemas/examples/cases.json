@@ -20,6 +20,12 @@
       "rationale": "Native Git provenance with git_oid versioning, so ordering is authoritative rather than clock-derived."
     },
     {
+      "file": "valid/observation.project-manifest.json",
+      "schema": "observation",
+      "expect": "valid",
+      "rationale": "A parsed .gyst/project.yaml. The manifest is a second claim about a locator the fingerprint already covers; it declares a project and its member patterns, and it is read under any policy short of exclude because it is configuration addressed to Gyst, not engineering content."
+    },
+    {
       "file": "valid/artifact-ref.projection.json",
       "schema": "artifact-ref",
       "expect": "valid",
@@ -48,7 +54,9 @@
       "schema": "relation",
       "expect": "valid",
       "rationale": "An unambiguous move: one file gone, one arrived, identical content, digest unique on both sides. Both endpoints carry the same digest, which is the whole basis for the claim.",
-      "allow_absent_locators": ["engineering/connectors/archive/conn-123-old.pdf"],
+      "allow_absent_locators": [
+        "engineering/connectors/archive/conn-123-old.pdf"
+      ],
       "why_absent": "A move's destination exists only after the move. The static fixture holds the pre-move tree, so the origin is checked against it and the destination cannot be."
     },
     {
@@ -57,7 +65,6 @@
       "expect": "valid",
       "rationale": "Advisory finding whose remediation is a proposal requiring approval."
     },
-
     {
       "file": "invalid/observation.artifact-on-evidence.json",
       "schema": "observation",

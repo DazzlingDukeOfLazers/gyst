@@ -29,6 +29,7 @@ Usage:
   gyst status
   gyst git     --repo <path> [--ref HEAD] [--resume]
   gyst discover [--root <path>]... [--depth 6] [--nested] [--json]
+  gyst projects                               projects and where membership comes from
 
   gyst identity preview --profile <profile>   show grouping without writing it
   gyst identity apply   --profile <profile>   activate a grouping
@@ -65,6 +66,8 @@ func main() {
 		err = cmdGit(ctx, os.Args[2:])
 	case "discover":
 		err = cmdDiscover(ctx, os.Args[2:])
+	case "projects":
+		err = cmdProjects(ctx, os.Args[2:])
 	case "identity":
 		err = cmdIdentity(ctx, os.Args[2:])
 	case "explain":
@@ -209,6 +212,10 @@ func cmdScan(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	members, err := project.ProjectMembership(ctx, s)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("source     %s\n", sourceID)
 	fmt.Printf("location   %s   %s\n", loc, loc.Evidence)
@@ -245,6 +252,13 @@ func cmdScan(ctx context.Context, args []string) error {
 		fmt.Printf("   (%s/s hashed)", humanBytes(int64(float64(res.HashedBytes)/elapsed.Seconds())))
 	}
 	fmt.Println()
+	fmt.Printf("projects   %d (%d from manifests, %d from markers, %d marker(s) covered by a manifest); %d file memberships\n",
+		members.Projects, members.Manifests-members.InvalidManifests,
+		members.Projects-(members.Manifests-members.InvalidManifests),
+		members.SuppressedMarkers, members.FileMemberships)
+	if members.InvalidManifests > 0 {
+		fmt.Printf("           %d manifest(s) could not be parsed; see gyst explain\n", members.InvalidManifests)
+	}
 	fmt.Printf("coverage   %s: %s\n", cov.Status, cov.Detail)
 	if !res.Complete {
 		fmt.Printf("partial    stopped at --max-files; rerun with --resume\n")

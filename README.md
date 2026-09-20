@@ -37,6 +37,7 @@ Project documents include:
 - [Day 5 notes: rename detection](docs/day-5-notes.md)
 - [Day 6 notes: scan passes](docs/day-6-notes.md)
 - [Day 7 notes: source location and discovery](docs/day-7-notes.md)
+- [Day 8 notes: projects and membership](docs/day-8-notes.md)
 - [Designer brief](docs/designer-brief.md)
 - [Design system and first-view plan](docs/design-system.md)
 - [Handoff log between design and code](docs/handoff.md)
