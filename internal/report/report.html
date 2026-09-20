@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gyst report</title>
+<style>
+:root{--canvas:#F2EDDF;--surface:#FFFDF6;--muted:#E7E1D3;--ink:#11110F;--ink2:#5F5B51;--rule:#C8C1B2;--blue:#3157FF;--orange:#C84424;--acid:#D8FF43;--red:#B42318;--green:#206A4A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink);font:14px/20px "Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif}
+code,.mono{font:12px/18px "Cascadia Mono",Consolas,ui-monospace,Menlo,monospace}
+header{background:var(--surface);border-bottom:1px solid var(--rule);padding:12px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:2}
+header h1{font-size:20px;line-height:28px;margin:0 8px 0 0}
+nav button,.lens button{background:none;border:1px solid var(--rule);border-radius:2px;padding:6px 12px;font:inherit;cursor:pointer;color:var(--ink)}
+nav button[aria-pressed=true],.lens button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+input[type=search]{font:inherit;padding:6px 8px;border:1px solid var(--rule);border-radius:2px;min-width:260px;background:var(--surface)}
+main{display:grid;grid-template-columns:1fr;gap:0}
+.pane{padding:16px}
+.meta{color:var(--ink2);font-size:12px;line-height:16px}
+table{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--rule)}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.02em;color:var(--ink2);font-weight:600}
+tr.row{cursor:pointer}tr.row:hover{background:var(--muted)}
+.chip{display:inline-block;border:1px solid var(--rule);border-radius:2px;padding:0 6px;font-size:12px;line-height:18px;margin-right:4px;background:var(--surface)}
+.chip.policy{border-color:var(--blue);color:var(--blue)}.chip.unknown{border-style:dashed;color:var(--ink2)}
+.chip.vendored{background:var(--muted);color:var(--ink2)}
+.chip.declared{border-color:var(--green);color:var(--green)}.chip.multiple{border-color:var(--orange);color:var(--orange)}
+.conf{font-variant-numeric:tabular-nums}
+.sev-high{color:var(--red)}.sev-medium{color:var(--orange)}.sev-low{color:var(--ink2)}
+.tree ul{list-style:none;margin:0;padding-left:18px}.tree>ul{padding-left:0}
+.tree li{line-height:22px}.tree .dir>span{cursor:pointer}.tree .dir.closed>ul{display:none}
+.tree .dir>span::before{content:"▾ ";color:var(--ink2)}.tree .dir.closed>span::before{content:"▸ "}
+.tree .file{cursor:pointer}.tree .file:hover{background:var(--muted)}
+.tree .count{color:var(--ink2);font-size:12px}
+.sel{outline:2px solid var(--blue);outline-offset:1px;background:var(--acid)}
+aside#drawer{position:fixed;right:0;top:0;height:100%;width:min(520px,100%);background:var(--surface);border-left:1px solid var(--rule);box-shadow:-4px 0 0 var(--ink);padding:16px;overflow:auto;transform:translateX(100%);transition:transform 150ms;z-index:3}
+aside#drawer.open{transform:none}
+aside h2{font-size:16px;margin:0 0 4px}aside h3{font-size:12px;text-transform:uppercase;color:var(--ink2);margin:16px 0 4px;letter-spacing:.02em}
+aside .close{float:right}
+dl{margin:0}dt{color:var(--ink2);font-size:12px}dd{margin:0 0 6px}
+details{background:var(--surface);border:1px solid var(--rule);margin-bottom:6px}summary{padding:6px 10px;cursor:pointer}details>div{padding:0 10px 8px}
+.empty{color:var(--ink2);padding:24px;text-align:center}
+@media (prefers-reduced-motion:reduce){aside#drawer{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Gyst</h1>
+  <nav><button data-view="projects" aria-pressed="true">Projects</button><button data-view="places">Places</button><button data-view="findings">Findings</button></nav>
+  <input type="search" id="q" placeholder="Search names, paths, ids…" aria-label="Search">
+  <label class="meta"><input type="checkbox" id="showVendored"> show vendored files</label>
+  <span class="meta" id="about"></span>
+</header>
+<main><section class="pane" id="view"></section></main>
+<aside id="drawer" aria-label="Evidence"><button class="close" onclick="closeDrawer()">Close</button><div id="drawerBody"></div></aside>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent);
+const byKey=new Map(D.files.map(f=>[f.source_id+'\0'+f.locator,f]));
+const projName=new Map(D.projects.map(p=>[p.project_id,p.name]));
+const findingsByFile=new Map();
+for(const f of D.findings){if(f.status==='resolved')continue;for(const s of f.subjects){const k=s.location.source_id+'\0'+s.location.locator;(findingsByFile.get(k)||findingsByFile.set(k,[]).get(k)).push(f)}}
+let view='projects',q='',showVendored=false,selected=null;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const band=c=>c>=1?'observed':c>=0.8?'strong inference':c>=0.4?'tentative':c>0?'weak candidate':'unknown';
+// Confidence words. "Observed" belongs to observations only; a declared
+// membership says declared, a marker says suggestion, a profile rule is named.
+const confChip=(c,kind)=>{const w=kind==='manifest'||kind==='explicit'?'declared':kind==='native-marker'?'suggestion':kind==='rule'?'rule':band(c);return `<span class="chip ${c>0?'':'unknown'}">${w} <span class="conf">${c.toFixed(2)}</span></span>`};
+const authChip=a=>!a?'<span class="chip unknown">not resolved</span>':a.state==='declared'?`<span class="chip declared">declared authority</span>`:a.state==='likely'?`<span class="chip">likely authority ${a.confidence.toFixed(2)}</span>`:a.state==='multiple'?`<span class="chip multiple">multiple candidates</span>`:`<span class="chip unknown">no authority identified</span>`;
+const ago=s=>s==null?'never':s<60?s+' s':s<3600?Math.round(s/60)+' min':s<172800?Math.round(s/3600)+' h':Math.round(s/86400)+' d';
+document.getElementById('about').textContent=`generated ${D.report.generated_at} · ${D.report.generator.name} ${D.report.generator.version} · ${D.report.schema} · ${D.report.counts.files_present} files, ${D.report.counts.projects} projects, ${D.report.counts.findings_open} open findings`;
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
+document.getElementById('q').oninput=e=>{q=e.target.value.toLowerCase();render()};
+document.getElementById('showVendored').onchange=e=>{showVendored=e.target.checked;render()};
+function match(s){return !q||String(s).toLowerCase().includes(q)}
+function visible(f){return (showVendored||!f.vendored)&&f.present}
+function render(){const el=document.getElementById('view');el.innerHTML=view==='projects'?renderProjects():view==='places'?renderPlaces():renderFindings()}
+function renderProjects(){
+  const rows=D.projects.filter(p=>match(p.name)||match(p.project_id)||p.members.some(m=>match(m.pattern)));
+  if(!rows.length)return '<div class="empty">No projects match.</div>';
+  return `<p class="meta">Projects show what belongs together. A file can be in several; that is expected. Basis says where membership comes from.</p><table><thead><tr><th>Project</th><th>Basis</th><th>Confidence</th><th>Files</th><th>Sources</th><th>Members</th></tr></thead><tbody>`+
+  rows.map(p=>`<tr class="row" onclick="openProject('${esc(p.project_id)}')"><td><b>${esc(p.name)}</b><br><span class="meta mono">${esc(p.project_id)}</span></td><td><span class="chip">${esc(p.basis)}</span></td><td>${confChip(p.confidence,p.basis)}</td><td>${p.file_count}</td><td>${p.source_ids.length}</td><td class="mono">${p.members.map(m=>esc(m.source_id+':'+m.pattern)).join('<br>')}</td></tr>`).join('')+'</tbody></table>';
+}
+function renderPlaces(){
+  let out='<p class="meta">Places show where files were observed. Vendored subtrees (dependency caches, build output) are folded; the checkbox above shows them.</p>';
+  for(const s of D.sources){
+    const fs=D.files.filter(f=>f.source_id===s.source_id&&f.present&&(match(f.locator)||!q));
+    const root={dirs:new Map(),files:[],vendored:0,n:0};
+    for(const f of fs){if(f.vendored&&!showVendored){root.vendored++;continue}
+      const parts=f.locator.split('/');let node=root;for(let i=0;i<parts.length-1;i++){const d=parts[i];if(!node.dirs.has(d))node.dirs.set(d,{dirs:new Map(),files:[],vendored:0,n:0});node=node.dirs.get(d);node.n++}node.files.push(f);root.n++}
+    out+=`<details open><summary><b>${esc(s.source_id)}</b> <span class="chip">${esc(s.location.kind)}${s.location.provider?'/'+esc(s.location.provider):''}</span> <span class="chip">${esc(s.freshness.state)}</span> <span class="chip">coverage: ${esc(s.freshness.coverage||'never scanned')}</span> <span class="meta">${esc(s.root)} · seen ${ago(s.freshness.age_seconds)} ago · ${s.kind==='git'?(s.latest_pass?s.latest_pass.scanned:0)+' commits':s.files_present+' files'} · ${s.findings_open} open findings${root.vendored?' · '+root.vendored+' vendored folded':''}</span></summary><div class="tree">${renderDir(root,s.source_id,0)}</div></details>`;
+  }
+  return out;
+}
+function renderDir(node,src,depth){
+  let h='<ul>';
+  for(const [name,d] of [...node.dirs].sort((a,b)=>a[0]<b[0]?-1:1)){h+=`<li class="dir${depth>1&&!q?' closed':''}"><span onclick="this.parentElement.classList.toggle('closed')">${esc(name)}/ <span class="count">${d.n}</span></span>${renderDir(d,src,depth+1)}</li>`}
+  for(const f of node.files.sort((a,b)=>a.locator<b.locator?-1:1)){const k=src+'\0'+f.locator;const fnd=findingsByFile.get(k)||[];const chips=f.projects.map(p=>`<span class="chip" title="${esc(p.basis)} ${p.confidence.toFixed(2)}">${esc(projName.get(p.project_id)||p.project_id)}</span>`).join('');
+    h+=`<li class="file${selected===k?' sel':''}" onclick="openFile('${esc(src)}','${esc(f.locator).replace(/'/g,'&#39;')}')">${esc(f.locator.split('/').pop())} ${chips}${f.vendored?'<span class="chip vendored">vendored</span>':''}${f.placeholder?'<span class="chip policy">content unavailable locally</span>':''}${!f.content_digest&&!f.placeholder?'<span class="chip policy">content not read</span>':''}${fnd.length?`<span class="chip multiple">${fnd.length} finding${fnd.length>1?'s':''}</span>`:''}</li>`}
+  return h+'</ul>';
+}
+function renderFindings(){
+  const open=D.findings.filter(f=>f.status!=='resolved'&&(match(f.summary)||match(f.finding_id)||f.subjects.some(s=>match(s.location.locator))));
+  if(!open.length)return '<div class="empty">No open findings match.</div>';
+  const groups=new Map();
+  for(const f of open){const proj=f.subjects[0].location.locator.split('/')[0];const key=f.rule.id+'\0'+proj;(groups.get(key)||groups.set(key,[]).get(key)).push(f)}
+  let out=`<p class="meta">${open.length} open findings, grouped by rule and by the folder of their first subject. Severity is not confidence.</p>`;
+  for(const [key,fs] of [...groups].sort((a,b)=>b[1].length-a[1].length)){const [rule,proj]=key.split('\0');
+    out+=`<details><summary><b>${esc(rule)}</b> in <b>${esc(proj)}</b> <span class="meta">${fs.length}</span></summary><div>`+fs.slice(0,200).map(f=>`<p><span class="sev-${f.severity}">${esc(f.severity)}</span> <span class="chip">${esc(f.status)}</span> ${esc(f.summary)}<br><span class="meta mono">${esc(f.finding_id)} · evidence ${f.evidence.slice(0,3).map(esc).join(', ')}${f.evidence.length>3?' …':''}</span></p>`).join('')+(fs.length>200?`<p class="meta">and ${fs.length-200} more</p>`:'')+'</div></details>'}
+  return out;
+}
+function openProject(id){const p=D.projects.find(x=>x.project_id===id);if(!p)return;const files=D.files.filter(f=>f.present&&f.projects.some(x=>x.project_id===id));
+  document.getElementById('drawerBody').innerHTML=`<h2>${esc(p.name)}</h2><span class="meta mono">${esc(p.project_id)}</span><h3>Claim</h3><span class="chip">${esc(p.basis)}</span> ${confChip(p.confidence,p.basis)}<p>${esc(p.explanation)}</p><h3>Members</h3><dl>${p.members.map(m=>`<dt>${esc(m.source_id)}</dt><dd class="mono">${esc(m.pattern)} <span class="meta">${esc(m.basis)} ${m.confidence.toFixed(2)}</span></dd>`).join('')}</dl><h3>Evidence</h3><p class="mono">${p.evidence.map(esc).join('<br>')}</p><h3>${files.length} files</h3><ul>${files.slice(0,300).map(f=>`<li class="mono"><a href="#" onclick="openFile('${esc(f.source_id)}','${esc(f.locator).replace(/'/g,'&#39;')}');return false">${esc(f.locator)}</a></li>`).join('')}${files.length>300?`<li class="meta">and ${files.length-300} more</li>`:''}</ul>`;
+  document.getElementById('drawer').classList.add('open')}
+function openFile(src,loc){const k=src+'\0'+loc;const f=byKey.get(k);if(!f)return;selected=k;const fnd=findingsByFile.get(k)||[];const a=f.authority;
+  document.getElementById('drawerBody').innerHTML=`<h2 class="mono">${esc(loc)}</h2><span class="meta">${esc(src)}</span>
+  <h3>Observed</h3><dl><dt>size</dt><dd>${f.size_bytes??'-'} bytes</dd><dt>digest</dt><dd class="mono">${f.content_digest?esc(f.content_digest.hex):(f.placeholder?'content unavailable locally (placeholder)':'content not read under policy '+esc(f.content_level))}</dd><dt>native version</dt><dd class="mono">${esc(f.native_version)}</dd><dt>observed</dt><dd>${esc(f.observed_at)} <span class="meta mono">${esc(f.observation_id)}</span></dd>${f.vendored?'<dt>vendored</dt><dd>inside a dependency, build, or tool directory: observed, but an expected copy</dd>':''}</dl>
+  <h3>Authority</h3>${authChip(a)}${a?`<p>${esc(a.explanation)}</p>${a.authority?`<p class="mono">${esc(a.authority.locator)}</p>`:''}<p class="meta mono">evidence ${a.evidence.map(esc).join(', ')}</p>`:''}
+  <h3>Projects</h3>${f.projects.length?f.projects.map(p=>`<p><span class="chip">${esc(projName.get(p.project_id)||p.project_id)}</span> ${confChip(p.confidence,p.basis)} <span class="meta mono">via ${esc(p.pattern)}</span></p>`).join(''):'<p class="meta">no project membership</p>'}
+  <h3>Grouping</h3>${f.grouping?`<p class="mono">${esc(f.grouping.grouping_key)}</p><p>${esc(f.grouping.rule)} ${confChip(f.grouping.confidence,'rule')}${f.grouping.is_current?' <span class="chip">current member</span>':''}</p><p class="meta">${esc(f.grouping.explanation)}</p>`:'<p class="meta">no identity policy active</p>'}
+  <h3>Findings</h3>${fnd.length?fnd.map(x=>`<p><span class="sev-${x.severity}">${esc(x.severity)}</span> <span class="chip">${esc(x.status)}</span> ${esc(x.summary)}</p>`).join(''):'<p class="meta">none open</p>'}`;
+  document.getElementById('drawer').classList.add('open');render()}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');selected=null;render()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+render();
+</script>
+</body>
+</html>

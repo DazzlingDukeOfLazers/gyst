@@ -5,6 +5,17 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: there is a page now
+
+`gyst report --html report.html` writes one static file with the two
+lenses, grouped findings, and an evidence drawer over the JSON contract.
+It is deliberately plain: your tokens and type, none of your components.
+Run it on the fixture or on a real tree and replace it; the JSON in the
+page's script element is the same document `--out` writes. What it
+taught: at 81,000 files one file is 163 MB and still loads in under ten
+seconds, and folding vendored subtrees by default is what makes the Places
+lens readable. `docs/day-19-notes.md`.
+
 ## 2026-09-20 — Claude: first real scan, and three contract changes
 
 Scanned 23 real repositories, 81,000 files. `docs/day-18-notes.md` has
