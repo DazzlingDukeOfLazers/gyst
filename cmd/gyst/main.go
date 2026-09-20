@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/connector/localfolder"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/project"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
@@ -22,7 +23,7 @@ import (
 const usage = `gyst -- find, understand, and coordinate engineering work products
 
 Usage:
-  gyst scan    --root <path> [--source <id>] [--policy fingerprint|metadata] [--resume]
+  gyst scan    --root <path> [--source <id>] [--policy fingerprint|metadata] [--resume] [--cadence 7d]
   gyst changes [--since 1h] [--limit 50]
   gyst project [--rebuild]
   gyst verify
@@ -30,6 +31,9 @@ Usage:
   gyst git     --repo <path> [--ref HEAD] [--resume]
   gyst discover [--root <path>]... [--depth 6] [--nested] [--json]
   gyst projects                               projects and where membership comes from
+  gyst findings [--all] [--json]              what needs attention
+  gyst findings ack   <id> --by <name>
+  gyst findings waive <id> --by <name> --reason <text> [--until YYYY-MM-DD]
 
   gyst identity preview --profile <profile>   show grouping without writing it
   gyst identity apply   --profile <profile>   activate a grouping
@@ -68,6 +72,8 @@ func main() {
 		err = cmdDiscover(ctx, os.Args[2:])
 	case "projects":
 		err = cmdProjects(ctx, os.Args[2:])
+	case "findings":
+		err = cmdFindings(ctx, os.Args[2:])
 	case "identity":
 		err = cmdIdentity(ctx, os.Args[2:])
 	case "explain":
@@ -96,6 +102,7 @@ func cmdScan(ctx context.Context, args []string) error {
 	policy := fs.String("policy", "fingerprint", "content policy: fingerprint or metadata")
 	resume := fs.Bool("resume", false, "resume from the stored cursor instead of a full pass")
 	maxFiles := fs.Int("max-files", 0, "stop after N files (0 = no limit)")
+	cadence := fs.String("cadence", "", "how often this source is expected to be scanned, e.g. 7d or 12h")
 	fs.Parse(args)
 
 	if *root == "" {
@@ -124,6 +131,15 @@ func cmdScan(ctx context.Context, args []string) error {
 	loc := location.Probe(*root)
 	if err := s.RegisterSource(ctx, sourceID, "local-folder", *root, loc); err != nil {
 		return err
+	}
+	if *cadence != "" {
+		d, err := findings.ParseCadence(*cadence)
+		if err != nil {
+			return err
+		}
+		if err := s.SetCadence(ctx, sourceID, d); err != nil {
+			return err
+		}
 	}
 
 	// One clock reading for the whole pass. It is the pass's started_at and
@@ -216,6 +232,10 @@ func cmdScan(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	fnd, err := findings.Project(ctx, s, time.Now().UTC())
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("source     %s\n", sourceID)
 	fmt.Printf("location   %s   %s\n", loc, loc.Evidence)
@@ -259,6 +279,8 @@ func cmdScan(ctx context.Context, args []string) error {
 	if members.InvalidManifests > 0 {
 		fmt.Printf("           %d manifest(s) could not be parsed; see gyst explain\n", members.InvalidManifests)
 	}
+	fmt.Printf("findings   %d open (%d new, %d reopened, %d resolved this pass)\n",
+		fnd.Open, fnd.New, fnd.Reopened, fnd.Resolved)
 	fmt.Printf("coverage   %s: %s\n", cov.Status, cov.Detail)
 	if !res.Complete {
 		fmt.Printf("partial    stopped at --max-files; rerun with --resume\n")

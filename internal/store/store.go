@@ -177,6 +177,13 @@ func (s *Store) RegisterSource(ctx context.Context, sourceID, kind, root string,
 	return err
 }
 
+// SetCadence records how often a source is expected to be scanned.
+func (s *Store) SetCadence(ctx context.Context, sourceID string, d time.Duration) error {
+	_, err := s.pool.Exec(ctx, `UPDATE sources SET cadence_seconds=$2 WHERE source_id=$1`,
+		sourceID, int(d.Seconds()))
+	return err
+}
+
 // SourceRow is a registered source as read back.
 type SourceRow struct {
 	SourceID string

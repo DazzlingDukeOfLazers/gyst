@@ -98,6 +98,13 @@ type Policy struct {
 	EffectivePolicyVersion string `json:"effective_policy_version"`
 }
 
+// Actor is who asserted something: a person, a rule, a connector, an
+// extractor, or a suggestion. Some assertions are reserved to people.
+type Actor struct {
+	Kind string `json:"kind"`
+	ID   string `json:"id"`
+}
+
 type Visibility struct {
 	Labels            []string `json:"labels"`
 	SourceACLComplete bool     `json:"source_acl_complete"`

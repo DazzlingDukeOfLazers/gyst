@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/identity"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/project"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
@@ -51,6 +52,9 @@ func cmdExplain(ctx context.Context, args []string) error {
 	fmt.Printf("  digest     %s\n", derefStr(digest, "(not read under effective policy)"))
 
 	if err := explainProjects(ctx, s, sourceID, locator); err != nil {
+		return err
+	}
+	if err := explainFindings(ctx, s, sourceID, locator); err != nil {
 		return err
 	}
 
@@ -223,6 +227,23 @@ func explainProjects(ctx context.Context, s *store.Store, sourceID, locator stri
 			label = "             "
 		}
 		fmt.Printf("%s%s (%s)  %s %.2f  via %s\n", label, p.ProjectID, p.Name, p.Basis, p.Confidence, p.Pattern)
+	}
+	return nil
+}
+
+// explainFindings lists open findings that name this file.
+func explainFindings(ctx context.Context, s *store.Store, sourceID, locator string) error {
+	rows, err := findings.ForFile(ctx, s, sourceID, locator)
+	if err != nil {
+		return err
+	}
+	for i, r := range rows {
+		label := "  findings   "
+		if i > 0 {
+			label = "             "
+		}
+		fmt.Printf("%s%s  %s %s  %s\n", label, r.FindingID, r.Severity, r.Status,
+			wrap(r.Summary, 60, "             "))
 	}
 	return nil
 }
