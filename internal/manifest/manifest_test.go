@@ -3,15 +3,18 @@ package manifest
 import "testing"
 
 func TestParseFixtureManifest(t *testing.T) {
-	m, warn, err := Parse([]byte("name: Widget\nmembers:\n  - engineering/widget/**\n"), "engineering/widget")
+	m, warn, err := Parse([]byte("name: Widget\nmembers:\n  - '**'\n"), "engineering/widget")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if m.ID != "widget" || m.Name != "Widget" {
 		t.Errorf("id/name = %q/%q", m.ID, m.Name)
 	}
-	if len(m.Members) != 1 || m.Members[0] != "engineering/widget/**" {
+	if len(m.Members) != 1 || m.Members[0] != "**" {
 		t.Errorf("members = %v", m.Members)
+	}
+	if got := Resolve("engineering/widget", m.Members[0]); got != "engineering/widget/**" {
+		t.Errorf("resolved = %q", got)
 	}
 	if len(warn) != 1 {
 		t.Errorf("expected one warning about the derived id, got %v", warn)
@@ -23,12 +26,14 @@ func TestMembersDefaultToOwnFolder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(m.Members) != 1 || m.Members[0] != "firmware/**" {
+	if len(m.Members) != 1 || m.Members[0] != "**" || Resolve("firmware", m.Members[0]) != "firmware/**" {
 		t.Errorf("members = %v", m.Members)
 	}
-	m, _, _ = Parse([]byte("id: root\n"), "")
-	if m.Members[0] != "**" {
-		t.Errorf("root manifest members = %v", m.Members)
+	if Resolve("firmware", "/shared/**") != "shared/**" {
+		t.Error("a leading slash must mean root-relative")
+	}
+	if Resolve("", "**") != "**" {
+		t.Error("root manifest")
 	}
 }
 

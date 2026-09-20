@@ -17,8 +17,8 @@
       "projects": [
         "engineering"
       ],
-      "size_bytes": 68,
-      "sha256": "76f913347a53582f49af1d28c2fa0cb56aa2521323ebbeb91f337dd7b8ff7676",
+      "size_bytes": 58,
+      "sha256": "df39ee454cbafcbe0592d0d17a63b8ce7472dc04e3f2b85aa6677cd283ec3c64",
       "mtime_epoch": 1723420800,
       "ignored": false,
       "note": "Root manifest of the share. Everything under engineering/ belongs to it, so widget files are members of two projects at once."
@@ -137,8 +137,8 @@
         "engineering",
         "widget"
       ],
-      "size_bytes": 48,
-      "sha256": "e5b18fcf384bb0c1afe1cb41e7d83af05b1ba0bb5a2da3bd12aefa63a1b75b12",
+      "size_bytes": 31,
+      "sha256": "9f54f1b98b6683e9c504dc8dfb4cccb2fc0c92bb9fbd3e3d65acb3964284716c",
       "mtime_epoch": 1723420800,
       "ignored": false,
       "note": "Membership manifest: precedence 2, above any Gyst suggestion."
@@ -313,7 +313,7 @@
       "basis": "manifest",
       "declared_by": "engineering/.gyst/project.yaml",
       "members": [
-        "engineering/**"
+        "**"
       ]
     },
     {
@@ -321,7 +321,7 @@
       "basis": "manifest",
       "declared_by": "engineering/widget/.gyst/project.yaml",
       "members": [
-        "engineering/widget/**"
+        "**"
       ]
     },
     {

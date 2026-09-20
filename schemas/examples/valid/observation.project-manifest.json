@@ -16,15 +16,15 @@
       "locator": "engineering/widget/.gyst/project.yaml",
       "native_version": {
         "scheme": "mtime_size",
-        "value": "1723420800:48"
+        "value": "1723420800:31"
       }
     },
     "version": {
       "content_digest": {
         "algo": "sha256",
-        "hex": "e5b18fcf384bb0c1afe1cb41e7d83af05b1ba0bb5a2da3bd12aefa63a1b75b12"
+        "hex": "9f54f1b98b6683e9c504dc8dfb4cccb2fc0c92bb9fbd3e3d65acb3964284716c"
       },
-      "size_bytes": 48
+      "size_bytes": 31
     }
   },
   "claim": {
@@ -35,7 +35,7 @@
       "name": "Widget",
       "description": "",
       "members": [
-        "engineering/widget/**"
+        "**"
       ],
       "owners": null
     }

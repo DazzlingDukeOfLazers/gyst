@@ -21,6 +21,26 @@ func TestSoleCopyIsNoneNotDeclared(t *testing.T) {
 	}
 }
 
+// Every empty file shares one digest. Two .keep files are not candidates
+// for each other's authority.
+func TestEmptyFilesAreNotPeers(t *testing.T) {
+	res := Resolve(Input{Files: []File{f("a/.keep", emptySHA256), f("b/.keep", emptySHA256)}})
+	if res[k("a/.keep")].State != StateNone {
+		t.Fatalf("%+v", res[k("a/.keep")])
+	}
+}
+
+// A file inside a dependency directory is nobody's candidate.
+func TestVendoredFilesAreNotPeers(t *testing.T) {
+	res := Resolve(Input{Files: []File{f("src/lib.js", "d"), f("node_modules/x/lib.js", "d")}})
+	if a := res[k("src/lib.js")]; a.State != StateNone {
+		t.Errorf("real file with a vendored copy: %+v", a)
+	}
+	if a := res[k("node_modules/x/lib.js")]; a.State != StateNone || !strings.Contains(a.Explanation, "dependency") {
+		t.Errorf("vendored file: %+v", a)
+	}
+}
+
 func TestDuplicatesAreMultipleCandidates(t *testing.T) {
 	a := Resolve(Input{Files: []File{f("bom.xlsx", "d"), f("bom (copy).xlsx", "d")}})[k("bom.xlsx")]
 	if a.State != StateMultiple || a.Of != nil {

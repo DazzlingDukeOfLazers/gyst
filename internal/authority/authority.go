@@ -18,7 +18,12 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/DazzlingDukeOfLazers/gyst/internal/discover"
 )
+
+// emptySHA256 is the digest of zero bytes.
+const emptySHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 const (
 	StateDeclared = "declared"
@@ -102,7 +107,9 @@ func Resolve(in Input) map[Key]Authority {
 	fileObs := map[Key]string{}
 	for _, f := range in.Files {
 		fileObs[f.Key] = f.ObsID
-		if f.Digest != "" {
+		// Empty files all share one digest and are nobody's copy of anything;
+		// findings already exclude them and so must peers.
+		if f.Digest != "" && f.Digest != emptySHA256 && !discover.Vendored(f.Locator) {
 			byDigest[f.Digest] = append(byDigest[f.Digest], f.Key)
 		}
 	}
@@ -138,6 +145,14 @@ func Resolve(in Input) map[Key]Authority {
 
 	out := make(map[Key]Authority, len(in.Files))
 	for _, f := range in.Files {
+		if discover.Vendored(f.Locator) {
+			// A file inside a dependency or build directory is a copy of
+			// something owned elsewhere by construction. It is nobody's
+			// authority and nobody's candidate.
+			out[f.Key] = Authority{State: StateNone, Evidence: []string{f.ObsID},
+				Explanation: "inside a dependency or build directory; a copy of something owned elsewhere, not a candidate"}
+			continue
+		}
 		// Peers: everything that could be the same thing as f, by the
 		// profile's grouping or by content. Two notions of sameness, both
 		// consulted; each list is already sorted, so the union is a merge.

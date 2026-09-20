@@ -44,7 +44,7 @@ func TestManifestObservedOnIncrementalPass(t *testing.T) {
 	if m1[0].Claim.Payload["id"] != "boards" || m1[0].Claim.Payload["valid"] != true {
 		t.Errorf("payload %v", m1[0].Claim.Payload)
 	}
-	if ms := m1[0].Claim.Payload["members"].([]string); len(ms) != 1 || ms[0] != "boards/**" {
+	if ms := m1[0].Claim.Payload["members"].([]string); len(ms) != 1 || ms[0] != "**" {
 		t.Errorf("members %v; the manifest's own folder is the default", ms)
 	}
 

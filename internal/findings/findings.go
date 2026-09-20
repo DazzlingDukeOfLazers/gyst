@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/discover"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/observe"
 )
 
@@ -195,7 +196,9 @@ func fileRef(f File) observe.ArtifactRef {
 func duplicates(in Inputs) []Finding {
 	byDigest := map[string][]File{}
 	for _, f := range in.Files {
-		if f.Digest == "" || f.Digest == EmptySHA256 {
+		if f.Digest == "" || f.Digest == EmptySHA256 || discover.Vendored(f.Locator) {
+			// A copy inside a dependency or build directory is expected;
+			// reporting it would say nothing a person can act on.
 			continue
 		}
 		byDigest[f.Digest] = append(byDigest[f.Digest], f)

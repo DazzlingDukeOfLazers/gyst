@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/discover"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/observe"
@@ -184,8 +185,13 @@ type File struct {
 	ObservationID string          `json:"observation_id"`
 	ContentLevel  string          `json:"content_level"`
 	Placeholder   bool            `json:"placeholder"`
-	Projects      []FileProject   `json:"projects"`
-	Grouping      *Grouping       `json:"grouping"`
+	// Vendored marks a file inside a dependency cache or build output:
+	// observed, but an expected copy of something owned elsewhere. Such
+	// files are not project markers, duplicate findings, or authority
+	// candidates.
+	Vendored bool          `json:"vendored"`
+	Projects []FileProject `json:"projects"`
+	Grouping *Grouping     `json:"grouping"`
 	// Authority is separate from grouping and from membership. A manifest
 	// declares membership; a profile marks a current version; neither is
 	// authority. Only an assertion declares it, and absent one this says
@@ -550,7 +556,7 @@ func files(ctx context.Context, s *store.Store, policy string) ([]File, error) {
 	for _, r := range inv {
 		f := File{SourceID: r.SourceID, Locator: r.Locator, Present: r.Present, SizeBytes: r.Size,
 			NativeVersion: r.NativeVersion, ObservedAt: r.ObservedAt, ObservationID: r.ObsID,
-			ContentLevel: r.ContentLevel, Placeholder: r.Placeholder, Projects: []FileProject{}}
+			ContentLevel: r.ContentLevel, Placeholder: r.Placeholder, Vendored: discover.Vendored(r.Locator), Projects: []FileProject{}}
 		if r.Digest != nil {
 			f.ContentDigest = &observe.Digest{Algo: "sha256", Hex: *r.Digest}
 		}
@@ -581,8 +587,14 @@ func artifacts(ctx context.Context, s *store.Store, policy string) ([]Artifact, 
 		byArtifact[m.ArtifactID] = append(byArtifact[m.ArtifactID], ArtifactMember{Locator: m.Locator,
 			VersionLabel: m.VersionLabel, IsCurrent: m.IsCurrent, Rule: m.Rule, Confidence: m.Confidence, Explanation: m.Explanation})
 	}
+	// Only groupings with more than one member. A file that is its own
+	// artifact says nothing files[].grouping does not already say, and
+	// eighty thousand of them made a report three times the size it needs.
 	out := make([]Artifact, 0, len(arts))
 	for _, a := range arts {
+		if a.MemberCount < 2 {
+			continue
+		}
 		ms := byArtifact[a.ArtifactID]
 		if ms == nil {
 			ms = []ArtifactMember{}
