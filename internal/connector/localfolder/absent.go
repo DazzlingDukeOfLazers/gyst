@@ -1,7 +1,6 @@
 package localfolder
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
@@ -36,17 +35,12 @@ type TombstoneDecision struct {
 //     vanishes from the scan exactly like a deleted one, but asserting it was
 //     removed from the source would be false.
 //
-// The first three are properties of the pass and disable tombstoning entirely.
-// The fourth is per-locator and merely suppresses individual files.
+// The first three are properties of the pass and disable tombstoning entirely;
+// they are exactly Result.Coverage, consulted rather than restated. The fourth
+// is per-locator and merely suppresses individual files.
 func Tombstones(res *Result, opts Options, known map[string]observe.KnownState) TombstoneDecision {
-	switch {
-	case !res.Complete:
-		return TombstoneDecision{Reason: "scan was truncated by --max-files; unseen files are unobserved, not absent"}
-	case opts.Cursor != "":
-		return TombstoneDecision{Reason: "scan resumed from a cursor and deliberately skipped earlier paths"}
-	case res.Skipped > 0:
-		return TombstoneDecision{Reason: fmt.Sprintf(
-			"%d entries could not be read; coverage has holes, so absence is not evidence", res.Skipped)}
+	if cov := res.Coverage(opts.Cursor != ""); cov.Status != CoverageComplete {
+		return TombstoneDecision{Reason: cov.Detail}
 	}
 
 	policy := observe.Policy{

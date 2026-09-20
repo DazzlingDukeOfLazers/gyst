@@ -35,6 +35,7 @@ Project documents include:
 - [Day 3 notes: identity profiles and Git provenance](docs/day-3-notes.md)
 - [Day 4 notes: tombstones and reconciliation](docs/day-4-notes.md)
 - [Day 5 notes: rename detection](docs/day-5-notes.md)
+- [Day 6 notes: scan passes](docs/day-6-notes.md)
 - [Designer brief](docs/designer-brief.md)
 - [Design system and first-view plan](docs/design-system.md)
 - [Handoff log between design and code](docs/handoff.md)

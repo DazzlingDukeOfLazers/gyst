@@ -49,6 +49,9 @@ type Result struct {
 	Commits      int
 	Ref          string
 	Head         string
+	// Cap is the commit limit the walk ran under. Commits == Cap means the
+	// walk may have stopped short of the root of history.
+	Cap int
 }
 
 // Discover reads commits in ancestry order, oldest first, and emits one
@@ -91,7 +94,7 @@ func Discover(opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	res := &Result{Ref: opts.Ref, Head: head, NextCursor: opts.Cursor}
+	res := &Result{Ref: opts.Ref, Head: head, NextCursor: opts.Cursor, Cap: opts.MaxCommits}
 	now := time.Now().UTC()
 
 	for _, record := range strings.Split(out, recordSep) {

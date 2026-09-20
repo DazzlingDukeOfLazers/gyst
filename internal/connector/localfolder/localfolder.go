@@ -39,10 +39,10 @@ const (
 )
 
 type Options struct {
-	Root         string
-	SourceID     string
-	ContentLevel string
-	Egress       string
+	Root          string
+	SourceID      string
+	ContentLevel  string
+	Egress        string
 	PolicyVersion string
 
 	// Cursor resumes a scan. Entries at or before it in walk order are skipped.
@@ -61,6 +61,11 @@ type Options struct {
 	// MaxFiles bounds a single discover call so a huge tree yields in batches
 	// rather than buffering everything.
 	MaxFiles int
+
+	// Now is the pass clock. Every observation the pass produces carries it,
+	// and the caller records it as the pass's started_at, so the two agree by
+	// construction. Zero means time.Now().
+	Now time.Time
 }
 
 type Result struct {
@@ -115,12 +120,23 @@ func Discover(opts Options) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	// An unopenable root is not an empty tree. Walking it would produce a
+	// complete pass that saw nothing, and a complete pass that saw nothing
+	// tombstones every known file. An unmounted share must never do that.
+	if info, serr := os.Stat(root); serr != nil {
+		return nil, &UnavailableError{Root: root, Err: serr}
+	} else if !info.IsDir() {
+		return nil, &UnavailableError{Root: root, Err: fmt.Errorf("not a directory")}
+	}
 	ig, err := loadIgnores(root)
 	if err != nil {
 		return nil, err
 	}
 
-	now := time.Now().UTC()
+	now := opts.Now.UTC()
+	if opts.Now.IsZero() {
+		now = time.Now().UTC()
+	}
 	res := &Result{Complete: true, Pass: now,
 		Seen: map[string]bool{}, IgnoredPaths: map[string]bool{}}
 

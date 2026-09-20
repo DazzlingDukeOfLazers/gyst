@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	gitconn "github.com/DazzlingDukeOfLazers/gyst/internal/connector/git"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/project"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
 
 func cmdGit(ctx context.Context, args []string) error {
@@ -48,6 +50,14 @@ func cmdGit(ctx context.Context, args []string) error {
 		}
 	}
 
+	passID, err := s.BeginPass(ctx, store.PassStart{
+		SourceID: sourceID, Connector: gitconn.ConnectorName,
+		StartedAt: time.Now().UTC(), Resumed: *resume,
+	})
+	if err != nil {
+		return err
+	}
+
 	res, err := gitconn.Discover(gitconn.Options{
 		Repo:          *repo,
 		SourceID:      sourceID,
@@ -57,17 +67,30 @@ func cmdGit(ctx context.Context, args []string) error {
 		MaxCommits:    *maxCommits,
 	})
 	if err != nil {
-		return err
+		return finishInterrupted(ctx, s, passID, err)
 	}
 
 	inserted, err := s.Append(ctx, res.Observations)
 	if err != nil {
-		return err
+		return finishInterrupted(ctx, s, passID, err)
 	}
 	if res.NextCursor != "" {
 		if err := s.SetCursor(ctx, sourceID, res.NextCursor); err != nil {
-			return err
+			return finishInterrupted(ctx, s, passID, err)
 		}
+	}
+	// A commit walk that hit its cap saw a prefix of history; one that did
+	// not, saw all of it. Git has no unreadable-directory case.
+	cov := store.PassResult{Status: store.PassComplete,
+		Detail: "walked to the end of history", Scanned: res.Commits, Appended: inserted}
+	if res.Commits >= res.Cap {
+		cov.Status, cov.Detail = store.PassPartial,
+			fmt.Sprintf("stopped at --max-commits (%d); rerun with --resume", res.Cap)
+	} else if *resume {
+		cov.Status, cov.Detail = store.PassPartial, "resumed from a cursor; earlier history was not revisited"
+	}
+	if err := s.FinishPass(ctx, passID, cov); err != nil {
+		return err
 	}
 	if _, err := project.Apply(ctx, s); err != nil {
 		return err
