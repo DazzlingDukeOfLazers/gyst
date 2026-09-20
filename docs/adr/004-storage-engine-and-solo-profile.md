@@ -1,6 +1,6 @@
 # ADR 004: Storage engine and the solo profile
 
-Status: proposed, 2026-09-20. Decision requested from Daniel.
+Status: accepted, 2026-09-20, by Daniel.
 
 ## Context
 
