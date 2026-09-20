@@ -35,6 +35,7 @@ public contract depends on it.
 | Authorization | Connector reach and user visibility are separate | Evidence-aware ACL filtering prevents derived metadata leaks |
 | MCP | Adapter over ordinary application services | Initial tools are read-only and never bypass policy |
 | Solo-profile store | SQLite (pure Go) as a second engine behind a store boundary; PostgreSQL remains the reference | [ADR 004](adr/004-storage-engine-and-solo-profile.md), accepted 2026-09-20; no SQL outside `internal/store` from here on |
+| Log retention | Keep everything by default; bookkeeping pruned; manual archive-then-compact through a gated trigger; never a bare delete | [ADR 005](adr/005-retention-and-compaction.md), accepted 2026-09-20; replay identical after compaction and every cited observation resolves |
 
 ## Proposed direction awaiting prototype confirmation
 
@@ -44,7 +45,6 @@ public contract depends on it.
 | Web client | TypeScript | Walking-skeleton UI and API client generation |
 | Structured grid reuse | Evaluate self-hosted Grist behind an adapter | Access, offline, licensing, deployment, audit, and API fit spike |
 | File identity | Reversible scoped identity profiles | Test with real supplier/customer naming datasets |
-| Log retention | Keep everything by default; bookkeeping pruned; manual archive-then-compact, never a bare delete | [ADR 005](adr/005-retention-and-compaction.md): replay identical after compaction, every cited observation still resolves |
 
 ## Policy files to validate
 

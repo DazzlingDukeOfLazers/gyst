@@ -78,6 +78,30 @@ func TestLargeDuplicateGroupIsBounded(t *testing.T) {
 	}
 }
 
+// The finding is about the content. Copies may be added, removed, or fall
+// outside the sampled subjects; the id must not move, or a disposition on
+// the group would not survive the next scan.
+func TestDuplicateFindingIDFollowsContentNotSample(t *testing.T) {
+	var big []File
+	for i := 0; i < 60; i++ {
+		big = append(big, f("s", fmt.Sprintf("c%03d", i), "same", fmt.Sprintf("obs_%d", i)))
+	}
+	first := byRule(Detect(Inputs{Now: now, Files: big}), RuleDuplicateContent)[0]
+	// Drop the first thirty (all of the sampled subjects) and add thirty more.
+	var churned []File
+	for i := 30; i < 90; i++ {
+		churned = append(churned, f("s", fmt.Sprintf("c%03d", i), "same", fmt.Sprintf("obs_%d", i)))
+	}
+	second := byRule(Detect(Inputs{Now: now, Files: churned}), RuleDuplicateContent)[0]
+	if first.FindingID != second.FindingID {
+		t.Fatalf("same content, different ids: %s vs %s", first.FindingID, second.FindingID)
+	}
+	other := byRule(Detect(Inputs{Now: now, Files: []File{f("s", "x", "other", "o1"), f("s", "y", "other", "o2")}}), RuleDuplicateContent)[0]
+	if other.FindingID == first.FindingID {
+		t.Fatal("different content, same id")
+	}
+}
+
 func TestFindingIDIsStableAndOrderIndependent(t *testing.T) {
 	a := Detect(Inputs{Now: now, Files: []File{f("s", "x", "d", "obs_1"), f("s", "y", "d", "obs_2")}})
 	b := Detect(Inputs{Now: now.Add(time.Hour), Files: []File{f("s", "y", "d", "obs_9"), f("s", "x", "d", "obs_8")}})

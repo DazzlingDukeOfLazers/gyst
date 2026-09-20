@@ -83,6 +83,20 @@ type Waiver struct {
 	ExpiresAt *time.Time    `json:"expires_at,omitempty"`
 }
 
+// IDForKey derives a finding's identity from its rule and a key that names
+// what the finding is about. A duplicate-content finding is about one
+// piece of content existing in several places, so its key is the digest:
+// copies can come and go and it is the same finding, and a person's
+// disposition on it follows the content. Deriving it from the sampled
+// subjects instead gave a large group a new id every scan.
+func IDForKey(ruleID, key string) string {
+	h := sha256.New()
+	h.Write([]byte(ruleID))
+	h.Write([]byte{0})
+	h.Write([]byte(key))
+	return "fnd_" + hex.EncodeToString(h.Sum(nil))[:24]
+}
+
 // ID derives a finding's identity from its rule and subjects. Stable across
 // rebuilds, so a disposition survives the next scan; independent of
 // evidence ids, so a re-observation of the same files does not open a
@@ -218,7 +232,7 @@ func duplicates(in Inputs) []Finding {
 		}
 		out = append(out, Finding{
 			SchemaVersion: observe.SchemaVersion,
-			FindingID:     ID(RuleDuplicateContent, subjects),
+			FindingID:     IDForKey(RuleDuplicateContent, "sha256:"+digest),
 			Rule:          Rule{RuleDuplicateContent, RuleVersion},
 			Severity:      SeverityLow,
 			Status:        StatusOpen,
