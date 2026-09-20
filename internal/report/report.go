@@ -259,12 +259,12 @@ func Classify(passStatus string, age time.Duration, cadence time.Duration) strin
 	}
 }
 
-// Build assembles the document. Findings are re-detected first so that
-// freshness reflects the clock at generation, not at the last scan.
+// Build assembles the document. It reads and does not write: findings are
+// as of the last scan, and the freshness state is computed here from the
+// pass record and the clock without touching the store. Generating a
+// report used to re-detect findings, which quietly wrote to a store the
+// reader may not own.
 func Build(ctx context.Context, s *store.Store, now time.Time, version string) (*Document, error) {
-	if _, err := findings.Project(ctx, s, now); err != nil {
-		return nil, err
-	}
 	doc := &Document{Report: Meta{
 		Schema:      Schema,
 		Generator:   Generator{Name: "gyst", Version: version},

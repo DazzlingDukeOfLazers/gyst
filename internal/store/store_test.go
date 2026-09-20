@@ -517,3 +517,73 @@ func TestBulkWritesChunkAndDeduplicate(t *testing.T) {
 		})
 	}
 }
+
+// Bookkeeping retention touches no evidence: passes beyond the newest few
+// plus the first go, resolved findings past the cutoff go unless waived.
+func TestBookkeepingRetention(t *testing.T) {
+	for name, s := range engines(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			for i := 0; i < 40; i++ {
+				id, err := s.BeginPass(ctx, PassStart{SourceID: "ret", Connector: "local-folder", StartedAt: clock.Add(time.Duration(i) * time.Minute)})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := s.FinishPass(ctx, id, PassResult{Status: PassComplete}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			n, err := s.PruneScanPasses(ctx, "ret", 5)
+			if err != nil || n != 34 {
+				t.Fatalf("pruned %d %v; want 34 (40 minus the newest 5 minus the first)", n, err)
+			}
+			var oldest, newest time.Time
+			if err := s.db.queryRow(ctx, `SELECT min(started_at), max(started_at) FROM scan_passes WHERE source_id='ret'`).Scan(ts(&oldest), ts(&newest)); err != nil {
+				t.Fatal(err)
+			}
+			if !oldest.Equal(clock) || !newest.Equal(clock.Add(39*time.Minute)) {
+				t.Errorf("kept %v .. %v; the first and the newest must survive", oldest, newest)
+			}
+			if n, _ := s.PruneScanPasses(ctx, "ret", 5); n != 0 {
+				t.Errorf("second prune removed %d", n)
+			}
+
+			mk := func(id string) FindingRow {
+				return FindingRow{FindingID: id, RuleID: "r", RuleVersion: "1", Severity: "low",
+					Subjects: []byte(`[{"kind":"file","location":{"source_id":"ret","locator":"x","native_version":{"scheme":"mtime_size","value":"1:1"}}}]`),
+					Evidence: []string{"obs_x"}, Confidence: 1, Summary: "s"}
+			}
+			for _, id := range []string{"fnd_old", "fnd_old_waived", "fnd_recent", "fnd_open"} {
+				if _, err := s.UpsertFinding(ctx, mk(id), clock); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if ok, _ := s.WaiveFinding(ctx, "fnd_old_waived", "d", []byte(`{"actor":{"kind":"user","id":"d"},"reason":"r","waived_at":"2026-09-20T12:00:00Z"}`)); !ok {
+				t.Fatal("waive")
+			}
+			// Re-detect only fnd_open so the other three resolve.
+			if _, err := s.UpsertFinding(ctx, mk("fnd_open"), clock.Add(time.Hour)); err != nil {
+				t.Fatal(err)
+			}
+			if n, _ := s.ResolveUnseenFindings(ctx, clock.Add(time.Hour)); n != 3 {
+				t.Fatalf("resolved %d", n)
+			}
+			// fnd_recent: pretend it resolved later than the cutoff.
+			if _, err := s.db.exec(ctx, `UPDATE findings SET resolved_at=$1 WHERE finding_id='fnd_recent'`, clock.Add(200*time.Hour)); err != nil {
+				t.Fatal(err)
+			}
+			n, err = s.PruneResolvedFindings(ctx, clock.Add(100*time.Hour))
+			if err != nil || n != 1 {
+				t.Fatalf("pruned %d findings %v; want only fnd_old", n, err)
+			}
+			left, _ := s.ListFindings(ctx, true)
+			ids := map[string]bool{}
+			for _, r := range left {
+				ids[r.FindingID] = true
+			}
+			if ids["fnd_old"] || !ids["fnd_old_waived"] || !ids["fnd_recent"] || !ids["fnd_open"] {
+				t.Errorf("remaining %v", ids)
+			}
+		})
+	}
+}

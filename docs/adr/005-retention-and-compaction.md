@@ -120,7 +120,8 @@ Concretely:
 1. **Bookkeeping retention, on by default.** Passes: keep the newest
    thirty per source and the first ever; findings: delete resolved rows
    older than ninety days that have no waiver. Both run at the end of a
-   scan. Neither touches the log.
+   scan. Neither touches the log. *Done 2026-09-20; see
+   `docs/day-20-notes.md`.*
 2. **Compaction is manual, per store, and archives first.**
    `gyst compact --older-than 180d --archive <dir>` selects removable
    observations, writes the bundle, verifies it, removes them in one

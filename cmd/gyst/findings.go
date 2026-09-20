@@ -34,11 +34,9 @@ func cmdFindings(ctx context.Context, args []string) error {
 	}
 	defer s.Close()
 
-	// Detection is cheap and freshness depends on the clock, so the list is
-	// always current rather than as of the last scan.
-	if _, err := findings.Project(ctx, s, time.Now().UTC()); err != nil {
-		return err
-	}
+	// Findings are as of the last scan. Listing them does not re-detect:
+	// a read should not write, and a source that went stale since the last
+	// scan is a state the status command shows.
 	rows, err := findings.List(ctx, s, *all)
 	if err != nil {
 		return err
@@ -53,7 +51,7 @@ func cmdFindings(ctx context.Context, args []string) error {
 		return enc.Encode(out)
 	}
 	if len(rows) == 0 {
-		fmt.Println("no open findings")
+		fmt.Println("no open findings as of the last scan")
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
