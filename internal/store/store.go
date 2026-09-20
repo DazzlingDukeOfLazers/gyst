@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
@@ -20,11 +21,36 @@ import (
 // Store is the one door to the database, whichever engine is behind it.
 type Store struct{ db *engine }
 
+// DSN is where the store lives. GYST_DATABASE_URL names it explicitly:
+// postgres:// for the team profile, sqlite:<path> for a file. Unset, Gyst
+// keeps a SQLite file in the user's data directory and needs nothing else
+// installed or running. That is the solo profile (ADR 004 stage 4).
 func DSN() string {
 	if v := os.Getenv("GYST_DATABASE_URL"); v != "" {
 		return v
 	}
-	return "postgres:///gyst"
+	return "sqlite:" + filepath.Join(DataDir(), "gyst.db")
+}
+
+// DataDir is where Gyst keeps its own files when not told otherwise:
+// GYST_DATA_DIR if set, else the platform's per-user application data
+// directory with a gyst folder inside it.
+func DataDir() string {
+	if v := os.Getenv("GYST_DATA_DIR"); v != "" {
+		return v
+	}
+	if runtime.GOOS == "linux" {
+		if x := os.Getenv("XDG_DATA_HOME"); x != "" {
+			return filepath.Join(x, "gyst")
+		}
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, ".local", "share", "gyst")
+		}
+	}
+	if dir, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(dir, "gyst")
+	}
+	return "gyst-data"
 }
 
 func Open(ctx context.Context) (*Store, error) {

@@ -53,8 +53,10 @@ Profiles:
   canonical-name      compare-set
 
 Environment:
-  GYST_DATABASE_URL   default postgres:///gyst
-                      sqlite:<path> uses a SQLite file and needs no server
+  GYST_DATABASE_URL   where the store lives. Unset: a SQLite file in the user's
+                      data directory, nothing else needed. postgres://... for a
+                      shared server; sqlite:<path> for a file elsewhere.
+  GYST_DATA_DIR       overrides the data directory.
 `
 
 func main() {

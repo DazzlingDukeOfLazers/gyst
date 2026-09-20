@@ -54,6 +54,36 @@ The one-page project site lives in [`site/`](site/). It describes the problem,
 the current workflow, the self-hosting boundary, and the prototype's honest
 status. See [`site/README.md`](site/README.md) to run or build it locally.
 
+## Getting started
+
+Gyst needs Go to build and nothing else to run. With no configuration it
+keeps its data in a SQLite file in your user data directory.
+
+```sh
+git clone https://github.com/DazzlingDukeOfLazers/gyst.git
+cd gyst
+go build ./cmd/gyst
+./gyst discover                              # project roots on this machine
+./gyst scan --root ~/path/to/a/project       # observe one of them
+./gyst status                                # sources, passes, coverage
+./gyst explain some-file.pdf                 # why Gyst believes what it believes
+./gyst report --out report.json              # everything, as one document
+```
+
+`gyst status` prints where the database file is. `GYST_DATA_DIR` moves it;
+`GYST_DATABASE_URL=sqlite:/some/path.db` names a file directly.
+
+A team sharing one store runs PostgreSQL instead:
+
+```sh
+createdb gyst && for f in migrations/*.sql; do psql -q -d gyst -f "$f"; done
+export GYST_DATABASE_URL=postgres:///gyst
+```
+
+Both engines produce the same results; the store test suite runs the same
+assertions on each. To try the synthetic dataset instead of your own files,
+see [`docs/samples/README.md`](docs/samples/README.md).
+
 ## Working principles
 
 1. Meet users where they are; adoption must not require a big-bang migration.
