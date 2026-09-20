@@ -44,6 +44,7 @@ public contract depends on it.
 | Web client | TypeScript | Walking-skeleton UI and API client generation |
 | Structured grid reuse | Evaluate self-hosted Grist behind an adapter | Access, offline, licensing, deployment, audit, and API fit spike |
 | File identity | Reversible scoped identity profiles | Test with real supplier/customer naming datasets |
+| Log retention | Keep everything by default; bookkeeping pruned; manual archive-then-compact, never a bare delete | [ADR 005](adr/005-retention-and-compaction.md): replay identical after compaction, every cited observation still resolves |
 
 ## Policy files to validate
 
@@ -72,7 +73,8 @@ cannot contain configuration. The most restrictive effective rule wins.
 - File identity profile grammar, precedence, migration, and ambiguity UX.
 - Stable local file identity across Windows volumes, network shares, rename, copy,
   atomic replace, and unavailable files.
-- Exact observation envelope, ordering, compaction, replay, and retention rules.
+- Exact observation envelope, ordering, and replay rules. Compaction and
+  retention are proposed in ADR 005.
 - Supported KiCad semantic model and deterministic-generation boundary.
 - PDF render/diff normalization across producer versions and fonts.
 - Record formula language, migrations, test fixtures, and sandbox.
