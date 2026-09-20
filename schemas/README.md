@@ -60,6 +60,12 @@ It also cross-checks every file locator cited by an example against
 `testdata/expected-inventory.json`, so the examples cannot drift into describing
 files that no longer exist or digests that no longer match.
 
+## Claim types
+
+`claim.type` is a closed enum on the observation. `project.manifest` was
+added on day 8: a parsed `.gyst/project.yaml`, observed alongside the
+file's own fingerprint as a second claim about the same locator.
+
 ## Known gaps
 
 - `claim.payload` is unconstrained. Payload shape belongs to the extractor's

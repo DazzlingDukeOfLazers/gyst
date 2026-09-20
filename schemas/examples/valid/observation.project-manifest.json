@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.1.0",
+  "observation_id": "obs_7a2f9c1e4b8d6a0f3c5e2b9d8f1a4c6e",
+  "observed_at": "2024-08-12T09:14:03+00:00",
+  "recorded_at": "2024-08-12T09:14:05+00:00",
+  "source": {
+    "source_id": "src_local_eng_share",
+    "connector": "local-folder",
+    "connector_version": "0.1.0",
+    "cursor": "scan:2024-08-12T09:14:00Z:seq:41"
+  },
+  "subject": {
+    "kind": "file",
+    "location": {
+      "source_id": "src_local_eng_share",
+      "locator": "engineering/widget/.gyst/project.yaml",
+      "native_version": {
+        "scheme": "mtime_size",
+        "value": "1723420800:48"
+      }
+    },
+    "version": {
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "e5b18fcf384bb0c1afe1cb41e7d83af05b1ba0bb5a2da3bd12aefa63a1b75b12"
+      },
+      "size_bytes": 48
+    }
+  },
+  "claim": {
+    "type": "project.manifest",
+    "payload": {
+      "valid": true,
+      "id": "widget",
+      "name": "Widget",
+      "description": "",
+      "members": [
+        "engineering/widget/**"
+      ],
+      "owners": null
+    }
+  },
+  "extractor": {
+    "name": "project-manifest",
+    "version": "0.1.0",
+    "output_schema": "gyst.claim.project.manifest/0.1.0",
+    "warnings": [
+      "id derived from name: widget"
+    ],
+    "confidence": 1.0
+  },
+  "policy": {
+    "content_level": "fingerprint",
+    "egress": "device",
+    "effective_policy_version": "pol_2024-08-01_r3"
+  },
+  "visibility": {
+    "labels": [
+      "src:src_local_eng_share:read"
+    ],
+    "source_acl_complete": true
+  }
+}

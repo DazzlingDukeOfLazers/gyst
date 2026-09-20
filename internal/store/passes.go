@@ -47,6 +47,7 @@ type Pass struct {
 	Connector  string
 	Kind       string // source kind, joined from sources
 	Root       string
+	Location   string // location kind/provider, joined from sources
 	StartedAt  time.Time
 	FinishedAt *time.Time
 	Status     string
@@ -120,6 +121,7 @@ func (s *Store) FinishPass(ctx context.Context, passID string, r PassResult) err
 func (s *Store) LatestPasses(ctx context.Context) ([]Pass, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT src.source_id, src.kind, src.root,
+		       src.location_kind || CASE WHEN src.location_provider='' THEN '' ELSE '/' || src.location_provider END,
 		       coalesce(p.pass_id,''), coalesce(p.connector,''),
 		       p.started_at, p.finished_at,
 		       coalesce(p.status,''), coalesce(p.detail,''), coalesce(p.resumed,false),
@@ -141,7 +143,7 @@ func (s *Store) LatestPasses(ctx context.Context) ([]Pass, error) {
 	for rows.Next() {
 		var p Pass
 		var started *time.Time
-		if err := rows.Scan(&p.SourceID, &p.Kind, &p.Root,
+		if err := rows.Scan(&p.SourceID, &p.Kind, &p.Root, &p.Location,
 			&p.PassID, &p.Connector, &started, &p.FinishedAt,
 			&p.Status, &p.Detail, &p.Resumed,
 			&p.Scanned, &p.Unchanged, &p.Skipped, &p.Appended); err != nil {

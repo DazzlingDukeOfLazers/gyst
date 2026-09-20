@@ -9,6 +9,7 @@ import (
 	"time"
 
 	gitconn "github.com/DazzlingDukeOfLazers/gyst/internal/connector/git"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/project"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
@@ -39,7 +40,7 @@ func cmdGit(ctx context.Context, args []string) error {
 	}
 	defer s.Close()
 
-	if err := s.RegisterSource(ctx, sourceID, "git", *repo); err != nil {
+	if err := s.RegisterSource(ctx, sourceID, "git", *repo, location.Probe(*repo)); err != nil {
 		return err
 	}
 

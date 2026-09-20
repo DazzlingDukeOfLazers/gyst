@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/identity"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/project"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
 
@@ -48,6 +49,10 @@ func cmdExplain(ctx context.Context, args []string) error {
 	fmt.Printf("  source     %s\n", sourceID)
 	fmt.Printf("  size       %s\n", humanBytes(derefInt(size)))
 	fmt.Printf("  digest     %s\n", derefStr(digest, "(not read under effective policy)"))
+
+	if err := explainProjects(ctx, s, sourceID, locator); err != nil {
+		return err
+	}
 
 	// --- evidence ---------------------------------------------------------
 	fmt.Printf("\nevidence\n")
@@ -199,6 +204,27 @@ func firstN(s string, n int) string {
 		return s
 	}
 	return s[:n]
+}
+
+// explainProjects lists the projects a file belongs to and on what basis.
+// Several is normal. None is reported as such, not left blank.
+func explainProjects(ctx context.Context, s *store.Store, sourceID, locator string) error {
+	ps, err := project.ProjectsOf(ctx, s, sourceID, locator)
+	if err != nil {
+		return err
+	}
+	if len(ps) == 0 {
+		fmt.Printf("  projects   no project membership\n")
+		return nil
+	}
+	for i, p := range ps {
+		label := "  projects   "
+		if i > 0 {
+			label = "             "
+		}
+		fmt.Printf("%s%s (%s)  %s %.2f  via %s\n", label, p.ProjectID, p.Name, p.Basis, p.Confidence, p.Pattern)
+	}
+	return nil
 }
 
 // wrap breaks explanation text so a long reason stays readable in a terminal.

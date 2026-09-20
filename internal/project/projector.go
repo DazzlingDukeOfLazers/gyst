@@ -61,7 +61,7 @@ func Apply(ctx context.Context, s *store.Store) (Stats, error) {
 			//
 			// The cursor still advances past them, so last_seq keeps meaning
 			// "consumed up to here" rather than "last file seen".
-			if f.Kind != "file" {
+			if !fileState(f) {
 				last = f.Seq
 				continue
 			}
@@ -101,6 +101,21 @@ func Apply(ctx context.Context, s *store.Store) (Stats, error) {
 	}
 	st.ToSeq = last
 	return st, nil
+}
+
+// fileState reports whether an observation is a statement about a file's
+// state on disk, which is what current_files holds. A second claim about the
+// same locator -- a parsed manifest, say -- carries no digest and must not
+// overwrite the fingerprint that does.
+func fileState(f store.LoggedFile) bool {
+	if f.Kind != "file" {
+		return false
+	}
+	switch f.ClaimType {
+	case "file.metadata", "file.content_fingerprint", "artifact.absent":
+		return true
+	}
+	return false
 }
 
 func lastSeq(ctx context.Context, s *store.Store) (int64, error) {
@@ -188,7 +203,7 @@ func Verify(ctx context.Context, s *store.Store) (before, after string, rows int
 			break
 		}
 		for _, f := range batch {
-			if f.Kind != "file" {
+			if !fileState(f) {
 				last = f.Seq
 				continue
 			}
