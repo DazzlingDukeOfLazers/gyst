@@ -94,7 +94,7 @@ func TestAmbiguousOriginNeedsTwoCandidates(t *testing.T) {
 // is one candidate, and one candidate offered twice is not an ambiguity.
 func TestAmbiguityDeduplicatesCandidates(t *testing.T) {
 	fs := Detect(Inputs{Now: now, Ambiguities: []Ambiguity{{
-		Gone: f("s", "gone.pdf", "d", "obs_g"),
+		Gone:       f("s", "gone.pdf", "d", "obs_g"),
 		Candidates: []File{f("s", "a.pdf", "d", "obs_a"), f("s", "a.pdf", "d", "obs_a2")},
 		Evidence:   []string{"obs_g", "obs_a"},
 	}}})
@@ -102,7 +102,7 @@ func TestAmbiguityDeduplicatesCandidates(t *testing.T) {
 		t.Fatal("a single candidate listed twice was reported as an ambiguity")
 	}
 	fs = Detect(Inputs{Now: now, Ambiguities: []Ambiguity{{
-		Gone: f("s", "gone.pdf", "d", "obs_g"),
+		Gone:       f("s", "gone.pdf", "d", "obs_g"),
 		Candidates: []File{f("s", "a.pdf", "d", "obs_a"), f("s", "b.pdf", "d", "obs_b"), f("s", "a.pdf", "d", "obs_a2")},
 		Evidence:   []string{"obs_g", "obs_a", "obs_b"},
 	}}})
