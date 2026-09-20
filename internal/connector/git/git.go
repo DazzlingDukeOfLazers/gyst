@@ -41,6 +41,8 @@ type Options struct {
 	Cursor string
 
 	MaxCommits int
+	// Egress is how far these observations may travel. Defaults to device.
+	Egress string
 }
 
 type Result struct {
@@ -67,6 +69,9 @@ func Discover(opts Options) (*Result, error) {
 	}
 	if opts.MaxCommits == 0 {
 		opts.MaxCommits = 10_000
+	}
+	if opts.Egress == "" {
+		opts.Egress = "device"
 	}
 
 	head, err := run(opts.Repo, "rev-parse", opts.Ref)
@@ -181,7 +186,7 @@ func parseRecord(record string, opts Options, now time.Time) (observe.Observatio
 			// still carries names, messages, and paths. It travels under the
 			// same policy as anything else.
 			ContentLevel:           observe.ContentExtractLocal,
-			Egress:                 "device",
+			Egress:                 opts.Egress,
 			EffectivePolicyVersion: opts.PolicyVersion,
 		},
 		Visibility: observe.Visibility{

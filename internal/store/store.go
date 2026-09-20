@@ -210,17 +210,18 @@ func (s *Store) SetCadence(ctx context.Context, sourceID string, d time.Duration
 
 // SourceRow is a registered source as read back.
 type SourceRow struct {
-	SourceID string
-	Kind     string
-	Root     string
-	Location location.Location
+	SourceID     string
+	Kind         string
+	Root         string
+	Location     location.Location
+	ImportedFrom string // sender id when the source arrived in a bundle
 }
 
 // Sources lists every registered source.
 func (s *Store) Sources(ctx context.Context) ([]SourceRow, error) {
 	rows, err := s.db.query(ctx, `
 		SELECT source_id, kind, root,
-		       location_kind, location_provider, location_mount, location_evidence, location_confidence
+		       location_kind, location_provider, location_mount, location_evidence, location_confidence, imported_from
 		FROM sources ORDER BY source_id`)
 	if err != nil {
 		return nil, err
@@ -231,7 +232,7 @@ func (s *Store) Sources(ctx context.Context) ([]SourceRow, error) {
 		var r SourceRow
 		var kind string
 		if err := rows.Scan(&r.SourceID, &r.Kind, &r.Root, &kind, &r.Location.Provider,
-			&r.Location.Mount, &r.Location.Evidence, &r.Location.Confidence); err != nil {
+			&r.Location.Mount, &r.Location.Evidence, &r.Location.Confidence, &r.ImportedFrom); err != nil {
 			return nil, err
 		}
 		r.Location.Kind = location.Kind(kind)

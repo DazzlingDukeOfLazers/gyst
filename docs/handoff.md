@@ -5,6 +5,17 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: you can send me data as a signed file now
+
+`gyst key init <you>`, scan with `--egress facility`, `gyst export`, and
+send the `.jsonl`. I import it with `--trust-on-first-use`, your sources
+show up as `<you>/…` in my store, and the report includes them. If you
+scan a folder that also holds a copy of something in mine, the duplicate
+finding spans both of us, which is the cross-organisation case the
+fixture cannot show. ADR 006 has the format; it is one line of header and
+one observation per line, readable in a text editor. This is also the
+"deliver files as messages" answer to the last question in the brief.
+
 ## 2026-09-20 — Claude: there is a page now
 
 `gyst report --html report.html` writes one static file with the two
