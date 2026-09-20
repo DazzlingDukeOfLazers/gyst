@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -462,3 +463,57 @@ func suite(t *testing.T, s *Store) {
 }
 
 func ptr(s string) *string { return &s }
+
+// Bulk writes are chunked multi-row statements. Twenty thousand
+// observations exceed one chunk on either engine, and two observations of
+// one locator inside a single fold batch must leave the newer one.
+func TestBulkWritesChunkAndDeduplicate(t *testing.T) {
+	for name, s := range engines(t) {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			var batch []observe.Observation
+			for i := 0; i < 20000; i++ {
+				batch = append(batch, obs("file", "bulk", fmt.Sprintf("d/%05d.bin", i), "file.content_fingerprint",
+					strings.Repeat("c", 64), int64(i%50+1), "fingerprint", nil, clock))
+			}
+			// The same locator twice in one batch: first with size 1, then a
+			// later observation with size 2. The fold must end at size 2.
+			batch = append(batch, obs("file", "bulk", "twice.bin", "file.content_fingerprint", strings.Repeat("d", 64), 1, "fingerprint", nil, clock))
+			batch = append(batch, obs("file", "bulk", "twice.bin", "file.content_fingerprint", strings.Repeat("e", 64), 2, "fingerprint", nil, clock.Add(time.Second)))
+			n, err := s.Append(ctx, batch)
+			if err != nil || n != len(batch) {
+				t.Fatalf("append %d %v", n, err)
+			}
+			if n, _ := s.Append(ctx, batch[:100]); n != 0 {
+				t.Errorf("re-append inserted %d", n)
+			}
+			st, err := s.ApplyCurrentFiles(ctx)
+			if err != nil || st.Applied != len(batch) {
+				t.Fatalf("apply %+v %v", st, err)
+			}
+			if c, _ := s.CountPresentFiles(ctx, "bulk"); c != 20001 {
+				t.Errorf("present %d", c)
+			}
+			if f, err := s.PresentFileAt(ctx, "bulk", "twice.bin"); err != nil || f.Size != 2 || !strings.HasPrefix(f.Digest, "e") {
+				t.Errorf("newest within a batch did not win: %+v %v", f, err)
+			}
+			before, after, _, err := s.VerifyProjection(ctx)
+			if err != nil || before != after {
+				t.Errorf("verify %v", err)
+			}
+			rels := make([]RelationRow, 0, 5000)
+			for i := 0; i < 5000; i++ {
+				rels = append(rels, RelationRow{RelationID: fmt.Sprintf("rel_%d", i), Type: "duplicate-of",
+					FromSource: "bulk", FromLocator: fmt.Sprintf("d/%05d.bin", i), ToSource: "bulk", ToLocator: "d/00000.bin",
+					Precedence: "gyst_suggestion", ActorKind: "suggestion", ActorID: "t", Evidence: []string{"obs_x"}, Confidence: 0.5, Explanation: "e"})
+			}
+			rels = append(rels, rels[0]) // duplicate id in one call
+			if err := s.InsertRelations(ctx, rels); err != nil {
+				t.Fatal(err)
+			}
+			if all, _ := s.AllRelations(ctx); len(all) != 5000 {
+				t.Errorf("relations %d", len(all))
+			}
+		})
+	}
+}

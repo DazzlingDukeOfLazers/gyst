@@ -194,7 +194,10 @@ func Discover(opts Options) (*Result, error) {
 		if opts.Cursor != "" && rel <= opts.Cursor {
 			return nil
 		}
-		if len(res.Observations) >= opts.MaxFiles {
+		// Files, not observations: a marked folder's observation must not
+		// eat into the budget, or a tree of exactly the cap comes out
+		// partial by the number of its repositories.
+		if res.Scanned >= opts.MaxFiles {
 			res.Complete = false
 			return filepath.SkipAll
 		}

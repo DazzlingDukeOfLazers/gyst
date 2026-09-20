@@ -143,26 +143,29 @@ func (s *Store) ReplaceProjects(ctx context.Context, projects []ProjectRow, memb
 	if _, err := tx.exec(ctx, `DELETE FROM projects`); err != nil {
 		return err
 	}
+	prows := make([][]any, 0, len(projects))
 	for _, p := range projects {
-		if _, err := tx.exec(ctx, `INSERT INTO projects (project_id, name, description, basis, source_id, locator,
-			evidence, confidence, explanation) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-			p.ProjectID, p.Name, p.Description, p.Basis, p.SourceID, p.Locator, p.Evidence, p.Confidence, p.Explanation); err != nil {
-			return err
-		}
+		prows = append(prows, []any{p.ProjectID, p.Name, p.Description, p.Basis, p.SourceID, p.Locator, p.Evidence, p.Confidence, p.Explanation})
 	}
+	if _, err := tx.insertRows(ctx, "projects", []string{"project_id", "name", "description", "basis", "source_id", "locator",
+		"evidence", "confidence", "explanation"}, prows, ""); err != nil {
+		return err
+	}
+	mrows := make([][]any, 0, len(members))
 	for _, m := range members {
-		if _, err := tx.exec(ctx, `INSERT INTO project_members (project_id, source_id, pattern, basis, confidence, evidence)
-			VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-			m.ProjectID, m.SourceID, m.Pattern, m.Basis, m.Confidence, m.Evidence); err != nil {
-			return err
-		}
+		mrows = append(mrows, []any{m.ProjectID, m.SourceID, m.Pattern, m.Basis, m.Confidence, m.Evidence})
 	}
+	if _, err := tx.insertRows(ctx, "project_members", []string{"project_id", "source_id", "pattern", "basis", "confidence", "evidence"},
+		mrows, "ON CONFLICT DO NOTHING"); err != nil {
+		return err
+	}
+	frows := make([][]any, 0, len(files))
 	for _, f := range files {
-		if _, err := tx.exec(ctx, `INSERT INTO file_projects (source_id, locator, project_id, basis, confidence, pattern)
-			VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-			f.SourceID, f.Locator, f.ProjectID, f.Basis, f.Confidence, f.Pattern); err != nil {
-			return err
-		}
+		frows = append(frows, []any{f.SourceID, f.Locator, f.ProjectID, f.Basis, f.Confidence, f.Pattern})
+	}
+	if _, err := tx.insertRows(ctx, "file_projects", []string{"source_id", "locator", "project_id", "basis", "confidence", "pattern"},
+		frows, "ON CONFLICT DO NOTHING"); err != nil {
+		return err
 	}
 	return tx.Commit()
 }

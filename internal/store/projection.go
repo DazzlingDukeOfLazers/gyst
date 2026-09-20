@@ -37,11 +37,10 @@ func fileState(f LoggedFile) bool {
 	return false
 }
 
-const upsertCurrentFile = `
-	INSERT INTO current_files
-		(source_id, locator, latest_seq, content_digest_hex, size_bytes,
-		 observed_at, present, native_version_value)
-	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+var currentFileColumns = []string{"source_id", "locator", "latest_seq", "content_digest_hex", "size_bytes",
+	"observed_at", "present", "native_version_value"}
+
+const upsertCurrentFileSuffix = `
 	ON CONFLICT (source_id, locator) DO UPDATE SET
 		latest_seq           = EXCLUDED.latest_seq,
 		content_digest_hex   = EXCLUDED.content_digest_hex,
@@ -50,6 +49,34 @@ const upsertCurrentFile = `
 		present              = EXCLUDED.present,
 		native_version_value = EXCLUDED.native_version_value
 	WHERE current_files.latest_seq < EXCLUDED.latest_seq`
+
+// foldBatch upserts one batch of file-state observations as a few multi-row
+// statements. A multi-row upsert may not touch one key twice, so within
+// the batch only the newest observation per locator is kept: the sequential
+// upserts it replaces would have ended in the same state, because each one
+// only ever advances.
+func foldBatch(ctx context.Context, tx *tx, batch []LoggedFile) (applied int, last int64, err error) {
+	latest := map[string]int{}
+	var rows [][]any
+	for _, f := range batch {
+		last = f.Seq
+		if !fileState(f) {
+			continue
+		}
+		applied++
+		row := []any{f.SourceID, f.Locator, f.Seq, f.DigestHex, f.SizeBytes, f.ObservedAt,
+			f.ClaimType != "artifact.absent", f.NativeVer}
+		key := f.SourceID + "\x00" + f.Locator
+		if i, seen := latest[key]; seen {
+			rows[i] = row
+			continue
+		}
+		latest[key] = len(rows)
+		rows = append(rows, row)
+	}
+	_, err = tx.insertRows(ctx, "current_files", currentFileColumns, rows, upsertCurrentFileSuffix)
+	return applied, last, err
+}
 
 // ApplyCurrentFiles consumes new observations and folds them into
 // current_files.
@@ -78,20 +105,13 @@ func (s *Store) ApplyCurrentFiles(ctx context.Context) (ProjectionStats, error) 
 		if err != nil {
 			return st, err
 		}
-		for _, f := range batch {
-			if !fileState(f) {
-				last = f.Seq
-				continue
-			}
-			present := f.ClaimType != "artifact.absent"
-			if _, err := tx.exec(ctx, upsertCurrentFile,
-				f.SourceID, f.Locator, f.Seq, f.DigestHex, f.SizeBytes, f.ObservedAt, present, f.NativeVer); err != nil {
-				tx.Rollback()
-				return st, err
-			}
-			last = f.Seq
-			st.Applied++
+		applied, newLast, err := foldBatch(ctx, tx, batch)
+		if err != nil {
+			tx.Rollback()
+			return st, err
 		}
+		st.Applied += applied
+		last = newLast
 		if _, err := tx.exec(ctx, `
 			INSERT INTO projector_state (projector, last_seq, updated_at)
 			VALUES ($1,$2,$3)
@@ -198,18 +218,8 @@ func (s *Store) VerifyProjection(ctx context.Context) (before, after string, row
 		if len(batch) == 0 {
 			break
 		}
-		for _, f := range batch {
-			if !fileState(f) {
-				last = f.Seq
-				continue
-			}
-			present := f.ClaimType != "artifact.absent"
-			if _, e := tx.exec(ctx, upsertCurrentFile,
-				f.SourceID, f.Locator, f.Seq, f.DigestHex, f.SizeBytes, f.ObservedAt, present, f.NativeVer); e != nil {
-				err = e
-				return
-			}
-			last = f.Seq
+		if _, last, err = foldBatch(ctx, tx, batch); err != nil {
+			return
 		}
 	}
 	after, _, err = fingerprintRows(ctx, tx)

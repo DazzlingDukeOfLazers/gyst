@@ -66,30 +66,29 @@ func (s *Store) ApplyIdentityPlan(ctx context.Context, version, profile string,
 	if _, err := tx.exec(ctx, `DELETE FROM relations WHERE identity_policy_version=$1`, version); err != nil {
 		return err
 	}
+	arows := make([][]any, 0, len(artifacts))
 	for _, a := range artifacts {
-		if _, err := tx.exec(ctx, `
-			INSERT INTO artifacts (identity_policy_version, artifact_id, source_id, grouping_key, member_count, confidence)
-			VALUES ($1,$2,$3,$4,$5,$6)`,
-			version, a.ArtifactID, a.SourceID, a.GroupingKey, a.MemberCount, a.Confidence); err != nil {
-			return err
-		}
+		arows = append(arows, []any{version, a.ArtifactID, a.SourceID, a.GroupingKey, a.MemberCount, a.Confidence})
 	}
+	if _, err := tx.insertRows(ctx, "artifacts", []string{"identity_policy_version", "artifact_id", "source_id",
+		"grouping_key", "member_count", "confidence"}, arows, ""); err != nil {
+		return err
+	}
+	mrows := make([][]any, 0, len(members))
 	for _, m := range members {
-		if _, err := tx.exec(ctx, `
-			INSERT INTO artifact_members (identity_policy_version, artifact_id, source_id,
-				locator, latest_seq, version_label, is_current, rule, confidence, explanation)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-			version, m.ArtifactID, m.SourceID, m.Locator, m.LatestSeq,
-			m.VersionLabel, m.IsCurrent, m.Rule, m.Confidence, m.Explanation); err != nil {
-			return err
-		}
+		mrows = append(mrows, []any{version, m.ArtifactID, m.SourceID, m.Locator, m.LatestSeq,
+			m.VersionLabel, m.IsCurrent, m.Rule, m.Confidence, m.Explanation})
 	}
-	for _, r := range relations {
+	if _, err := tx.insertRows(ctx, "artifact_members", []string{"identity_policy_version", "artifact_id", "source_id",
+		"locator", "latest_seq", "version_label", "is_current", "rule", "confidence", "explanation"}, mrows, ""); err != nil {
+		return err
+	}
+	for i := range relations {
 		v := version
-		r.PolicyVersion = &v
-		if err := execRelation(ctx, tx, r); err != nil {
-			return err
-		}
+		relations[i].PolicyVersion = &v
+	}
+	if err := insertRelations(ctx, tx, relations); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
