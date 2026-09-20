@@ -80,6 +80,11 @@ type Result struct {
 	Skipped   int
 	Ignored   int
 	Unstable  int
+	// Symlinks were seen and deliberately not followed. They are not a
+	// hole in coverage: nothing beneath a symlink is in this source, by
+	// policy. Counting them as skipped cost every tree with a
+	// node_modules/.bin its complete status and its tombstones.
+	Symlinks int
 	// Placeholders are files present in the tree whose content is not on
 	// disk: a cloud sync engine holds the bytes elsewhere. They are observed
 	// by metadata only and never opened, because opening one downloads it.
@@ -183,7 +188,11 @@ func Discover(opts Options) (*Result, error) {
 			return nil
 		}
 		if !d.Type().IsRegular() {
-			res.Skipped++
+			if d.Type()&fs.ModeSymlink != 0 {
+				res.Symlinks++
+			} else {
+				res.Skipped++
+			}
 			return nil
 		}
 		if ig.match(rel, false) {
@@ -360,7 +369,9 @@ func (r *Result) observeMarkers(abs, rel string, opts Options, now time.Time) {
 		return
 	}
 	markers := discover.Markers(entries)
-	if len(markers) == 0 {
+	if len(markers) == 0 || discover.Vendored(rel) {
+		// A package.json inside node_modules marks a dependency, not a
+		// project. Dogfooding on real trees produced 1,745 such projects.
 		return
 	}
 	info, err := os.Stat(abs)

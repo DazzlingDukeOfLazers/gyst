@@ -23,7 +23,7 @@
       "file": "valid/observation.project-manifest.json",
       "schema": "observation",
       "expect": "valid",
-      "rationale": "A parsed .gyst/project.yaml. The manifest is a second claim about a locator the fingerprint already covers; it declares a project and its member patterns, and it is read under any policy short of exclude because it is configuration addressed to Gyst, not engineering content."
+      "rationale": "A parsed .gyst/project.yaml. The manifest is a second claim about a locator the fingerprint already covers; it declares a project and its member patterns, relative to the manifest's own folder, and it is read under any policy short of exclude because it is configuration addressed to Gyst, not engineering content."
     },
     {
       "file": "valid/artifact-ref.projection.json",

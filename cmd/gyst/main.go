@@ -259,7 +259,7 @@ func cmdScan(ctx context.Context, args []string) error {
 	fmt.Printf("seen       %d files, %s\n", res.Scanned+res.Unchanged, humanBytes(res.Bytes))
 	fmt.Printf("unchanged  %d (not read)   changed %d, %s hashed\n",
 		res.Unchanged, res.Scanned, humanBytes(res.HashedBytes))
-	fmt.Printf("ignored    %d   skipped %d   unstable %d\n", res.Ignored, res.Skipped, res.Unstable)
+	fmt.Printf("ignored    %d   skipped %d   unstable %d   symlinks %d (not followed)\n", res.Ignored, res.Skipped, res.Unstable, res.Symlinks)
 	if res.Placeholders > 0 {
 		fmt.Printf("placeholder %d file(s) whose content is held by a sync engine; observed by metadata, not read\n",
 			res.Placeholders)

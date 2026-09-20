@@ -21,7 +21,14 @@ import (
 const Filename = ".gyst/project.yaml"
 
 // Manifest is the parsed file. Members are glob patterns relative to the
-// source root, matched against locators; ** spans directories.
+// manifest's own folder, matched against locators; ** spans directories.
+// A pattern beginning with / is relative to the source root instead, for a
+// manifest that claims files outside its folder.
+//
+// Relative to the folder, not the root: dogfooding scanned a tree from a
+// higher root than its manifests assumed and every manifest matched
+// nothing. A manifest must mean the same thing whatever root the scan
+// starts from.
 type Manifest struct {
 	ID          string   `yaml:"id" json:"id"`
 	Name        string   `yaml:"name" json:"name"`
@@ -66,11 +73,7 @@ func Parse(body []byte, dir string) (Manifest, []string, error) {
 	}
 	if len(m.Members) == 0 {
 		// The folder holding the manifest is the project unless told otherwise.
-		if dir == "" {
-			m.Members = []string{"**"}
-		} else {
-			m.Members = []string{dir + "/**"}
-		}
+		m.Members = []string{"**"}
 		warnings = append(warnings, "no members listed; the manifest's own folder is assumed")
 	}
 	for i, p := range m.Members {
@@ -120,6 +123,18 @@ func matchSegs(pat, segs []string) bool {
 		pat, segs = pat[1:], segs[1:]
 	}
 	return len(segs) == 0
+}
+
+// Resolve turns a member pattern into a root-relative one. dir is the
+// manifest's folder as a locator, "" for the root.
+func Resolve(dir, pattern string) string {
+	if strings.HasPrefix(pattern, "/") {
+		return strings.TrimPrefix(pattern, "/")
+	}
+	if dir == "" {
+		return pattern
+	}
+	return dir + "/" + pattern
 }
 
 // Dir returns the manifest's directory as a locator, "" for the root.

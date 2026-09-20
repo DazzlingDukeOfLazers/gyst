@@ -102,6 +102,18 @@ func TestDuplicateFindingIDFollowsContentNotSample(t *testing.T) {
 	}
 }
 
+// Copies inside dependency directories are expected and are not findings.
+func TestVendoredCopiesAreNotDuplicateFindings(t *testing.T) {
+	fs := Detect(Inputs{Now: now, Files: []File{
+		f("s", "src/lib.js", "d", "obs_1"),
+		f("s", "node_modules/x/lib.js", "d", "obs_2"),
+		f("s", "other/node_modules/y/lib.js", "d", "obs_3"),
+	}})
+	if len(byRule(fs, RuleDuplicateContent)) != 0 {
+		t.Fatal("a vendored copy was reported as a duplicate")
+	}
+}
+
 func TestFindingIDIsStableAndOrderIndependent(t *testing.T) {
 	a := Detect(Inputs{Now: now, Files: []File{f("s", "x", "d", "obs_1"), f("s", "y", "d", "obs_2")}})
 	b := Detect(Inputs{Now: now.Add(time.Hour), Files: []File{f("s", "y", "d", "obs_9"), f("s", "x", "d", "obs_8")}})

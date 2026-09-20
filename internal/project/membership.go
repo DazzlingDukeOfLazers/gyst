@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/DazzlingDukeOfLazers/gyst/internal/discover"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/manifest"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
@@ -61,6 +62,7 @@ type MembershipPlan struct {
 	Projects          []PlannedProject
 	InvalidManifests  int
 	SuppressedMarkers int
+	VendoredMarkers   int
 }
 
 // ResolveProjects turns manifest and marker evidence into projects.
@@ -103,7 +105,7 @@ func ResolveProjects(manifests []ManifestEvidence, markers []MarkerEvidence) Mem
 		p.Evidence = append(p.Evidence, m.ObsID)
 		for _, pat := range m.Members {
 			p.Members = append(p.Members, PlannedMember{
-				SourceID: m.SourceID, Pattern: pat, Basis: BasisManifest,
+				SourceID: m.SourceID, Pattern: manifest.Resolve(manifest.Dir(m.Locator), pat), Basis: BasisManifest,
 				Evidence: m.ObsID, Confidence: 1.0,
 			})
 		}
@@ -119,6 +121,14 @@ func ResolveProjects(manifests []ManifestEvidence, markers []MarkerEvidence) Mem
 		dir := mk.Locator
 		if dir == "." {
 			dir = ""
+		}
+		if discover.Vendored(dir) {
+			// A marker inside a dependency or build directory names a
+			// dependency, not a project. Filtered here as well as at the
+			// scanner, so a log written before the scanner knew does not
+			// keep producing them.
+			plan.VendoredMarkers++
+			continue
 		}
 		if declaredAt[mk.SourceID+"\x00"+dir] {
 			plan.SuppressedMarkers++

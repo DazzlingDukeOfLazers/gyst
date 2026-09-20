@@ -5,7 +5,7 @@
       "name": "gyst",
       "version": "0.1.0-dev"
     },
-    "generated_at": "2026-09-20T18:52:14.912549Z",
+    "generated_at": "2026-09-20T20:34:40.603827Z",
     "visibility_scope": "Everything the exporting operator could see. No viewer filtering was applied; whoever holds this file holds all of it.",
     "identity_policy": {
       "version": "ip_suffix-as-identity",
@@ -17,7 +17,7 @@
       "files_present": 20,
       "files_absent": 0,
       "placeholders": 0,
-      "artifacts": 20,
+      "artifacts": 0,
       "relations": 3,
       "findings_open": 1,
       "observations": 27,
@@ -41,11 +41,11 @@
       },
       "cadence_seconds": 86400,
       "latest_pass": {
-        "pass_id": "pass_863cc54aaa44cbe1abb76c3b",
+        "pass_id": "pass_e43c523dac606a52257f0b71",
         "status": "complete",
         "detail": "walked to the end of history",
-        "started_at": "2026-09-20T18:52:14.759254Z",
-        "finished_at": "2026-09-20T18:52:14.77465Z",
+        "started_at": "2026-09-20T20:34:40.545068Z",
+        "finished_at": "2026-09-20T20:34:40.562167Z",
         "resumed": false,
         "scanned": 2,
         "unchanged": 0,
@@ -75,11 +75,11 @@
       },
       "cadence_seconds": 604800,
       "latest_pass": {
-        "pass_id": "pass_1805ca59d373276dffde4c20",
+        "pass_id": "pass_b9293facb5591d9d174ebf29",
         "status": "complete",
         "detail": "complete unresumed pass with no read errors",
-        "started_at": "2026-09-20T18:52:14.733398Z",
-        "finished_at": "2026-09-20T18:52:14.736244Z",
+        "started_at": "2026-09-20T20:34:40.514651Z",
+        "finished_at": "2026-09-20T20:34:40.519886Z",
         "resumed": false,
         "scanned": 20,
         "unchanged": 0,
@@ -106,7 +106,7 @@
       "confidence": 1,
       "explanation": "declared by engineering/.gyst/project.yaml",
       "evidence": [
-        "obs_51cab9526e9f9c352ff3cf5fab75ac4d"
+        "obs_c65b6e4bd380ea4ccc68b5beeefefae1"
       ],
       "members": [
         {
@@ -114,7 +114,7 @@
           "pattern": "engineering/**",
           "basis": "manifest",
           "confidence": 1,
-          "evidence": "obs_51cab9526e9f9c352ff3cf5fab75ac4d"
+          "evidence": "obs_c65b6e4bd380ea4ccc68b5beeefefae1"
         }
       ],
       "file_count": 18,
@@ -130,7 +130,7 @@
       "confidence": 1,
       "explanation": "declared by engineering/widget/.gyst/project.yaml",
       "evidence": [
-        "obs_48f7e1dca999eed1d569a80f36237006"
+        "obs_c0d798b52dfb3454a3b2d120211b076c"
       ],
       "members": [
         {
@@ -138,7 +138,7 @@
           "pattern": "engineering/widget/**",
           "basis": "manifest",
           "confidence": 1,
-          "evidence": "obs_48f7e1dca999eed1d569a80f36237006"
+          "evidence": "obs_c0d798b52dfb3454a3b2d120211b076c"
         }
       ],
       "file_count": 10,
@@ -154,7 +154,7 @@
       "confidence": 0.6,
       "explanation": "folder carries git; a native marker suggests a project boundary but does not declare one",
       "evidence": [
-        "obs_10bcefaf89ab813c219e5b4e2b1d8c68"
+        "obs_69958bbad43cfe9a7d0c692d61740455"
       ],
       "members": [
         {
@@ -162,7 +162,7 @@
           "pattern": "firmware/**",
           "basis": "native-marker",
           "confidence": 0.6,
-          "evidence": "obs_10bcefaf89ab813c219e5b4e2b1d8c68"
+          "evidence": "obs_69958bbad43cfe9a7d0c692d61740455"
         }
       ],
       "file_count": 2,
@@ -176,16 +176,17 @@
       "source_id": "src_local_eng_share",
       "locator": "engineering/.gyst/project.yaml",
       "present": true,
-      "size_bytes": 68,
+      "size_bytes": 58,
       "content_digest": {
         "algo": "sha256",
-        "hex": "76f913347a53582f49af1d28c2fa0cb56aa2521323ebbeb91f337dd7b8ff7676"
+        "hex": "df39ee454cbafcbe0592d0d17a63b8ce7472dc04e3f2b85aa6677cd283ec3c64"
       },
-      "native_version": "1723420800:68",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
-      "observation_id": "obs_c72922305f446974e0fdeeed7396c789",
+      "native_version": "1723420800:58",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
+      "observation_id": "obs_178e6d3204adc9d242d495c54e6d116c",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -208,7 +209,7 @@
         "basis": "",
         "confidence": 0,
         "evidence": [
-          "obs_c72922305f446974e0fdeeed7396c789"
+          "obs_178e6d3204adc9d242d495c54e6d116c"
         ],
         "explanation": "the only copy observed, and nothing declared"
       }
@@ -223,10 +224,11 @@
         "hex": "0a55f280a3f586dd75577096cbe27fd842bb9dc92af158884f471c375189dc03"
       },
       "native_version": "1723420800:15",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_e4d9df37204059f145c9668277331be6",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -264,10 +266,11 @@
         "hex": "1307657aee613b9ac0a29cfd2ab8865a5012cfc175cbe4b4a2e5166618596e70"
       },
       "native_version": "1723420800:540",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_81d67c9e44e49e6c8951538a217688c8",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -305,10 +308,11 @@
         "hex": "4ef8fe645a1874255962cda0e21ed60640fc9da53e8a27f84cace520606fc0e7"
       },
       "native_version": "1723420800:540",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_e6f761d644d31bf3d67f5213b7d8f5ef",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -346,10 +350,11 @@
         "hex": "072b57415c5420165538d45c5c37f449b9bb28ed55a80d8b293dfe1ba46c0bbe"
       },
       "native_version": "1723420800:40",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_f8b56356f94fe0415046d7459237cae5",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -387,10 +392,11 @@
         "hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "native_version": "1723420800:0",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_0aa47b7fc6f2b66e332accf04794c60d",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -428,10 +434,11 @@
         "hex": "20cca3d829e0885ac30819b25d0906a78acc82ea99b2ec7ecb1380b1a0fad822"
       },
       "native_version": "1723420800:550",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_072044431371fe8c7290317a954a97e8",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -469,10 +476,11 @@
         "hex": "6d68eff9fb200467b9e4c7b7832db8563bdfebe85ae913ac1e72ba6cb74b0cf0"
       },
       "native_version": "1723420800:544",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_2f679bd5d01bdcf713d145fb2776499a",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -504,16 +512,17 @@
       "source_id": "src_local_eng_share",
       "locator": "engineering/widget/.gyst/project.yaml",
       "present": true,
-      "size_bytes": 48,
+      "size_bytes": 31,
       "content_digest": {
         "algo": "sha256",
-        "hex": "e5b18fcf384bb0c1afe1cb41e7d83af05b1ba0bb5a2da3bd12aefa63a1b75b12"
+        "hex": "9f54f1b98b6683e9c504dc8dfb4cccb2fc0c92bb9fbd3e3d65acb3964284716c"
       },
-      "native_version": "1723420800:48",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
-      "observation_id": "obs_bb45042660bd53270ff183fc2c2522d9",
+      "native_version": "1723420800:31",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
+      "observation_id": "obs_d5a9791da2156219bb7c0e9e36f037e5",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -542,7 +551,7 @@
         "basis": "",
         "confidence": 0,
         "evidence": [
-          "obs_bb45042660bd53270ff183fc2c2522d9"
+          "obs_d5a9791da2156219bb7c0e9e36f037e5"
         ],
         "explanation": "the only copy observed, and nothing declared"
       }
@@ -557,10 +566,11 @@
         "hex": "da976965b16471d6e560e1af3c9467f83ba0f641742c196bc820e4929a57b7ad"
       },
       "native_version": "1723420800:66",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_7e45973e355207989d634e623fda15bf",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -604,10 +614,11 @@
         "hex": "a7d10744d19bc17189b704f667668097d17676101d58f89153ac7736699277de"
       },
       "native_version": "1723420800:93",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_d1aa8674952deaeb376fa146bad3a722",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -651,10 +662,11 @@
         "hex": "0c078afdc8ec1ca49a7d5645ae51990086646697933bb6c5f72e5d08ec68f4b1"
       },
       "native_version": "1723420800:93",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_771efb84b06e79fd41396f8034e94417",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -698,10 +710,11 @@
         "hex": "b94f070e2f5fe1722e8856c772707c012ea072e3ef83d0cb161d8511a3356400"
       },
       "native_version": "1723420800:47",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_ebabb04a2acb9b464b90571361d57f4e",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -745,10 +758,11 @@
         "hex": "5a88cbd748f627435dc6f7c7a2dab19fc609e01157415e997466fbab8a948d64"
       },
       "native_version": "1723420800:79",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_76bd0e0974e641ab05926f642d161f13",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -792,10 +806,11 @@
         "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
       },
       "native_version": "1723420800:1715",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_19e12ea2ccc94facee119344ce4daf24",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -830,7 +845,7 @@
         "evidence": [
           "obs_63810b52b2fe8f5844f6092f794626d5"
         ],
-        "assertion_id": "ast_49bed0998be47760d9579ea8",
+        "assertion_id": "ast_cdf17dda1e52e9b6c25fb765",
         "explanation": "example asserted engineering/widget/widget_bom.xlsx is the authority: the workbook the release is built from"
       }
     },
@@ -844,10 +859,11 @@
         "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
       },
       "native_version": "1723420800:1715",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_63810b52b2fe8f5844f6092f794626d5",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -882,7 +898,7 @@
         "evidence": [
           "obs_63810b52b2fe8f5844f6092f794626d5"
         ],
-        "assertion_id": "ast_49bed0998be47760d9579ea8",
+        "assertion_id": "ast_cdf17dda1e52e9b6c25fb765",
         "explanation": "example asserted engineering/widget/widget_bom.xlsx is the authority: the workbook the release is built from"
       }
     },
@@ -896,10 +912,11 @@
         "hex": "ce7072b57fcaa061a6131a3239386a7e3c3519ce970d8ab74be216bb9163e0f6"
       },
       "native_version": "1723420800:539",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_91a38e7db7e777139cec8fe543d6fbb7",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -943,10 +960,11 @@
         "hex": "3cc9e4151db809eab31059fe61f6219037b1bad9cc7d95967ac6e0365c300174"
       },
       "native_version": "1723420800:539",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
       "observation_id": "obs_bbe17e3c36e235e7a8ca83ed922eb65b",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "engineering",
@@ -989,11 +1007,12 @@
         "algo": "sha256",
         "hex": "f56698c90018f0d9c693540f8af2896eb5350faed2f9f5e38f9107c8a4f382f4"
       },
-      "native_version": "1789928110:11",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
-      "observation_id": "obs_696d214372b6209984714cc2d2cc4b66",
+      "native_version": "1789936190:11",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
+      "observation_id": "obs_e8f49940bd7282b519c870dc93879f22",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "mark_e979905c06187cc9cbd76014",
@@ -1016,7 +1035,7 @@
         "basis": "",
         "confidence": 0,
         "evidence": [
-          "obs_696d214372b6209984714cc2d2cc4b66"
+          "obs_e8f49940bd7282b519c870dc93879f22"
         ],
         "explanation": "the only copy observed, and nothing declared"
       }
@@ -1030,11 +1049,12 @@
         "algo": "sha256",
         "hex": "4aad389fd6623f6e521d049dc98f84101203821016159525e419703cf0fe051c"
       },
-      "native_version": "1789928110:63",
-      "observed_at": "2026-09-20T18:52:14.733398Z",
-      "observation_id": "obs_b2dbe773243bc6848511db2a47ae3527",
+      "native_version": "1789936190:63",
+      "observed_at": "2026-09-20T20:34:40.514651Z",
+      "observation_id": "obs_fdc370d0cc791b46942ac76849b1afa9",
       "content_level": "fingerprint",
       "placeholder": false,
+      "vendored": false,
       "projects": [
         {
           "project_id": "mark_e979905c06187cc9cbd76014",
@@ -1057,354 +1077,13 @@
         "basis": "",
         "confidence": 0,
         "evidence": [
-          "obs_b2dbe773243bc6848511db2a47ae3527"
+          "obs_fdc370d0cc791b46942ac76849b1afa9"
         ],
         "explanation": "the only copy observed, and nothing declared"
       }
     }
   ],
-  "artifacts": [
-    {
-      "artifact_id": "art_33f08afcb3171f79f0f35627",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering.gystignore",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/.gystignore",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_6d9cfd421685bfdd68fa3644",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/.gyst/project.yaml",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/.gyst/project.yaml",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_51608b056c2211cfa246f446",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/connectors/connector_123.pdf",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/connectors/connector_123.pdf",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_0aebb1152d61ed32219f45c5",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/connectors/connector_124.pdf",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/connectors/connector_124.pdf",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_1685e5a085da41d2386dee52",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/désign-notes.md",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/désign-notes.md",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_6fabcede7efd544be0e4f354",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/empty.txt",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/empty.txt",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_6b03ed2e2554f531a1c58764",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_9e852675cfd2261d0b5fb8d6",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/vendor-drop/Assembly Notes v2.pdf",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/vendor-drop/Assembly Notes v2.pdf",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_c79db24592c064dd0b856f59",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/.gyst/project.yaml",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/.gyst/project.yaml",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_0eee49080150c01cd4c75730",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/output/generation.log",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/output/generation.log",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_66234c0438cfbe4becbcabd3",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/output/widget-B_Cu.gbr",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/output/widget-B_Cu.gbr",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_a2a71674f2b8ebbea92d8e12",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/output/widget-F_Cu.gbr",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/output/widget-F_Cu.gbr",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_dfb3bd70011f5a568d3ee680",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/output/widget.drl",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/output/widget.drl",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_d3a981faf6dc5f44056ddc75",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/widget.kicad_pcb",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/widget.kicad_pcb",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_3bd0e14cdbba377495e4092b",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/widget_bom (copy).xlsx",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/widget_bom (copy).xlsx",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_a9a116d8eb8b11c4469f921e",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/widget_bom.xlsx",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/widget_bom.xlsx",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_52839915286bcdfc2395b962",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/widget_rev2.pdf",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/widget_rev2.pdf",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_09e305c6c1dbb5ccb66a3fe0",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "engineering/widget/widget_rev3.pdf",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "engineering/widget/widget_rev3.pdf",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_869c6db843aeb8c09dbffc3d",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "firmware/README.md",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "firmware/README.md",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    },
-    {
-      "artifact_id": "art_f5b576c2a615a27b88f9a083",
-      "source_id": "src_local_eng_share",
-      "grouping_key": "firmware/src/main.c",
-      "member_count": 1,
-      "confidence": 1,
-      "members": [
-        {
-          "locator": "firmware/src/main.c",
-          "version_label": null,
-          "is_current": true,
-          "rule": "stem-identity",
-          "confidence": 1,
-          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
-        }
-      ]
-    }
-  ],
+  "artifacts": [],
   "relations": [
     {
       "relation_id": "rel_b30bc0244330968aa44bea01",
@@ -1424,11 +1103,11 @@
       },
       "evidence": [
         "obs_d26d01f16ae72b77a255158611cec935",
-        "obs_b2dbe773243bc6848511db2a47ae3527"
+        "obs_fdc370d0cc791b46942ac76849b1afa9"
       ],
       "confidence": 1,
       "explanation": "commit 95b5fdd15884 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T18:52:14.775227Z",
+      "asserted_at": "2026-09-20T20:34:40.562678Z",
       "identity_policy_version": null
     },
     {
@@ -1449,11 +1128,11 @@
       },
       "evidence": [
         "obs_aa264ad9028a318f2add1d75b6e17b76",
-        "obs_696d214372b6209984714cc2d2cc4b66"
+        "obs_e8f49940bd7282b519c870dc93879f22"
       ],
       "confidence": 1,
       "explanation": "commit f80aff2cefa7 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T18:52:14.775158Z",
+      "asserted_at": "2026-09-20T20:34:40.562678Z",
       "identity_policy_version": null
     },
     {
@@ -1474,18 +1153,18 @@
       },
       "evidence": [
         "obs_aa264ad9028a318f2add1d75b6e17b76",
-        "obs_b2dbe773243bc6848511db2a47ae3527"
+        "obs_fdc370d0cc791b46942ac76849b1afa9"
       ],
       "confidence": 1,
       "explanation": "commit f80aff2cefa7 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T18:52:14.775205Z",
+      "asserted_at": "2026-09-20T20:34:40.562678Z",
       "identity_policy_version": null
     }
   ],
   "findings": [
     {
       "schema_version": "0.1.0",
-      "finding_id": "fnd_6d53ddefcd123f1b8fb91186",
+      "finding_id": "fnd_173e9024f1c2f8e451b4fb7e",
       "rule": {
         "id": "hygiene.duplicate-content",
         "version": "1"
@@ -1526,7 +1205,7 @@
         "obs_19e12ea2ccc94facee119344ce4daf24",
         "obs_63810b52b2fe8f5844f6092f794626d5"
       ],
-      "detected_at": "2026-09-20T18:52:14.738791Z",
+      "detected_at": "2026-09-20T20:34:40.521224Z",
       "confidence": 1,
       "summary": "2 byte-identical files (sha256 1d75bf1ea16f) in one source: engineering/widget/widget_bom (copy).xlsx, engineering/widget/widget_bom.xlsx. None is marked authoritative, so a reader cannot tell which to use.",
       "remediation": {
@@ -1538,7 +1217,7 @@
   ],
   "assertions": [
     {
-      "assertion_id": "ast_49bed0998be47760d9579ea8",
+      "assertion_id": "ast_cdf17dda1e52e9b6c25fb765",
       "kind": "authority",
       "subject": {
         "source_id": "src_local_eng_share",
@@ -1552,7 +1231,7 @@
       "evidence": [
         "obs_63810b52b2fe8f5844f6092f794626d5"
       ],
-      "asserted_at": "2026-09-20T18:52:14.801896Z",
+      "asserted_at": "2026-09-20T20:34:40.589983Z",
       "retracted_at": null,
       "retracted_by": null,
       "retract_reason": null

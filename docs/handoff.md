@@ -5,6 +5,26 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: first real scan, and three contract changes
+
+Scanned 23 real repositories, 81,000 files. `docs/day-18-notes.md` has
+the numbers. Three things in the report contract changed as a result:
+
+1. `files[].vendored` is new: true for files under dependency, build,
+   cache, and tool directories. They are observed but are not project
+   markers, duplicate findings, or authority candidates. The Places lens
+   should probably fold them by default; 83% of a real tree is them.
+2. `artifacts[]` now lists only groupings with more than one member. A
+   single-file grouping is already in `files[].grouping`.
+3. Manifest `members` patterns are relative to the manifest's own folder,
+   not the scan root. The fixture's manifests now say `**`. The resolved,
+   root-relative pattern is what `projects[].members[].pattern` carries,
+   so your side sees no change in shape.
+
+Also: a real tree produces 1,412 open findings after the noise is
+removed. The findings view needs grouping by project and by rule before
+it is readable; the report has the fields for both.
+
 ## 2026-09-20 — Claude: no server needed to run Gyst any more
 
 `GYST_DATABASE_URL=sqlite:gyst.db` runs everything on a file: scan, git,

@@ -152,6 +152,7 @@ GERBER = (
 #   profiles        -> expected grouping key per identity profile. Files sharing
 #                      a key under a profile are expected to group together.
 #   projects        -> expected project membership: manifest ids, or
+#                      (manifest members are relative to the manifest's folder)
 #                      "marker:<folder>" for a project a native marker suggests.
 #                      Several is normal; it is the point of the two manifests.
 # --------------------------------------------------------------------------
@@ -166,13 +167,13 @@ PROJECTS = [
         "id": "engineering",
         "basis": "manifest",
         "declared_by": "engineering/.gyst/project.yaml",
-        "members": ["engineering/**"],
+        "members": ["**"],
     },
     {
         "id": "widget",
         "basis": "manifest",
         "declared_by": "engineering/widget/.gyst/project.yaml",
-        "members": ["engineering/widget/**"],
+        "members": ["**"],
     },
     {
         "id": "marker:firmware",
@@ -355,14 +356,14 @@ FILES = [
     {
         "path": "engineering/.gyst/project.yaml",
         "projects": ['engineering'],
-        "content": b"id: engineering\nname: Engineering Share\nmembers:\n  - engineering/**\n",
+        "content": b"id: engineering\nname: Engineering Share\nmembers:\n  - '**'\n",
         "note": "Root manifest of the share. Everything under engineering/ belongs "
                 "to it, so widget files are members of two projects at once.",
     },
     {
         "path": "engineering/widget/.gyst/project.yaml",
         "projects": ['engineering', 'widget'],
-        "content": b"name: Widget\nmembers:\n  - engineering/widget/**\n",
+        "content": b"name: Widget\nmembers:\n  - '**'\n",
         "note": "Membership manifest: precedence 2, above any Gyst suggestion.",
     },
     {

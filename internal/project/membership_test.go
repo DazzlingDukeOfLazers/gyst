@@ -5,7 +5,7 @@ import "testing"
 func TestManifestDeclaresProject(t *testing.T) {
 	plan := ResolveProjects([]ManifestEvidence{{
 		SourceID: "src", Locator: "engineering/widget/.gyst/project.yaml", ObsID: "obs_m",
-		Valid: true, ID: "widget", Name: "Widget", Members: []string{"engineering/widget/**"},
+		Valid: true, ID: "widget", Name: "Widget", Members: []string{"**"},
 	}}, nil)
 	if len(plan.Projects) != 1 {
 		t.Fatalf("projects = %d", len(plan.Projects))
@@ -24,7 +24,7 @@ func TestManifestDeclaresProject(t *testing.T) {
 func TestSameIdInTwoSourcesIsOneProject(t *testing.T) {
 	plan := ResolveProjects([]ManifestEvidence{
 		{SourceID: "repo-a", Locator: ".gyst/project.yaml", ObsID: "o1", Valid: true, ID: "widget", Name: "Widget", Members: []string{"**"}},
-		{SourceID: "share", Locator: "boards/widget/.gyst/project.yaml", ObsID: "o2", Valid: true, ID: "widget", Name: "Widget", Members: []string{"boards/widget/**"}},
+		{SourceID: "share", Locator: "boards/widget/.gyst/project.yaml", ObsID: "o2", Valid: true, ID: "widget", Name: "Widget", Members: []string{"**"}},
 	}, nil)
 	if len(plan.Projects) != 1 {
 		t.Fatalf("projects = %d, want one spanning both sources", len(plan.Projects))
@@ -64,7 +64,7 @@ func TestRootMarkerCoversWholeSource(t *testing.T) {
 // Emitting both would show two projects for one thing.
 func TestMarkerSuppressedWhereManifestDeclares(t *testing.T) {
 	plan := ResolveProjects(
-		[]ManifestEvidence{{SourceID: "src", Locator: "engineering/widget/.gyst/project.yaml", ObsID: "m", Valid: true, ID: "widget", Name: "Widget", Members: []string{"engineering/widget/**"}}},
+		[]ManifestEvidence{{SourceID: "src", Locator: "engineering/widget/.gyst/project.yaml", ObsID: "m", Valid: true, ID: "widget", Name: "Widget", Members: []string{"**"}}},
 		[]MarkerEvidence{
 			{SourceID: "src", Locator: "engineering/widget", ObsID: "k1", Markers: []string{"gyst"}},
 			{SourceID: "src", Locator: "firmware", ObsID: "k2", Markers: []string{"git"}},
@@ -92,5 +92,17 @@ func TestPlanIsDeterministic(t *testing.T) {
 	})
 	if a.Projects[0].ID != b.Projects[0].ID || a.Projects[1].ID != b.Projects[1].ID {
 		t.Error("order of evidence changed the plan")
+	}
+}
+
+// A marker inside node_modules names a dependency, not a project, even
+// when the log already holds its observation.
+func TestVendoredMarkersAreNotProjects(t *testing.T) {
+	plan := ResolveProjects(nil, []MarkerEvidence{
+		{SourceID: "s", Locator: "app/node_modules/left-pad", ObsID: "o1", Markers: []string{"node"}},
+		{SourceID: "s", Locator: "app", ObsID: "o2", Markers: []string{"node"}},
+	})
+	if len(plan.Projects) != 1 || plan.Projects[0].Name != "app" || plan.VendoredMarkers != 1 {
+		t.Fatalf("%+v", plan)
 	}
 }
