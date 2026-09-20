@@ -151,12 +151,47 @@ GERBER = (
 #   ignored         -> .gystignore must keep this out of the inventory entirely
 #   profiles        -> expected grouping key per identity profile. Files sharing
 #                      a key under a profile are expected to group together.
+#   projects        -> expected project membership: manifest ids, or
+#                      "marker:<folder>" for a project a native marker suggests.
+#                      Several is normal; it is the point of the two manifests.
 # --------------------------------------------------------------------------
+
+# Projects the fixture declares or implies, hand-authored. The engineering
+# manifest at the root of the share covers everything beneath it, so every
+# widget file belongs to two projects: this is the many-to-many case the
+# design requires a fixture for. The firmware repository carries no manifest;
+# its .git is a native marker, so it is a suggestion, not a declaration.
+PROJECTS = [
+    {
+        "id": "engineering",
+        "basis": "manifest",
+        "declared_by": "engineering/.gyst/project.yaml",
+        "members": ["engineering/**"],
+    },
+    {
+        "id": "widget",
+        "basis": "manifest",
+        "declared_by": "engineering/widget/.gyst/project.yaml",
+        "members": ["engineering/widget/**"],
+    },
+    {
+        "id": "marker:firmware",
+        "basis": "native-marker",
+        "folder": "firmware",
+        "markers": ["git"],
+    },
+]
+
+# Folders whose native marker is redundant because a manifest sits in them.
+# The .gyst directory is itself a marker; the manifest inside it has already
+# named the project, so no second project may be suggested for the folder.
+SUPPRESSED_MARKERS = ["engineering", "engineering/widget"]
 
 FILES = [
     # --- suffix-as-version: a supplier revision drop -----------------------
     {
         "path": "engineering/widget/widget_rev2.pdf",
+        "projects": ['engineering', 'widget'],
         "content": make_pdf("WIDGET REV 2"),
         "profiles": {
             "content-path-exact": "engineering/widget/widget_rev2.pdf",
@@ -168,6 +203,7 @@ FILES = [
     },
     {
         "path": "engineering/widget/widget_rev3.pdf",
+        "projects": ['engineering', 'widget'],
         "content": make_pdf("WIDGET REV 3"),
         "profiles": {
             "content-path-exact": "engineering/widget/widget_rev3.pdf",
@@ -181,6 +217,7 @@ FILES = [
     # --- duplicate content under a different name --------------------------
     {
         "path": "engineering/widget/widget_bom.xlsx",
+        "projects": ['engineering', 'widget'],
         "content": make_xlsx(BOM_ROWS),
         "profiles": {
             "content-path-exact": "engineering/widget/widget_bom.xlsx",
@@ -191,6 +228,7 @@ FILES = [
     },
     {
         "path": "engineering/widget/widget_bom (copy).xlsx",
+        "projects": ['engineering', 'widget'],
         "content": make_xlsx(BOM_ROWS),
         "duplicate_of": "engineering/widget/widget_bom.xlsx",
         "profiles": {
@@ -206,27 +244,32 @@ FILES = [
     # --- generated outputs --------------------------------------------------
     {
         "path": "engineering/widget/output/widget-F_Cu.gbr",
+        "projects": ['engineering', 'widget'],
         "content": GERBER.encode(),
         "generated_from": "engineering/widget/widget.kicad_pcb",
     },
     {
         "path": "engineering/widget/output/widget-B_Cu.gbr",
+        "projects": ['engineering', 'widget'],
         "content": GERBER.replace("X2000000", "X3000000").encode(),
         "generated_from": "engineering/widget/widget.kicad_pcb",
     },
     {
         "path": "engineering/widget/output/widget.drl",
+        "projects": ['engineering', 'widget'],
         "content": b"M48\nMETRIC,TZ\nT1C0.300\n%\nG90\nT1\nX10.0Y10.0\nM30\n",
         "generated_from": "engineering/widget/widget.kicad_pcb",
     },
     {
         "path": "engineering/widget/output/generation.log",
+        "projects": ['engineering', 'widget'],
         "content": b"kicad-cli pcb export gerbers --output output/ widget.kicad_pcb\nOK\n",
         "generated_from": "engineering/widget/widget.kicad_pcb",
         "note": "The log is itself an artifact of the generation run, not a stray file.",
     },
     {
         "path": "engineering/widget/widget.kicad_pcb",
+        "projects": ['engineering', 'widget'],
         "content": b"(kicad_pcb (version 20240108) (generator pcbnew)\n  (general (thickness 1.6))\n)\n",
         "profiles": {
             "content-path-exact": "engineering/widget/widget.kicad_pcb",
@@ -244,6 +287,7 @@ FILES = [
     # --- suffix-as-identity: part numbers, not revisions --------------------
     {
         "path": "engineering/connectors/connector_123.pdf",
+        "projects": ['engineering'],
         "content": make_pdf("CONNECTOR 123"),
         "profiles": {
             "content-path-exact": "engineering/connectors/connector_123.pdf",
@@ -257,6 +301,7 @@ FILES = [
     },
     {
         "path": "engineering/connectors/connector_124.pdf",
+        "projects": ['engineering'],
         "content": make_pdf("CONNECTOR 124"),
         "profiles": {
             "content-path-exact": "engineering/connectors/connector_124.pdf",
@@ -269,6 +314,7 @@ FILES = [
     # --- genuinely ambiguous: must fall back to compare-set -----------------
     {
         "path": "engineering/vendor-drop/Assembly Notes v2.pdf",
+        "projects": ['engineering'],
         "content": make_pdf("ASSEMBLY NOTES V2"),
         "profiles": {
             "content-path-exact": "engineering/vendor-drop/Assembly Notes v2.pdf",
@@ -280,6 +326,7 @@ FILES = [
     },
     {
         "path": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
+        "projects": ['engineering'],
         "content": make_pdf("ASSEMBLY NOTES V2 FINAL"),
         "profiles": {
             "content-path-exact": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
@@ -300,27 +347,39 @@ FILES = [
     # --- edge cases that break naive scanners -------------------------------
     {
         "path": "engineering/désign-notes.md",
+        "projects": ['engineering'],
         "content": "# Désign notes\n\nUnicode path handling.\n".encode("utf-8"),
         "note": "Non-ASCII path. NFC/NFD normalisation differs between macOS and "
                 "Windows; the scanner must not treat the two forms as two files.",
     },
     {
+        "path": "engineering/.gyst/project.yaml",
+        "projects": ['engineering'],
+        "content": b"id: engineering\nname: Engineering Share\nmembers:\n  - engineering/**\n",
+        "note": "Root manifest of the share. Everything under engineering/ belongs "
+                "to it, so widget files are members of two projects at once.",
+    },
+    {
         "path": "engineering/widget/.gyst/project.yaml",
+        "projects": ['engineering', 'widget'],
         "content": b"name: Widget\nmembers:\n  - engineering/widget/**\n",
         "note": "Membership manifest: precedence 2, above any Gyst suggestion.",
     },
     {
         "path": "engineering/empty.txt",
+        "projects": ['engineering'],
         "content": b"",
         "note": "Zero bytes. Hashes to the well-known empty sha256; must not be "
                 "reported as a duplicate of every other empty file by accident.",
     },
     {
         "path": "engineering/.gystignore",
+        "projects": ['engineering'],
         "content": b"scratch/\n*.tmp\n",
     },
     {
         "path": "engineering/scratch/tmp-ignore-me.log",
+        "projects": [],
         "content": b"noise\n",
         "ignored": True,
         "note": "Excluded by .gystignore. Must not appear in the inventory at all "
@@ -365,6 +424,7 @@ def build_tree(root: Path) -> dict:
 
         entry = {
             "path": spec["path"],
+            "projects": spec.get("projects", []),
             "size_bytes": len(spec["content"]),
             "sha256": sha256(spec["content"]),
             "mtime_epoch": EPOCH,
@@ -394,6 +454,7 @@ def build_tree(root: Path) -> dict:
             "mtime_epoch": None,
             "ignored": False,
             "also_observable_via": "git",
+            "projects": ["marker:firmware"],
             "note": "Inside a Git working tree. Mtime is not pinned because Git "
                     "writes it; identity must come from content, not mtime.",
         })
@@ -409,8 +470,12 @@ def build_tree(root: Path) -> dict:
             "files_expected_ignored": sum(1 for e in inventory if e["ignored"]),
             "duplicate_pairs": sum(1 for e in inventory if "duplicate_of" in e),
             "generated_files": sum(1 for e in inventory if "generated_from" in e),
+            "projects": len(PROJECTS),
+            "files_in_two_projects": sum(1 for e in inventory if len(e.get("projects", [])) > 1),
         },
         "files": sorted(inventory, key=lambda e: e["path"]),
+        "projects": PROJECTS,
+        "suppressed_markers": SUPPRESSED_MARKERS,
         "git": git,
     }
 

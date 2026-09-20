@@ -5,7 +5,7 @@
       "name": "gyst",
       "version": "0.1.0-dev"
     },
-    "generated_at": "2026-09-20T17:57:55.466273Z",
+    "generated_at": "2026-09-20T18:15:14.556848Z",
     "visibility_scope": "Everything the exporting operator could see. No viewer filtering was applied; whoever holds this file holds all of it.",
     "identity_policy": {
       "version": "ip_suffix-as-identity",
@@ -13,14 +13,14 @@
     },
     "counts": {
       "sources": 2,
-      "projects": 2,
-      "files_present": 19,
+      "projects": 3,
+      "files_present": 20,
       "files_absent": 0,
       "placeholders": 0,
-      "artifacts": 19,
+      "artifacts": 20,
       "relations": 3,
       "findings_open": 1,
-      "observations": 24
+      "observations": 27
     }
   },
   "sources": [
@@ -37,11 +37,11 @@
       },
       "cadence_seconds": 86400,
       "latest_pass": {
-        "pass_id": "pass_8907f0b941fc332444d3a6a1",
+        "pass_id": "pass_dcf6961d2f10550766d37534",
         "status": "complete",
         "detail": "walked to the end of history",
-        "started_at": "2026-09-20T12:57:37.317747-05:00",
-        "finished_at": "2026-09-20T12:57:37.338679-05:00",
+        "started_at": "2026-09-20T13:15:14.503796-05:00",
+        "finished_at": "2026-09-20T13:15:14.520967-05:00",
         "resumed": false,
         "scanned": 2,
         "unchanged": 0,
@@ -50,7 +50,7 @@
       },
       "freshness": {
         "state": "current",
-        "age_seconds": 18,
+        "age_seconds": 0,
         "expected_every_seconds": 86400,
         "coverage": "complete",
         "coverage_detail": "walked to the end of history"
@@ -71,29 +71,53 @@
       },
       "cadence_seconds": 604800,
       "latest_pass": {
-        "pass_id": "pass_8be9fd92d368a0c6b2dbb04d",
+        "pass_id": "pass_650d2be0936920d48c90552c",
         "status": "complete",
         "detail": "complete unresumed pass with no read errors",
-        "started_at": "2026-09-20T12:57:37.280802-05:00",
-        "finished_at": "2026-09-20T12:57:37.289474-05:00",
+        "started_at": "2026-09-20T13:15:14.472959-05:00",
+        "finished_at": "2026-09-20T13:15:14.478243-05:00",
         "resumed": false,
-        "scanned": 19,
+        "scanned": 20,
         "unchanged": 0,
         "skipped": 0,
-        "appended": 22
+        "appended": 25
       },
       "freshness": {
         "state": "current",
-        "age_seconds": 18,
+        "age_seconds": 0,
         "expected_every_seconds": 604800,
         "coverage": "complete",
         "coverage_detail": "complete unresumed pass with no read errors"
       },
-      "files_present": 19,
+      "files_present": 20,
       "findings_open": 1
     }
   ],
   "projects": [
+    {
+      "project_id": "engineering",
+      "name": "Engineering Share",
+      "description": "",
+      "basis": "manifest",
+      "confidence": 1,
+      "explanation": "declared by engineering/.gyst/project.yaml",
+      "evidence": [
+        "obs_51cab9526e9f9c352ff3cf5fab75ac4d"
+      ],
+      "members": [
+        {
+          "source_id": "src_local_eng_share",
+          "pattern": "engineering/**",
+          "basis": "manifest",
+          "confidence": 1,
+          "evidence": "obs_51cab9526e9f9c352ff3cf5fab75ac4d"
+        }
+      ],
+      "file_count": 18,
+      "source_ids": [
+        "src_local_eng_share"
+      ]
+    },
     {
       "project_id": "widget",
       "name": "Widget",
@@ -126,7 +150,7 @@
       "confidence": 0.6000000238418579,
       "explanation": "folder carries git; a native marker suggests a project boundary but does not declare one",
       "evidence": [
-        "obs_9a4bb1a4c9dd40f8dc9f74ac06773400"
+        "obs_10bcefaf89ab813c219e5b4e2b1d8c68"
       ],
       "members": [
         {
@@ -134,7 +158,7 @@
           "pattern": "firmware/**",
           "basis": "native-marker",
           "confidence": 0.6,
-          "evidence": "obs_9a4bb1a4c9dd40f8dc9f74ac06773400"
+          "evidence": "obs_10bcefaf89ab813c219e5b4e2b1d8c68"
         }
       ],
       "file_count": 2,
@@ -146,6 +170,38 @@
   "files": [
     {
       "source_id": "src_local_eng_share",
+      "locator": "engineering/.gyst/project.yaml",
+      "present": true,
+      "size_bytes": 68,
+      "content_digest": {
+        "algo": "sha256",
+        "hex": "76f913347a53582f49af1d28c2fa0cb56aa2521323ebbeb91f337dd7b8ff7676"
+      },
+      "native_version": "1723420800:68",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observation_id": "obs_c72922305f446974e0fdeeed7396c789",
+      "content_level": "fingerprint",
+      "placeholder": false,
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
+      "grouping": {
+        "artifact_id": "art_6d9cfd421685bfdd68fa3644",
+        "grouping_key": "engineering/.gyst/project.yaml",
+        "version_label": null,
+        "is_current": true,
+        "rule": "stem-identity",
+        "confidence": 1,
+        "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+      }
+    },
+    {
+      "source_id": "src_local_eng_share",
       "locator": "engineering/.gystignore",
       "present": true,
       "size_bytes": 15,
@@ -154,11 +210,18 @@
         "hex": "0a55f280a3f586dd75577096cbe27fd842bb9dc92af158884f471c375189dc03"
       },
       "native_version": "1723420800:15",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_e4d9df37204059f145c9668277331be6",
       "content_level": "fingerprint",
       "placeholder": false,
-      "projects": [],
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
       "grouping": {
         "artifact_id": "art_33f08afcb3171f79f0f35627",
         "grouping_key": "engineering.gystignore",
@@ -179,11 +242,18 @@
         "hex": "1307657aee613b9ac0a29cfd2ab8865a5012cfc175cbe4b4a2e5166618596e70"
       },
       "native_version": "1723420800:540",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_81d67c9e44e49e6c8951538a217688c8",
       "content_level": "fingerprint",
       "placeholder": false,
-      "projects": [],
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
       "grouping": {
         "artifact_id": "art_51608b056c2211cfa246f446",
         "grouping_key": "engineering/connectors/connector_123.pdf",
@@ -204,11 +274,18 @@
         "hex": "4ef8fe645a1874255962cda0e21ed60640fc9da53e8a27f84cace520606fc0e7"
       },
       "native_version": "1723420800:540",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_e6f761d644d31bf3d67f5213b7d8f5ef",
       "content_level": "fingerprint",
       "placeholder": false,
-      "projects": [],
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
       "grouping": {
         "artifact_id": "art_0aebb1152d61ed32219f45c5",
         "grouping_key": "engineering/connectors/connector_124.pdf",
@@ -229,11 +306,18 @@
         "hex": "072b57415c5420165538d45c5c37f449b9bb28ed55a80d8b293dfe1ba46c0bbe"
       },
       "native_version": "1723420800:40",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_f8b56356f94fe0415046d7459237cae5",
       "content_level": "fingerprint",
       "placeholder": false,
-      "projects": [],
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
       "grouping": {
         "artifact_id": "art_1685e5a085da41d2386dee52",
         "grouping_key": "engineering/désign-notes.md",
@@ -254,11 +338,18 @@
         "hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "native_version": "1723420800:0",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_0aa47b7fc6f2b66e332accf04794c60d",
       "content_level": "fingerprint",
       "placeholder": false,
-      "projects": [],
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
       "grouping": {
         "artifact_id": "art_6fabcede7efd544be0e4f354",
         "grouping_key": "engineering/empty.txt",
@@ -279,11 +370,18 @@
         "hex": "20cca3d829e0885ac30819b25d0906a78acc82ea99b2ec7ecb1380b1a0fad822"
       },
       "native_version": "1723420800:550",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_072044431371fe8c7290317a954a97e8",
       "content_level": "fingerprint",
       "placeholder": false,
-      "projects": [],
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
       "grouping": {
         "artifact_id": "art_6b03ed2e2554f531a1c58764",
         "grouping_key": "engineering/vendor-drop/Assembly Notes v2 FINAL.pdf",
@@ -304,11 +402,18 @@
         "hex": "6d68eff9fb200467b9e4c7b7832db8563bdfebe85ae913ac1e72ba6cb74b0cf0"
       },
       "native_version": "1723420800:544",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_2f679bd5d01bdcf713d145fb2776499a",
       "content_level": "fingerprint",
       "placeholder": false,
-      "projects": [],
+      "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        }
+      ],
       "grouping": {
         "artifact_id": "art_9e852675cfd2261d0b5fb8d6",
         "grouping_key": "engineering/vendor-drop/Assembly Notes v2.pdf",
@@ -329,11 +434,17 @@
         "hex": "e5b18fcf384bb0c1afe1cb41e7d83af05b1ba0bb5a2da3bd12aefa63a1b75b12"
       },
       "native_version": "1723420800:48",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_bb45042660bd53270ff183fc2c2522d9",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -361,11 +472,17 @@
         "hex": "da976965b16471d6e560e1af3c9467f83ba0f641742c196bc820e4929a57b7ad"
       },
       "native_version": "1723420800:66",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_7e45973e355207989d634e623fda15bf",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -393,11 +510,17 @@
         "hex": "a7d10744d19bc17189b704f667668097d17676101d58f89153ac7736699277de"
       },
       "native_version": "1723420800:93",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_d1aa8674952deaeb376fa146bad3a722",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -425,11 +548,17 @@
         "hex": "0c078afdc8ec1ca49a7d5645ae51990086646697933bb6c5f72e5d08ec68f4b1"
       },
       "native_version": "1723420800:93",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_771efb84b06e79fd41396f8034e94417",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -457,11 +586,17 @@
         "hex": "b94f070e2f5fe1722e8856c772707c012ea072e3ef83d0cb161d8511a3356400"
       },
       "native_version": "1723420800:47",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_ebabb04a2acb9b464b90571361d57f4e",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -489,11 +624,17 @@
         "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
       },
       "native_version": "1723420800:1715",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_19e12ea2ccc94facee119344ce4daf24",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -521,11 +662,17 @@
         "hex": "1d75bf1ea16fb5163e8e4f311c69db9ce25342a578395640bbc03a13f4165fc4"
       },
       "native_version": "1723420800:1715",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_63810b52b2fe8f5844f6092f794626d5",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -553,11 +700,17 @@
         "hex": "ce7072b57fcaa061a6131a3239386a7e3c3519ce970d8ab74be216bb9163e0f6"
       },
       "native_version": "1723420800:539",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_91a38e7db7e777139cec8fe543d6fbb7",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -585,11 +738,17 @@
         "hex": "3cc9e4151db809eab31059fe61f6219037b1bad9cc7d95967ac6e0365c300174"
       },
       "native_version": "1723420800:539",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_bbe17e3c36e235e7a8ca83ed922eb65b",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -617,11 +776,17 @@
         "hex": "5a88cbd748f627435dc6f7c7a2dab19fc609e01157415e997466fbab8a948d64"
       },
       "native_version": "1723420800:79",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
       "observation_id": "obs_76bd0e0974e641ab05926f642d161f13",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
+        {
+          "project_id": "engineering",
+          "basis": "manifest",
+          "confidence": 1,
+          "pattern": "engineering/**"
+        },
         {
           "project_id": "widget",
           "basis": "manifest",
@@ -648,9 +813,9 @@
         "algo": "sha256",
         "hex": "f56698c90018f0d9c693540f8af2896eb5350faed2f9f5e38f9107c8a4f382f4"
       },
-      "native_version": "1789923894:11",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
-      "observation_id": "obs_1b368f3fdca9af9c11adee0096a10f9c",
+      "native_version": "1789928110:11",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observation_id": "obs_696d214372b6209984714cc2d2cc4b66",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
@@ -680,9 +845,9 @@
         "algo": "sha256",
         "hex": "4aad389fd6623f6e521d049dc98f84101203821016159525e419703cf0fe051c"
       },
-      "native_version": "1789923894:63",
-      "observed_at": "2026-09-20T12:57:37.280802-05:00",
-      "observation_id": "obs_765267406de4c9d3d24b6dc5c4814662",
+      "native_version": "1789928110:63",
+      "observed_at": "2026-09-20T13:15:14.472959-05:00",
+      "observation_id": "obs_b2dbe773243bc6848511db2a47ae3527",
       "content_level": "fingerprint",
       "placeholder": false,
       "projects": [
@@ -714,6 +879,23 @@
       "members": [
         {
           "locator": "engineering/.gystignore",
+          "version_label": null,
+          "is_current": true,
+          "rule": "stem-identity",
+          "confidence": 1,
+          "explanation": "the whole name identifies the artifact; a numeric suffix is part of its identity, not a version of something else"
+        }
+      ]
+    },
+    {
+      "artifact_id": "art_6d9cfd421685bfdd68fa3644",
+      "source_id": "src_local_eng_share",
+      "grouping_key": "engineering/.gyst/project.yaml",
+      "member_count": 1,
+      "confidence": 1,
+      "members": [
+        {
+          "locator": "engineering/.gyst/project.yaml",
           "version_label": null,
           "is_current": true,
           "rule": "stem-identity",
@@ -1048,11 +1230,11 @@
       },
       "evidence": [
         "obs_d26d01f16ae72b77a255158611cec935",
-        "obs_765267406de4c9d3d24b6dc5c4814662"
+        "obs_b2dbe773243bc6848511db2a47ae3527"
       ],
       "confidence": 1,
       "explanation": "commit 95b5fdd15884 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T12:57:37.34006-05:00",
+      "asserted_at": "2026-09-20T13:15:14.522482-05:00",
       "identity_policy_version": null
     },
     {
@@ -1073,11 +1255,11 @@
       },
       "evidence": [
         "obs_aa264ad9028a318f2add1d75b6e17b76",
-        "obs_1b368f3fdca9af9c11adee0096a10f9c"
+        "obs_696d214372b6209984714cc2d2cc4b66"
       ],
       "confidence": 1,
       "explanation": "commit f80aff2cefa7 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T12:57:37.34006-05:00",
+      "asserted_at": "2026-09-20T13:15:14.522482-05:00",
       "identity_policy_version": null
     },
     {
@@ -1098,11 +1280,11 @@
       },
       "evidence": [
         "obs_aa264ad9028a318f2add1d75b6e17b76",
-        "obs_765267406de4c9d3d24b6dc5c4814662"
+        "obs_b2dbe773243bc6848511db2a47ae3527"
       ],
       "confidence": 1,
       "explanation": "commit f80aff2cefa7 changed this path; matched to the scanned file by resolved filesystem path",
-      "asserted_at": "2026-09-20T12:57:37.34006-05:00",
+      "asserted_at": "2026-09-20T13:15:14.522482-05:00",
       "identity_policy_version": null
     }
   ],
@@ -1150,7 +1332,7 @@
         "obs_19e12ea2ccc94facee119344ce4daf24",
         "obs_63810b52b2fe8f5844f6092f794626d5"
       ],
-      "detected_at": "2026-09-20T12:57:37.293849-05:00",
+      "detected_at": "2026-09-20T13:15:14.482902-05:00",
       "confidence": 1,
       "summary": "2 byte-identical files (sha256 1d75bf1ea16f) in one source: engineering/widget/widget_bom (copy).xlsx, engineering/widget/widget_bom.xlsx. None is marked authoritative, so a reader cannot tell which to use.",
       "remediation": {
