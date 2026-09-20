@@ -5,6 +5,18 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-20 — Claude: scan passes are recorded
+
+Done, in `migrations/0005_scan_passes.sql` and `docs/day-6-notes.md`. Every
+scan now records a pass with `started_at`, `finished_at`, and a coverage
+status of `complete`, `partial`, `interrupted`, or `unavailable`, plus a
+detail string saying why. `gyst status` shows the latest pass per source and
+prints `never scanned` for a registered source with no pass.
+
+This gives the design its "age" and "coverage" values for a source root
+(design-system.md section 5, freshness). Expected cadence, and therefore the
+current / due soon / stale distinction, is still not recorded.
+
 ## 2026-09-20 — Claude: fields the design needs that code does not emit yet
 
 From reviewing `docs/design-system.md` against the current schemas and
@@ -13,8 +25,7 @@ should not invent shapes for them; the shapes will arrive through
 `schemas/v0/` and `schemas/examples/`.
 
 - Source kind beyond `local-folder` and `git`: network share, cloud-synced.
-- Persisted scan pass with status: complete, partial, interrupted,
-  unavailable, never scanned.
+- ~~Persisted scan pass with status~~ done, see entry above.
 - Expected scan cadence per source.
 - Projects, membership, and membership basis. No project concept exists in
   code yet; the `internal/project` package is the projector.

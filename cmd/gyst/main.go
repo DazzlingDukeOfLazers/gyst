@@ -116,6 +116,18 @@ func cmdScan(ctx context.Context, args []string) error {
 		return err
 	}
 
+	// One clock reading for the whole pass. It is the pass's started_at and
+	// the observed_at of everything the pass produces, so the pass row and
+	// the log agree about when this happened by construction.
+	started := time.Now().UTC()
+	passID, err := s.BeginPass(ctx, store.PassStart{
+		SourceID: sourceID, Connector: localfolder.ConnectorName,
+		StartedAt: started, Resumed: *resume,
+	})
+	if err != nil {
+		return err
+	}
+
 	// What the projection already believes. Unchanged files are skipped before
 	// they are read, so an incremental scan does not re-hash a settled tree.
 	known, err := s.KnownState(ctx, sourceID)
@@ -123,7 +135,6 @@ func cmdScan(ctx context.Context, args []string) error {
 		return err
 	}
 
-	start := time.Now()
 	res, err := localfolder.Discover(localfolder.Options{
 		Known:         known,
 		Root:          *root,
@@ -133,11 +144,27 @@ func cmdScan(ctx context.Context, args []string) error {
 		PolicyVersion: "pol_dev_r1",
 		Cursor:        cursor,
 		MaxFiles:      *maxFiles,
+		Now:           started,
 	})
-	if err != nil {
-		return err
+	if localfolder.IsUnavailable(err) {
+		// Not a failure of the scan: a true statement about the source. It
+		// is recorded as such and nothing else moves -- no observations, no
+		// cursor, no tombstones.
+		if ferr := s.FinishPass(ctx, passID, store.PassResult{
+			Status: store.PassUnavailable, Detail: err.Error(),
+			AbsenceReason: "root was unavailable; nothing was observed",
+		}); ferr != nil {
+			return ferr
+		}
+		fmt.Printf("source       %s\n", sourceID)
+		fmt.Printf("unavailable  %v\n", err)
+		fmt.Printf("recorded     pass %s; no observations, cursor unchanged\n", passID)
+		return nil
 	}
-	walked := time.Since(start)
+	if err != nil {
+		return finishInterrupted(ctx, s, passID, err)
+	}
+	walked := time.Since(started)
 
 	// Deletion detection: anything known but not seen by a complete pass.
 	opts := localfolder.Options{Cursor: cursor, SourceID: sourceID,
@@ -147,14 +174,25 @@ func cmdScan(ctx context.Context, args []string) error {
 
 	inserted, err := s.Append(ctx, res.Observations)
 	if err != nil {
-		return err
+		return finishInterrupted(ctx, s, passID, err)
 	}
 	if res.NextCursor != "" {
 		if err := s.SetCursor(ctx, sourceID, res.NextCursor); err != nil {
-			return err
+			return finishInterrupted(ctx, s, passID, err)
 		}
 	}
-	elapsed := time.Since(start)
+
+	cov := res.Coverage(*resume)
+	if err := s.FinishPass(ctx, passID, store.PassResult{
+		Status: cov.Status, Detail: cov.Detail,
+		Scanned: res.Scanned, Unchanged: res.Unchanged, Skipped: res.Skipped,
+		Ignored: res.Ignored, Unstable: res.Unstable,
+		Bytes: res.Bytes, HashedBytes: res.HashedBytes, Appended: inserted,
+		AbsenceChecked: tomb.Eligible, AbsenceReason: tomb.Reason,
+	}); err != nil {
+		return err
+	}
+	elapsed := time.Since(started)
 
 	stats, err := project.Apply(ctx, s)
 	if err != nil {
@@ -195,10 +233,23 @@ func cmdScan(ctx context.Context, args []string) error {
 		fmt.Printf("   (%s/s hashed)", humanBytes(int64(float64(res.HashedBytes)/elapsed.Seconds())))
 	}
 	fmt.Println()
+	fmt.Printf("coverage   %s: %s\n", cov.Status, cov.Detail)
 	if !res.Complete {
 		fmt.Printf("partial    stopped at --max-files; rerun with --resume\n")
 	}
 	return nil
+}
+
+// finishInterrupted records that a pass died mid-way, then returns the cause.
+// A pass that errors after appending some observations has produced true
+// observations and unknown coverage, which is exactly what interrupted means.
+func finishInterrupted(ctx context.Context, s *store.Store, passID string, cause error) error {
+	if ferr := s.FinishPass(ctx, passID, store.PassResult{
+		Status: store.PassInterrupted, Detail: cause.Error(),
+	}); ferr != nil {
+		return fmt.Errorf("%w (and recording the interruption failed: %v)", cause, ferr)
+	}
+	return cause
 }
 
 func cmdChanges(ctx context.Context, args []string) error {
@@ -324,19 +375,77 @@ func cmdStatus(ctx context.Context) error {
 	fmt.Printf("observations %d\n", n)
 	fmt.Printf("current_files %d rows, fingerprint %s\n", rows, fp[:16])
 
-	cur, err := s.Pool().Query(ctx, `SELECT source_id, cursor FROM source_cursors ORDER BY source_id`)
+	passes, err := s.LatestPasses(ctx)
 	if err != nil {
 		return err
 	}
-	defer cur.Close()
-	for cur.Next() {
-		var src, c string
-		if err := cur.Scan(&src, &c); err != nil {
-			return err
-		}
-		fmt.Printf("cursor       %s -> %s\n", src, c)
+	if len(passes) == 0 {
+		fmt.Println("sources      none registered")
+		return nil
 	}
-	return cur.Err()
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "\nSOURCE\tKIND\tLAST PASS\tCOVERAGE\tDETAIL")
+	for _, p := range passes {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+			p.SourceID, p.Kind, passAge(p), passStatus(p), short(passDetail(p), 72))
+	}
+	w.Flush()
+	return nil
+}
+
+func passAge(p store.Pass) string {
+	if p.Status == "" {
+		return "-"
+	}
+	return humanAgo(time.Since(p.StartedAt))
+}
+
+// passStatus is the coverage word a person reads first. "never scanned" is a
+// state, not a missing row; a registered source nobody has looked at must not
+// disappear from the table.
+func passStatus(p store.Pass) string {
+	switch p.Status {
+	case "":
+		return "never scanned"
+	case store.PassRunning:
+		return "running"
+	default:
+		return p.Status
+	}
+}
+
+func passDetail(p store.Pass) string {
+	switch p.Status {
+	case "":
+		return "registered, no pass recorded"
+	case store.PassComplete, store.PassPartial:
+		d := fmt.Sprintf("%d changed, %d unchanged", p.Scanned, p.Unchanged)
+		if p.Connector == "git" {
+			d = fmt.Sprintf("%d commits read", p.Scanned)
+		}
+		if p.Skipped > 0 {
+			d += fmt.Sprintf(", %d unreadable", p.Skipped)
+		}
+		if p.Status == store.PassPartial {
+			d += "; " + p.Detail
+		}
+		return d
+	default:
+		return p.Detail
+	}
+}
+
+func humanAgo(d time.Duration) string {
+	switch {
+	case d < time.Minute:
+		return fmt.Sprintf("%ds ago", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	case d < 48*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	}
 }
 
 func sanitize(s string) string {
