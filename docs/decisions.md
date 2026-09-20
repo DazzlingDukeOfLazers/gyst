@@ -8,8 +8,12 @@ public contract depends on it.
 
 | Topic | Decision | Consequence |
 |---|---|---|
-| Product category | Digital-thread integration and provenance layer | Integrate with incumbent systems instead of replacing all of them |
+| Product category | Engineering observability and provenance infrastructure | Create value before migration; contribute to a digital thread without requiring one |
 | Initial wedge | Find current files, improve hygiene, compare BOMs, and create releases | One end-to-end engineering/manufacturing workflow precedes broad dashboards |
+| Public identity | Gyst is the open-source engine within the broader Work Glue idea | Keep the CLI name while describing the purpose as getting systems together |
+| License | MIT | Optimize for inspection, offline adoption, modification, and integration rather than license capture |
+| Sustainability | Sponsorship, audits, training, integration, and support | The core remains useful without purchasing services or permission |
+| Human boundary | Observe work products, not worker productivity | No activity rankings, employee scores, or inferred performance surveillance |
 | Product/project | Product is a sellable line item; project is any useful artifact collection | Project membership is many-to-many and independent of folders/repos |
 | Source behavior | Observe by default; assist/manage are explicit per source | No surprise moves, commits, or writes |
 | Git strategy | Native integration and optional private mirrors; no forced monorepo | Gitea/Forgejo are providers, not initial fork bases |
@@ -23,7 +27,7 @@ public contract depends on it.
 | Feedback | Comments, nonconformances, deviations, and change proposals are distinct workflows | Shared primitives, separate state machines and dispositions |
 | Structured data | Typed authoritative Records replace parallel free-form working copies | Spreadsheet import/export remains supported with provenance |
 | Cost/labor/schedule | Managers/directors define schemas over safe primitives | Rollups expose schema/formula versions, inputs, and freshness |
-| Deployment | Connected and fully air-gapped models | Same core; air gaps use signed asynchronous transfer bundles |
+| Deployment | Offline and fully air-gapped operation is baseline; connected operation is optional | No vendor account, cloud service, telemetry, license check, or remote model is required by core workflows |
 | Server shape | Separate headless modular service, not a Gitea fork | Stable API serves CLI, web, integrations, and later MCP |
 | Data flow | Immutable observations plus rebuildable projections | Reclassification never rewrites evidence or releases |
 | Metadata/search | PostgreSQL first; add specialized projections only at measured gates | Avoid premature search/graph infrastructure |
@@ -37,7 +41,6 @@ public contract depends on it.
 |---|---|---|
 | Agent/server/CLI language | Go | Windows service, scanner, packaging, and concurrency spike |
 | Web client | TypeScript | Walking-skeleton UI and API client generation |
-| License | AGPL-3.0-or-later for server; compatible SDK license | Contributor/dependency review and governance decision |
 | Structured grid reuse | Evaluate self-hosted Grist behind an adapter | Access, offline, licensing, deployment, audit, and API fit spike |
 | File identity | Reversible scoped identity profiles | Test with real supplier/customer naming datasets |
 

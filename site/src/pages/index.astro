@@ -1,0 +1,1387 @@
+---
+const githubUrl = 'https://github.com/DazzlingDukeOfLazers/gyst';
+const productUrl = `${githubUrl}/blob/main/docs/product.md`;
+const architectureUrl = `${githubUrl}/blob/main/docs/architecture.md`;
+
+const reasons = [
+  {
+    number: '01',
+    title: 'Find the authority',
+    body: 'See the repository, folder, version, and observation behind an artifact—not merely the nearest copy with “final” in its name.',
+    tag: 'WHERE IS THE REAL ONE?',
+    icon: '/icons/document-search.svg',
+    iconAlt: 'Document search',
+  },
+  {
+    number: '02',
+    title: 'Explain the change',
+    body: 'Connect working files to Git history, preserve what was observed, and show the evidence behind every derived relationship.',
+    tag: 'WHAT ACTUALLY MOVED?',
+    icon: '/icons/change-history.svg',
+    iconAlt: 'Revision history',
+  },
+  {
+    number: '03',
+    title: 'Prepare the handoff',
+    body: 'Build toward release manifests that pin exact sources, generated outputs, tool versions, approvals, and manufacturing feedback.',
+    tag: 'WHAT DID WE SHIP?',
+    icon: '/icons/release-checklist.svg',
+    iconAlt: 'Release checklist',
+  },
+  {
+    number: '04',
+    title: 'Keep the boundary',
+    body: 'Run locally. Control content access and egress by policy. Core operation will never require a Gyst-hosted account or cloud.',
+    tag: 'WHERE DOES IT RUN?',
+    icon: '/icons/air-gap.svg',
+    iconAlt: 'Air-gapped systems',
+  },
+];
+
+const timelineDays = Array.from({ length: 10 }, (_, index) => index);
+
+const ganttRows = [
+  { name: 'ALICE', color: 'alice', active: [0, 2, 6] },
+  { name: 'BOB', color: 'bob', active: [1, 3, 8] },
+  { name: 'CHARLIE', color: 'charlie', active: [5, 7, 9] },
+  { name: 'GYST', color: 'gyst', active: timelineDays },
+  { name: 'PLM', color: 'plm', active: [9] },
+];
+
+const costPoints = [
+  ['48', '79'], ['88', '65'], ['128', '61'], ['168', '28'], ['208', '28'],
+  ['248', '28'], ['288', '28'], ['328', '28'], ['368', '10'], ['412', '10'],
+];
+
+const storyEvents = [
+  {
+    dayIndex: 0, actor: 'Alice', role: 'Electrical', color: 'alice',
+    title: 'The schematic becomes a source',
+    body: 'Alice commits the power and sensor schematic on feature/power. Gyst records the file, commit, author, and observation time without deciding that the branch is released.',
+    icon: '/icons/schematic.svg', iconAlt: 'Electrical schematic',
+    changes: ['SCH rev A', 'feature/power', '12 components'], spend: '$480',
+  },
+  {
+    dayIndex: 1, actor: 'Bob', role: 'Mechanical + PCB', color: 'bob',
+    title: 'The board takes physical shape',
+    body: 'Bob routes PCB rev A and pushes it to feature/layout. Gyst links it to Alice’s schematic through declared project context and Git evidence.',
+    icon: '/icons/circuit-board.svg', iconAlt: 'Circuit board',
+    changes: ['PCB rev A', 'feature/layout', '2-layer quote'], spend: '$760',
+  },
+  {
+    dayIndex: 2, actor: 'Alice', role: 'Electrical', color: 'alice',
+    title: 'A fastener changes the design',
+    body: 'Alice changes the mounting hardware from M4 to M3 and reduces quantity from eight to six. The old M4 note still exists in a PDF, so Gyst marks a conflict instead of hiding it.',
+    icon: '/icons/machine-screw.svg', iconAlt: 'Machine screw',
+    changes: ['M4 → M3', 'QTY 8 → 6', 'Conflict found'], spend: '$840',
+  },
+  {
+    dayIndex: 3, actor: 'Bob', role: 'Mechanical + PCB', color: 'bob',
+    title: 'The enclosure follows the hardware',
+    body: 'Bob moves the standoffs, exports enclosure-rev-b.dxf to the network release folder, and updates the sheet-metal quote. Gyst observes both Git and the shared folder.',
+    icon: '/icons/cad-drawing.svg', iconAlt: 'CAD drawing',
+    changes: ['DXF rev B', 'Standoffs moved', 'Quote +$700'], spend: '$1,540',
+  },
+  {
+    dayIndex: 4, actor: 'Gyst', role: 'Observer', color: 'gyst',
+    title: 'The evidence becomes one explainable view',
+    body: 'Gyst connects schematic, PCB, BOM, DXF, commits, and observed copies. It reports why they appear related, where authority is declared, and which M4 reference remains unresolved.',
+    icon: '/icons/bill-of-materials.svg', iconAlt: 'Bill of materials',
+    changes: ['5 artifacts linked', '1 ambiguity', '0 files moved'], spend: '$1,540',
+  },
+  {
+    dayIndex: 5, actor: 'Charlie', role: 'Release owner', color: 'charlie',
+    title: 'Charlie reviews the evidence',
+    body: 'Charlie compares both branches, the changed BOM rows, the DXF fingerprint, and the unresolved M4 note. The release pauses on one explainable conflict—not on a hunch.',
+    icon: '/icons/change-history.svg', iconAlt: 'Revision record',
+    changes: ['2 branches reviewed', '1 hold', 'Evidence cited'], spend: '$1,540',
+  },
+  {
+    dayIndex: 6, actor: 'Alice', role: 'Electrical', color: 'alice',
+    title: 'Alice closes the stale reference',
+    body: 'Alice updates the assembly note to M3, commits the correction, and links the decision. Gyst can now explain why the BOM, drawing, and note agree.',
+    icon: '/icons/machine-screw.svg', iconAlt: 'Corrected machine screw',
+    changes: ['M4 note → M3', 'Decision linked', 'Conflict cleared'], spend: '$1,540',
+  },
+  {
+    dayIndex: 7, actor: 'Charlie', role: 'Release owner', color: 'charlie',
+    title: 'Charlie merges exact commits',
+    body: 'Charlie merges feature/power and feature/layout after the evidence-backed review. The merge records what was accepted without turning Gyst itself into the approver.',
+    icon: '/icons/merge.svg', iconAlt: 'Git branch merge',
+    changes: ['2 branches merged', 'Review recorded', 'RC candidate'], spend: '$1,540',
+  },
+  {
+    dayIndex: 8, actor: 'Bob', role: 'Mechanical + PCB', color: 'bob',
+    title: 'The matched prototypes fit',
+    body: 'The correct PCB and enclosure prototype arrive together. Bob verifies the M3 standoffs and enclosure fit while the evidence still points back to the exact released files.',
+    icon: '/icons/circuit-board.svg', iconAlt: 'Matched circuit board prototype',
+    changes: ['Fit confirmed', 'M3 verified', 'Prototype +$380'], spend: '$1,920',
+  },
+  {
+    dayIndex: 9, actor: 'Charlie', role: 'Release owner', color: 'charlie',
+    title: 'PLM receives a pinned release',
+    body: 'Charlie publishes RC-0.3. The PLM tracks released parts and quantities; the Gyst manifest preserves the exact commits, fingerprints, tool versions, approvals, and source locations behind them.',
+    icon: '/icons/release-checklist.svg', iconAlt: 'Approved release checklist',
+    changes: ['RC-0.3', 'PLM updated', 'Evidence attached'], spend: '$1,920',
+  },
+];
+
+const wrongPathEvents = [
+  {
+    dayIndex: 2, label: 'Wrong authority',
+    title: 'The M4 file wins by filename',
+    body: 'An old assembly PDF is treated as final. The PCB and enclosure are prepared around M4 hardware and the earlier outline.',
+    cost: '+$0',
+  },
+  {
+    dayIndex: 3, label: 'Doomed order',
+    title: 'Prototype boards are ordered',
+    body: 'The fabrication package contains the stale footprint and old enclosure geometry. Nothing in the folder name exposes the mismatch.',
+    cost: '+$1,800',
+  },
+  {
+    dayIndex: 4, label: 'False confidence',
+    title: 'Rush 3D prints test the wrong shape',
+    body: 'Expensive enclosure models arrive quickly, but they only prove that the obsolete board outline fits the obsolete enclosure.',
+    cost: '+$950',
+  },
+  {
+    dayIndex: 5, label: 'Stockout',
+    title: 'A missing BOM line stops assembly',
+    body: 'U7, a DFN-8 regulator, was never added to the released BOM and is now out of stock. SOT-23 and TSSOP alternatives are available but cannot use the existing footprint.',
+    cost: '+$0 / time lost',
+  },
+  {
+    dayIndex: 6, label: 'Order outruns decision',
+    title: 'The alternate form factor is rushed first',
+    body: 'A new-footprint PCB order starts before the prototype change order is approved. Purchasing, CAD, and fabrication now hold different instructions.',
+    cost: '+$1,300',
+  },
+  {
+    dayIndex: 7, label: 'Change-order chaos',
+    title: 'The formal change lands behind the rush job',
+    body: 'The approved ECO supersedes work already in motion. Scrap, rework, and another board-and-enclosure order push the fit answer beyond this timeline.',
+    cost: '+$2,450',
+  },
+];
+
+const currentCapabilities = [
+  'Local-folder inventory and incremental scans',
+  'Immutable observations and replayable projections',
+  'Native Git commit observation and file reconciliation',
+  'Reversible file-identity profiles with explanations',
+  'Deletion records and conservative rename detection',
+];
+
+const nextCapabilities = [
+  'Portable, human-readable audit report',
+  'Offline Windows installation and signed updates',
+  'KiCad, PDF, spreadsheet, and BOM extraction',
+  'Inspectable release-candidate manifests',
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta
+      name="description"
+      content="Find authoritative engineering files, explain changes, and prepare trustworthy releases without moving work into someone else's cloud."
+    />
+    <meta name="theme-color" content="#f2eddf" />
+    <meta property="og:title" content="Gyst — Self-hosted engineering file provenance" />
+    <meta
+      property="og:description"
+      content="Find the right engineering file. Explain what changed. Prove what went into the release. No migration required."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Gyst — Self-hosted engineering file provenance</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the page</a>
+
+    <header class="site-header">
+      <a class="wordmark" href="#top" aria-label="Gyst home">
+        <span class="wordmark-mark" aria-hidden="true">G</span>
+        <span>GYST</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#why">Why</a>
+        <a href="#how">How</a>
+        <a href="#story">Story</a>
+        <a href="#status">Status</a>
+      </nav>
+      <a class="header-link" href={githubUrl}>GitHub <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> Free · open source · pre-alpha</p>
+          <h1 id="hero-title">Find the right file.<br /><span>Prove the release.</span></h1>
+          <p class="deck">
+            Gyst watches the repositories and folders your engineering team already uses.
+            It shows what changed, where each fact came from, and where it is not sure—without
+            moving your work into somebody else’s cloud.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href={githubUrl}>
+              Inspect the prototype <span aria-hidden="true">↗</span>
+            </a>
+            <a class="text-link" href="#how">See how it works <span aria-hidden="true">↓</span></a>
+          </div>
+          <ul class="hero-facts" aria-label="Project facts">
+            <li>MIT licensed</li>
+            <li>Read-only first</li>
+            <li>Local by design</li>
+          </ul>
+        </div>
+
+        <div class="artifact-stack" aria-label="Illustration of several conflicting engineering files">
+          <div class="artifact-card artifact-card-back">
+            <span class="file-kind">PDF</span>
+            <strong>controller-FINAL.pdf</strong>
+            <span class="artifact-meta">shared-drive / modified Tuesday</span>
+          </div>
+          <div class="artifact-card artifact-card-middle">
+            <span class="file-kind">ZIP</span>
+            <strong>FAB_USE_THIS_v3.zip</strong>
+            <span class="artifact-meta">downloads / source unknown</span>
+          </div>
+          <div class="artifact-card artifact-card-front">
+            <div class="card-topline">
+              <span class="file-kind">PCB</span>
+              <span class="confidence">? authority</span>
+            </div>
+            <strong>controller-final-v2.kicad_pcb</strong>
+            <span class="artifact-meta">hardware/main · commit 2d41a90</span>
+            <div class="evidence-line"><span></span> Evidence, not filename optimism.</div>
+          </div>
+          <div class="stamp" aria-hidden="true">WHICH<br />ONE?</div>
+        </div>
+      </section>
+
+      <section class="recognition" aria-labelledby="recognition-title">
+        <p class="section-index">THE PROBLEM / 00</p>
+        <div>
+          <h2 id="recognition-title">Someone knows where the real one is.</h2>
+          <p>
+            The release process should not depend on finding that person in chat. Engineering
+            work is split across Git, CAD, network folders, PDFs, spreadsheets, exports, and
+            the copy somebody renamed during a deadline. Gyst starts there.
+          </p>
+        </div>
+        <p class="pull-quote">No migration.<br />No magical “single source of truth.”<br />Start with what exists.</p>
+      </section>
+
+      <section class="system" id="how" aria-labelledby="system-title">
+        <div class="section-heading">
+          <p class="section-index">WHAT IT IS / 01</p>
+          <h2 id="system-title">Engineering observability.<br />Not another place to put everything.</h2>
+          <p>
+            Gyst separates what a source said from what the system concludes. That small
+            distinction keeps a helpful guess from quietly becoming a manufacturing fact.
+          </p>
+        </div>
+
+        <div class="flow" role="img" aria-label="Existing engineering sources flow into immutable observations and then evidence-backed answers">
+          <div class="flow-column sources">
+            <p class="flow-label">Sources stay put</p>
+            <span>Git repositories</span>
+            <span>Local folders</span>
+            <span>CAD + PDFs</span>
+            <span>BOM sheets</span>
+          </div>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <div class="flow-core">
+            <p class="flow-label">Gyst observes</p>
+            <strong>Immutable<br />evidence</strong>
+            <div class="core-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+          </div>
+          <div class="flow-arrow" aria-hidden="true">→</div>
+          <div class="flow-column answers">
+            <p class="flow-label">You can ask</p>
+            <span>What is this?</span>
+            <span>Where is authority?</span>
+            <span>What changed?</span>
+            <span>What needs attention?</span>
+          </div>
+        </div>
+
+        <div class="principle-strip">
+          <p><strong>OBSERVE</strong><span>Read sources without rearranging them.</span></p>
+          <p><strong>EXPLAIN</strong><span>Cite the evidence behind every relationship.</span></p>
+          <p><strong>REFUSE</strong><span>Say “ambiguous” when the evidence cannot decide.</span></p>
+        </div>
+      </section>
+
+      <section class="reasons" id="why" aria-labelledby="reasons-title">
+        <div class="section-heading compact">
+          <p class="section-index">WHY USE IT / 02</p>
+          <h2 id="reasons-title">Less archaeology.<br />More engineering.</h2>
+        </div>
+        <div class="reason-grid">
+          {reasons.map((reason) => (
+            <article class="reason-card">
+              <div class="reason-top">
+                <span>{reason.number}</span>
+                <span>{reason.tag}</span>
+              </div>
+              <div class="reason-icon"><img src={reason.icon} alt={reason.iconAlt} /></div>
+              <h3>{reason.title}</h3>
+              <p>{reason.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="story" id="story" aria-labelledby="story-title">
+        <div class="story-heading">
+          <div>
+            <p class="section-index">A REAL DEVELOPMENT JOURNEY / 03</p>
+            <h2 id="story-title">One board.<br />Ten workdays.<br /><span>Every change explained.</span></h2>
+          </div>
+          <div class="story-intro">
+            <p>
+              Alice and Bob change the design. Charlie decides what merges. Gyst observes the
+              evidence across Git and the network folder, then gives the PLM an exact released
+              state instead of pretending every working file belongs there.
+            </p>
+            <div class="timeline-switch" role="group" aria-label="Timeline direction">
+              <button type="button" data-timeline-button="horizontal" aria-pressed="true">
+                <span aria-hidden="true">→</span> Horizontal time
+              </button>
+              <button type="button" data-timeline-button="vertical" aria-pressed="false">
+                <span aria-hidden="true">↓</span> Vertical time
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <figure class="team-network">
+          <div class="workstations">
+            {[
+              ['A', 'Alice', 'Electrical'],
+              ['B', 'Bob', 'Mechanical + PCB'],
+              ['C', 'Charlie', 'Release owner'],
+            ].map(([initial, name, role]) => (
+              <div class="person-node">
+                <span class={`avatar avatar-${initial.toLowerCase()}`}>{initial}</span>
+                <img src="/icons/developer-workstation.svg" alt="Developer workstation" />
+                <p><strong>{name}</strong><span>{role}</span></p>
+              </div>
+            ))}
+          </div>
+          <div class="network-arrow"><span>PUSH / REVIEW</span><b aria-hidden="true">→</b></div>
+          <div class="system-node server-node">
+            <img src="/icons/file-server.svg" alt="Git and network file server" />
+            <p><strong>Git + file server</strong><span>Authoritative sources stay here</span></p>
+          </div>
+          <div class="network-arrow"><span>OBSERVE</span><b aria-hidden="true">→</b></div>
+          <div class="system-node gyst-node">
+            <span class="gyst-glyph" aria-hidden="true">G</span>
+            <p><strong>Gyst</strong><span>Evidence + relationships</span></p>
+          </div>
+          <div class="network-arrow"><span>RELEASE</span><b aria-hidden="true">→</b></div>
+          <div class="system-node plm-node">
+            <img src="/icons/release-checklist.svg" alt="PLM release record" />
+            <p><strong>PLM</strong><span>Released parts + quantities</span></p>
+          </div>
+          <figcaption>Working systems remain authoritative. Gyst carries provenance between them.</figcaption>
+        </figure>
+
+        <div class="story-stage" data-story-layout="horizontal">
+          <div class="story-overview">
+            <div class="overview-title">
+              <p><strong>PROJECT PULSE</strong><span>10 workdays starting today · weekends skipped</span></p>
+              <span class="direction-readout" aria-live="polite">TIME FLOWS LEFT → RIGHT</span>
+            </div>
+            <div class="overview-grid">
+              <div class="gantt-scroll">
+                <div class="gantt" aria-label="Ten-workday activity summary">
+                  <div class="gantt-row gantt-days">
+                    <strong>WHO</strong>
+                    {timelineDays.map((day) => (
+                      <button type="button" data-day-index={day} aria-label={`Focus workday ${day + 1}`}>
+                        <span>Day {day + 1}</span>
+                        <time data-workday-label={day}>WORKDAY</time>
+                      </button>
+                    ))}
+                  </div>
+                  {ganttRows.map((row) => (
+                    <div class:list={['gantt-row', row.color]}>
+                      <strong><span aria-hidden="true"></span>{row.name}</strong>
+                      {timelineDays.map((day) => (
+                        <i class:list={{ on: row.active.includes(day) }} data-day-index={day} aria-hidden="true"></i>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <figure class="cost-chart">
+                <figcaption><strong>COMMITTED SPEND</strong><span>$0 → $1,920</span></figcaption>
+                <svg viewBox="0 0 420 112" role="img" aria-label="Illustrative cumulative project spend rising from zero to 1,920 dollars over ten workdays">
+                  <path class="cost-area" d="M8 100 L48 79 L88 65 L128 61 L168 28 L208 28 L248 28 L288 28 L328 28 L368 10 L412 10 L412 104 L8 104 Z"></path>
+                  <polyline points="8,100 48,79 88,65 128,61 168,28 208,28 248,28 288,28 328,28 368,10 412,10"></polyline>
+                  {costPoints.map(([cx, cy], day) => <circle cx={cx} cy={cy} r="4" data-day-index={day}></circle>)}
+                </svg>
+              </figure>
+            </div>
+          </div>
+
+          <div class="track-controls">
+            <p><strong>SCROLL THE STORY</strong><span>Drag, swipe, use Shift + wheel, or use the arrows.</span></p>
+            <div>
+              <button type="button" data-scroll-events="previous" aria-label="Previous development event">←</button>
+              <span data-scroll-status aria-live="polite">1 / 10</span>
+              <button type="button" data-scroll-events="next" aria-label="Next development event">→</button>
+            </div>
+          </div>
+          <div class="event-window">
+            <div class="event-track" id="development-events" aria-label="Scrollable development story events" tabindex="0">
+              {storyEvents.map((event, index) => (
+                <article class:list={['event-card', event.color]} data-day-index={event.dayIndex} tabindex="0">
+                  <div class="event-meta">
+                    <time class="event-day" data-workday-label={event.dayIndex}>D{event.dayIndex + 1}</time>
+                    <span class={`avatar avatar-${event.actor.toLowerCase()}`}>{event.actor === 'Gyst' ? 'G' : event.actor[0]}</span>
+                    <p><strong>{event.actor}</strong><span>{event.role}</span></p>
+                  </div>
+                  <div class="event-copy">
+                    <div class="event-icon"><img src={event.icon} alt={event.iconAlt} /></div>
+                    <p class="event-number">EVENT {String(index + 1).padStart(2, '0')}</p>
+                    <h3>{event.title}</h3>
+                    <p>{event.body}</p>
+                    <ul>{event.changes.map((change) => <li>{change}</li>)}</ul>
+                  </div>
+                  <div class="event-cost"><span>CUMULATIVE</span><strong>{event.spend}</strong></div>
+                </article>
+              ))}
+            </div>
+          </div>
+          <p class="story-note">
+            This is a representative workflow and cost trace, not a claim that every team uses
+            these tools or spends these amounts. Hover or focus a date or event to follow the
+            same workday through the overview and story.
+          </p>
+
+          <section class="versus" aria-labelledby="versus-title">
+            <div class="versus-heading">
+              <p class="section-index">THE SAME PROJECT WITHOUT PROVENANCE</p>
+              <h3 id="versus-title">One wrong file.<br /><span>Six extra workdays.</span></h3>
+              <p>
+                The design still moves quickly. It simply moves in conflicting directions—and
+                every rushed artifact makes the next correction more expensive.
+              </p>
+            </div>
+
+            <div class="versus-scoreboard">
+              <article class="score good">
+                <span>Evidence path</span>
+                <strong>$1,920</strong>
+                <p>Enclosure fit known <time data-workday-label="8">workday 9</time></p>
+              </article>
+              <div class="versus-mark" aria-hidden="true">VS</div>
+              <article class="score bad">
+                <span>Wrong-file path</span>
+                <strong>$8,420</strong>
+                <p>Fit known <time data-workday-label="14">six workdays later</time></p>
+              </article>
+            </div>
+
+            <div class="comparison-calendar" aria-label="Comparison of the evidence path and wrong-file path over ten workdays">
+              <div class="comparison-row comparison-days">
+                <strong>PATH</strong>
+                {timelineDays.map((day) => <time data-workday-label={day} data-day-index={day}>D{day + 1}</time>)}
+              </div>
+              <div class="comparison-row evidence-row">
+                <strong>WITH GYST</strong>
+                {timelineDays.map((day) => <i class:list={{ active: day < 9, result: day === 8 }} data-day-index={day} aria-hidden="true"></i>)}
+              </div>
+              <div class="comparison-row wrong-row">
+                <strong>WRONG FILE</strong>
+                {timelineDays.map((day) => <i class:list={{ active: day >= 2, chaos: day >= 5 }} data-day-index={day} aria-hidden="true"></i>)}
+              </div>
+              <p class="beyond-window">+ 6 workdays to a trustworthy fit answer →</p>
+            </div>
+
+            <div class="failure-grid">
+              {wrongPathEvents.map((event) => (
+                <article class="failure-card" data-day-index={event.dayIndex} tabindex="0">
+                  <div><time data-workday-label={event.dayIndex}>D{event.dayIndex + 1}</time><strong>{event.label}</strong></div>
+                  <h4>{event.title}</h4>
+                  <p>{event.body}</p>
+                  <span>{event.cost}</span>
+                </article>
+              ))}
+            </div>
+
+            <div class="cost-consequence">
+              <div>
+                <p class="section-index">ILLUSTRATIVE EXTRA PROTOTYPE COST</p>
+                <strong class="cost-delta">+$6,500</strong>
+                <p>Before labor, lost attention, or the commercial cost of learning about fit six workdays late.</p>
+              </div>
+              <ul>
+                <li><span>Doomed board run</span><strong>$1,800</strong></li>
+                <li><span>Rush 3D-printed models</span><strong>$950</strong></li>
+                <li><span>Rush alternate footprint</span><strong>$1,300</strong></li>
+                <li><span>Superseded change order + scrap</span><strong>$850</strong></li>
+                <li><span>Replacement boards + enclosure</span><strong>$1,600</strong></li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="quickstart" aria-labelledby="quickstart-title">
+        <div class="quickstart-copy">
+          <p class="section-index">HOW TO USE IT / 04</p>
+          <h2 id="quickstart-title">Point. Observe. Ask.</h2>
+          <p>
+            The current developer preview uses Go and PostgreSQL. Once built and connected to
+            its database, the CLI can observe a folder and repository, show recent changes,
+            and explain the provenance known for a file.
+          </p>
+          <ol>
+            <li><span>1</span><div><strong>Point</strong><p>Choose only the roots Gyst is allowed to inspect.</p></div></li>
+            <li><span>2</span><div><strong>Observe</strong><p>Record metadata or local fingerprints without changing source files.</p></div></li>
+            <li><span>3</span><div><strong>Ask</strong><p>Inspect changes, groupings, ambiguity, and supporting observations.</p></div></li>
+          </ol>
+        </div>
+        <div class="terminal" aria-label="Example Gyst command-line session">
+          <div class="terminal-bar">
+            <span class="terminal-title">GYST / LOCAL SESSION</span>
+            <span>NO CLOUD</span>
+          </div>
+          <pre><code><span class="prompt">$</span> gyst scan --root ./hardware
+<span class="output">seen       50,000 files
+unchanged  49,997 (not read)
+appended   3 new observations</span>
+
+<span class="prompt">$</span> gyst git --repo ./hardware/firmware
+<span class="output">observed   184 commits</span>
+
+<span class="prompt">$</span> gyst changes --since 24h
+<span class="output">WHEN      CLAIM                  LOCATOR
+14:22:08  file.content_fingerprint controller.kicad_pcb</span>
+
+<span class="prompt">$</span> gyst explain controller.kicad_pcb
+<span class="output">changed by (git)  2d41a90
+evidence          obs_7c67f1307789</span></code></pre>
+          <p class="terminal-note">Representative commands and output. This is a pre-alpha developer workflow, not a packaged installation.</p>
+        </div>
+      </section>
+
+      <section class="boundary" aria-labelledby="boundary-title">
+        <div class="boundary-grid" aria-hidden="true"></div>
+        <div class="boundary-copy">
+          <p class="section-index">WHERE IT RUNS / 05</p>
+          <h2 id="boundary-title">Your engineering data does not need a field trip.</h2>
+          <p>
+            Self-hosting and air-gapped operation are architectural constraints, not an
+            enterprise upsell. Connected services may add capabilities later. They may not
+            become prerequisites for the core workflow.
+          </p>
+          <div class="boundary-facts">
+            <p><span>ACCOUNT</span><strong>Not required</strong></p>
+            <p><span>NETWORK</span><strong>Optional</strong></p>
+            <p><span>AUTHORITY</span><strong>Stays put</strong></p>
+            <p><span>EGRESS</span><strong>Policy controlled</strong></p>
+          </div>
+          <p class="fine-print">
+            Today’s prototype runs locally, but packaged offline installation and signed
+            update bundles are still planned work. Gyst says what exists now and what comes
+            next separately.
+          </p>
+        </div>
+      </section>
+
+      <section class="status" id="status" aria-labelledby="status-title">
+        <div class="section-heading">
+          <p class="section-index">STATUS / 06</p>
+          <h2 id="status-title">Real code.<br />Early days.</h2>
+          <p>
+            Gyst is a pre-alpha reference implementation. It is ready to inspect, challenge,
+            and develop—not to entrust with a production release process.
+          </p>
+        </div>
+        <div class="status-columns">
+          <article class="status-card current">
+            <p class="status-label"><span aria-hidden="true"></span> Works in the prototype</p>
+            <ul>
+              {currentCapabilities.map((capability) => <li>{capability}</li>)}
+            </ul>
+          </article>
+          <article class="status-card next">
+            <p class="status-label"><span aria-hidden="true"></span> Next field slice</p>
+            <ul>
+              {nextCapabilities.map((capability) => <li>{capability}</li>)}
+            </ul>
+          </article>
+        </div>
+        <div class="not-this">
+          <strong>Gyst is not</strong>
+          <span>a hosted PLM</span>
+          <span>a file-sync engine</span>
+          <span>an employee scoreboard</span>
+          <span>an AI certainty machine</span>
+        </div>
+      </section>
+
+      <section class="final-cta" aria-labelledby="final-title">
+        <p class="section-index">OPEN AT THE SEAMS</p>
+        <h2 id="final-title">Read the code.<br />Challenge the model.</h2>
+        <p>
+          The implementation, schemas, fixtures, design decisions, and known gaps are public.
+          Start with the prototype; nothing is hidden behind a demo form.
+        </p>
+        <div class="hero-actions final-actions">
+          <a class="button button-primary inverse" href={githubUrl}>Inspect Gyst on GitHub <span aria-hidden="true">↗</span></a>
+          <a class="text-link inverse-link" href={productUrl}>Read the product definition <span aria-hidden="true">↗</span></a>
+        </div>
+        <a class="architecture-link" href={architectureUrl}>Architecture and trust boundaries</a>
+      </section>
+
+      <details class="icon-credits">
+        <summary>Icon credits · CC BY 3.0</summary>
+        <p>
+          <a href="https://thenounproject.com/icon/5032444/">Document search by Puchongart</a> ·
+          <a href="https://thenounproject.com/icon/6256772/">Revision by LUTFI GANI AL ACHMAD</a> ·
+          <a href="https://thenounproject.com/icon/6662244/">Release checklist by Trend Icons</a> ·
+          <a href="https://thenounproject.com/icon/4957910/">Air gap by M. Oki Orlando</a> ·
+          <a href="https://thenounproject.com/icon/6750759/">Software by Creative Studio</a> ·
+          <a href="https://thenounproject.com/icon/8433666/">File Server by El Hikami</a> ·
+          <a href="https://thenounproject.com/icon/8078320/">Circuit board by Hilmy Abiyyu Asad</a> ·
+          <a href="https://thenounproject.com/icon/4210333/">PCB by Christian Nababan</a> ·
+          <a href="https://thenounproject.com/icon/3634021/">Machine screw by Oleksandr Panasovskyi</a> ·
+          <a href="https://thenounproject.com/icon/8218034/">Bill of materials by diyah farida</a> ·
+          <a href="https://thenounproject.com/icon/8217992/">CAD drawing by diyah farida</a> ·
+          <a href="https://thenounproject.com/icon/6355050/">Code merge by Michael</a> ·
+          from <a href="https://thenounproject.com/">Noun Project</a>, used under
+          <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.
+        </p>
+      </details>
+    </main>
+
+    <footer>
+      <a class="wordmark footer-mark" href="#top"><span class="wordmark-mark" aria-hidden="true">G</span><span>GYST</span></a>
+      <p>Get your systems together.</p>
+      <div>
+        <span>MIT LICENSE · 2026</span>
+        <a href={githubUrl}>SOURCE ↗</a>
+      </div>
+    </footer>
+
+    <script>
+      import { createCardHoverSync } from '../scripts/project-pulse.js';
+
+      const stage = document.querySelector('.story-stage');
+      const directionReadout = document.querySelector('.direction-readout');
+      const directionButtons = document.querySelectorAll('[data-timeline-button]');
+      const eventTrack = document.querySelector('.event-track');
+      const eventCards = [...document.querySelectorAll('.event-card')];
+      const scrollStatus = document.querySelector('[data-scroll-status]');
+
+      const workdays = [];
+      const cursor = new Date();
+      cursor.setHours(12, 0, 0, 0);
+      while (workdays.length < 16) {
+        if (cursor.getDay() !== 0 && cursor.getDay() !== 6) workdays.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      const dateFormat = new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+      document.querySelectorAll('[data-workday-label]').forEach((label) => {
+        const index = Number(label.getAttribute('data-workday-label'));
+        const date = workdays[index];
+        if (!(label instanceof HTMLTimeElement) || !date) return;
+        label.dateTime = date.toISOString().slice(0, 10);
+        label.textContent = dateFormat.format(date);
+      });
+
+      const setTimelineDirection = (direction) => {
+        if (!(stage instanceof HTMLElement)) return;
+        stage.dataset.storyLayout = direction || 'horizontal';
+        directionButtons.forEach((button) => {
+          if (button instanceof HTMLButtonElement) {
+            button.setAttribute('aria-pressed', String(button.dataset.timelineButton === direction));
+          }
+        });
+        if (directionReadout) {
+          directionReadout.textContent = direction === 'vertical'
+            ? 'TIME FLOWS TOP ↓ BOTTOM'
+            : 'TIME FLOWS LEFT → RIGHT';
+        }
+      };
+
+      const clearDayFocus = () => {
+        if (!(stage instanceof HTMLElement)) return;
+        stage.classList.remove('has-day-focus');
+        stage.querySelectorAll('[data-day-index]').forEach((item) => {
+          item.classList.remove('is-focused', 'is-muted');
+        });
+      };
+
+      const focusDay = (day) => {
+        if (!(stage instanceof HTMLElement) || day === null) return;
+        stage.classList.add('has-day-focus');
+        stage.querySelectorAll('[data-day-index]').forEach((item) => {
+          const matches = item.getAttribute('data-day-index') === day;
+          item.classList.toggle('is-focused', matches);
+          item.classList.toggle('is-muted', !matches);
+        });
+      };
+
+      let dayFocusClearTimer;
+      let cardHoverSync;
+      const cancelDayFocusClear = () => window.clearTimeout(dayFocusClearTimer);
+      const scheduleDayFocusClear = () => {
+        cancelDayFocusClear();
+        dayFocusClearTimer = window.setTimeout(() => {
+          const trackedCardDay = cardHoverSync?.getActiveDay();
+          const hoveredItem = stage?.querySelector('[data-day-index]:hover');
+          const focusedItem = document.activeElement?.closest?.('[data-day-index]');
+          if (trackedCardDay !== null && trackedCardDay !== undefined) {
+            focusDay(trackedCardDay);
+            return;
+          }
+          const activeItem = hoveredItem || focusedItem;
+          if (activeItem) {
+            focusDay(activeItem.getAttribute('data-day-index'));
+            return;
+          }
+          clearDayFocus();
+        }, 220);
+      };
+
+      stage?.querySelectorAll('[data-day-index]').forEach((item) => {
+        const day = item.getAttribute('data-day-index');
+        item.addEventListener('pointerenter', () => {
+          cancelDayFocusClear();
+          focusDay(day);
+        });
+        item.addEventListener('pointerleave', scheduleDayFocusClear);
+        item.addEventListener('focus', () => {
+          cancelDayFocusClear();
+          focusDay(day);
+        });
+        item.addEventListener('blur', scheduleDayFocusClear);
+      });
+
+      const centerEventCard = (day) => {
+        if (!(stage instanceof HTMLElement) || !(eventTrack instanceof HTMLElement) || day === null) return;
+        const card = eventCards.find((candidate) => candidate.getAttribute('data-day-index') === day);
+        if (!(card instanceof HTMLElement)) return;
+
+        const cardBounds = card.getBoundingClientRect();
+        if (stage.dataset.storyLayout === 'vertical') {
+          const overviewBounds = stage.querySelector('.story-overview')?.getBoundingClientRect();
+          const visibleTop = Math.max(0, overviewBounds?.bottom || 0) + 12;
+          const isShown = cardBounds.top >= visibleTop && cardBounds.bottom <= window.innerHeight - 12;
+          if (!isShown) card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+          return;
+        }
+
+        const trackBounds = eventTrack.getBoundingClientRect();
+        const visibleRight = trackBounds.right - 76;
+        const isShown = cardBounds.left >= trackBounds.left && cardBounds.right <= visibleRight;
+        if (isShown) return;
+        const centeredLeft = card.offsetLeft - (eventTrack.clientWidth - card.offsetWidth) / 2;
+        eventTrack.scrollTo({ left: centeredLeft, behavior: 'smooth' });
+      };
+
+      let cardRevealTimer;
+      const cancelCardReveal = () => window.clearTimeout(cardRevealTimer);
+      document.querySelectorAll('.gantt-days button').forEach((button) => {
+        button.addEventListener('pointerenter', () => {
+          const day = button.getAttribute('data-day-index');
+          cancelCardReveal();
+          cardRevealTimer = window.setTimeout(() => {
+            if (button.matches(':hover')) centerEventCard(day);
+          }, 140);
+        });
+        button.addEventListener('pointerleave', cancelCardReveal);
+        button.addEventListener('focus', () => centerEventCard(button.getAttribute('data-day-index')));
+        button.addEventListener('click', () => {
+          const day = button.getAttribute('data-day-index');
+          const card = eventCards.find((candidate) => candidate.getAttribute('data-day-index') === day);
+          card?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+      });
+
+      if (eventTrack instanceof HTMLElement) {
+        cardHoverSync = createCardHoverSync({
+          eventTrack,
+          resolveDayAtPoint: (x, y) => {
+            const pointedElement = document.elementFromPoint(x, y);
+            const card = pointedElement?.closest('.event-card[data-day-index]');
+            return card && eventTrack.contains(card) ? card.getAttribute('data-day-index') : null;
+          },
+          onDayChange: focusDay,
+        });
+      }
+
+      const updateScrollStatus = () => {
+        if (!(eventTrack instanceof HTMLElement) || !scrollStatus || eventCards.length === 0) return;
+        const trackBounds = eventTrack.getBoundingClientRect();
+        const trackCenter = trackBounds.left + trackBounds.width / 2;
+        const current = eventCards.reduce((best, card, index) => {
+          const cardBounds = card.getBoundingClientRect();
+          const distance = Math.abs(cardBounds.left + cardBounds.width / 2 - trackCenter);
+          return distance < best.distance ? { index, distance } : best;
+        }, { index: 0, distance: Number.POSITIVE_INFINITY });
+        scrollStatus.textContent = `${current.index + 1} / ${eventCards.length}`;
+      };
+
+      document.querySelectorAll('[data-scroll-events]').forEach((button) => {
+        button.addEventListener('click', () => {
+          if (!(eventTrack instanceof HTMLElement)) return;
+          const direction = button.getAttribute('data-scroll-events') === 'previous' ? -1 : 1;
+          eventTrack.scrollBy({ left: direction * eventTrack.clientWidth * 0.76, behavior: 'smooth' });
+        });
+      });
+
+      eventTrack?.addEventListener('scroll', () => requestAnimationFrame(updateScrollStatus), { passive: true });
+
+      directionButtons.forEach((button) => {
+        button.addEventListener('click', () => setTimelineDirection(button.getAttribute('data-timeline-button')));
+      });
+
+      if (window.matchMedia('(max-width: 720px)').matches) setTimelineDirection('vertical');
+      updateScrollStatus();
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --paper: #f2eddf;
+    --paper-bright: #fffdf6;
+    --ink: #11110f;
+    --muted: #5f5b51;
+    --orange: #ff5c35;
+    --blue: #3157ff;
+    --acid: #d8ff43;
+    --rule: 2px solid var(--ink);
+    --shadow: 8px 8px 0 var(--ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    font-synthesis: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); }
+  a { color: inherit; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 4px solid var(--blue); outline-offset: 4px; }
+
+  .skip-link {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 100;
+    padding: 12px 16px;
+    background: var(--acid);
+    border: var(--rule);
+    transform: translateY(-160%);
+  }
+  .skip-link:focus { transform: translateY(0); }
+
+  .site-header {
+    height: 76px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 28px;
+    padding: 0 clamp(20px, 4vw, 64px);
+    border-bottom: var(--rule);
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+
+  .wordmark {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-decoration: none;
+  }
+  .wordmark-mark {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    color: var(--paper-bright);
+    background: var(--ink);
+    border-radius: 3px;
+  }
+  .site-header nav { display: flex; gap: 30px; }
+  .site-header nav a, .header-link {
+    font: 750 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+  .site-header nav a:hover, .header-link:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
+  .header-link { justify-self: end; }
+
+  .hero {
+    min-height: calc(100vh - 76px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(420px, .88fr);
+    align-items: center;
+    gap: clamp(44px, 7vw, 112px);
+    padding: clamp(64px, 9vw, 136px) clamp(20px, 6vw, 96px);
+    overflow: hidden;
+    position: relative;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(var(--ink) .7px, transparent .7px);
+    background-size: 12px 12px;
+    opacity: .07;
+    mask-image: linear-gradient(100deg, transparent 30%, black 100%);
+  }
+  .hero-copy, .artifact-stack { position: relative; z-index: 1; }
+  .eyebrow, .section-index, .flow-label, .status-label {
+    font: 800 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 24px; }
+  .live-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 4px color-mix(in srgb, var(--orange) 18%, transparent); }
+  h1, h2, h3, p { margin-top: 0; }
+  h1 {
+    margin-bottom: 28px;
+    max-width: 900px;
+    font-size: clamp(56px, 7.2vw, 116px);
+    line-height: .87;
+    letter-spacing: -.075em;
+    font-weight: 950;
+  }
+  h1 span { color: var(--orange); }
+  .deck {
+    max-width: 760px;
+    font-size: clamp(20px, 2vw, 28px);
+    line-height: 1.35;
+    letter-spacing: -.025em;
+  }
+  .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 26px; margin-top: 38px; }
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    min-height: 58px;
+    padding: 0 24px;
+    border: var(--rule);
+    box-shadow: 6px 6px 0 var(--ink);
+    font: 850 13px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: transform 140ms ease, box-shadow 140ms ease;
+  }
+  .button:hover { transform: translate(3px, 3px); box-shadow: 3px 3px 0 var(--ink); }
+  .button-primary { background: var(--acid); }
+  .text-link {
+    font: 800 13px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-transform: uppercase;
+    text-underline-offset: 5px;
+  }
+  .hero-facts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 44px 0 0; list-style: none; }
+  .hero-facts li { padding: 7px 10px; border: 1.5px solid var(--ink); font: 750 11px/1 ui-monospace, monospace; text-transform: uppercase; }
+
+  .artifact-stack { min-height: 470px; }
+  .artifact-card {
+    position: absolute;
+    width: min(92%, 500px);
+    min-height: 152px;
+    padding: 24px;
+    background: var(--paper-bright);
+    border: var(--rule);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .artifact-card strong { overflow-wrap: anywhere; font: 800 clamp(17px, 1.5vw, 22px)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .artifact-card-back { top: 22px; right: 3%; transform: rotate(6deg); background: var(--blue); color: white; }
+  .artifact-card-middle { top: 152px; left: 0; transform: rotate(-4deg); background: var(--acid); }
+  .artifact-card-front { top: 278px; right: 0; min-height: 178px; transform: rotate(1deg); }
+  .file-kind, .confidence, .artifact-meta { font: 750 10px/1.3 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; }
+  .file-kind { align-self: flex-start; padding: 5px 7px; background: var(--ink); color: white; }
+  .artifact-card-back .file-kind { background: white; color: var(--blue); }
+  .artifact-meta { opacity: .7; }
+  .card-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .confidence { color: var(--orange); }
+  .evidence-line { display: flex; align-items: center; gap: 9px; margin-top: auto; font: 700 11px/1.3 ui-monospace, monospace; }
+  .evidence-line span { width: 8px; height: 8px; background: var(--blue); border-radius: 50%; }
+  .stamp { position: absolute; z-index: 5; right: -24px; top: 98px; padding: 12px 14px; color: var(--orange); border: 5px solid var(--orange); transform: rotate(13deg); font: 950 24px/.82 ui-monospace, monospace; text-align: center; }
+
+  section:not(.hero) { padding: clamp(72px, 9vw, 136px) clamp(20px, 6vw, 96px); }
+  .recognition { display: grid; grid-template-columns: .42fr 1fr .65fr; gap: clamp(28px, 5vw, 84px); background: var(--ink); color: var(--paper-bright); }
+  .section-index { margin-bottom: 24px; }
+  .recognition h2, .section-heading h2, .quickstart h2, .boundary h2, .final-cta h2 { margin-bottom: 24px; font-size: clamp(40px, 5vw, 76px); line-height: .96; letter-spacing: -.055em; }
+  .recognition > div > p, .section-heading > p:last-child, .quickstart-copy > p, .boundary-copy > p, .final-cta > p { max-width: 700px; font-size: clamp(18px, 1.7vw, 24px); line-height: 1.45; }
+  .pull-quote { align-self: end; padding-left: 20px; border-left: 5px solid var(--orange); font: 750 16px/1.6 ui-monospace, monospace; }
+
+  .system { background: var(--paper-bright); }
+  .section-heading { display: grid; grid-template-columns: .4fr 1.15fr .7fr; align-items: start; gap: clamp(28px, 5vw, 84px); }
+  .section-heading h2 { max-width: 840px; }
+  .section-heading > p:last-child { color: var(--muted); }
+  .flow { margin-top: 76px; display: grid; grid-template-columns: 1fr auto 1.15fr auto 1fr; align-items: stretch; gap: 22px; }
+  .flow-column, .flow-core { min-height: 310px; padding: 24px; border: var(--rule); }
+  .flow-column { display: flex; flex-direction: column; gap: 10px; background: var(--paper); }
+  .flow-column span { padding: 14px; background: var(--paper-bright); border: 1.5px solid var(--ink); font: 700 13px/1.2 ui-monospace, monospace; }
+  .flow-core { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; color: white; background: var(--blue); }
+  .flow-core strong { position: relative; z-index: 2; font-size: clamp(32px, 3vw, 52px); line-height: .9; letter-spacing: -.05em; }
+  .core-rings { position: absolute; right: -44px; bottom: -44px; width: 220px; aspect-ratio: 1; }
+  .core-rings i { position: absolute; inset: 0; border: 2px solid rgba(255,255,255,.55); border-radius: 50%; }
+  .core-rings i:nth-child(2) { inset: 30px; }
+  .core-rings i:nth-child(3) { inset: 60px; background: var(--orange); border-color: var(--ink); }
+  .flow-arrow { display: grid; place-items: center; font: 900 30px/1 monospace; }
+  .principle-strip { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 20px; border: var(--rule); }
+  .principle-strip p { margin: 0; padding: 22px; display: grid; gap: 8px; }
+  .principle-strip p + p { border-left: var(--rule); }
+  .principle-strip strong { font: 900 13px/1 monospace; letter-spacing: .1em; }
+  .principle-strip span { color: var(--muted); line-height: 1.4; }
+
+  .reasons { background: var(--orange); }
+  .section-heading.compact { grid-template-columns: .4fr 1.85fr; }
+  .reason-grid { display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 64px; border-top: var(--rule); border-left: var(--rule); }
+  .reason-card { min-height: 330px; padding: clamp(28px, 4vw, 56px); background: var(--paper); border-right: var(--rule); border-bottom: var(--rule); }
+  .reason-top { display: flex; justify-content: space-between; gap: 20px; font: 800 11px/1 ui-monospace, monospace; letter-spacing: .08em; }
+  .reason-top span:first-child { color: var(--blue); }
+  .reason-icon { width: 92px; height: 92px; margin-top: 40px; padding: 15px; display: grid; place-items: center; border: var(--rule); background: var(--acid); box-shadow: 5px 5px 0 var(--ink); }
+  .reason-icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .reason-card:nth-child(2) .reason-icon { background: var(--orange); }
+  .reason-card:nth-child(3) .reason-icon { background: var(--blue); }
+  .reason-card:nth-child(3) .reason-icon img { filter: invert(1); }
+  .reason-card:nth-child(4) .reason-icon { background: var(--paper-bright); }
+  .reason-card h3 { margin: 32px 0 18px; font-size: clamp(28px, 3vw, 44px); letter-spacing: -.045em; }
+  .reason-card p { max-width: 580px; color: var(--muted); font-size: 18px; line-height: 1.5; }
+
+  .story { padding-left: 0 !important; padding-right: 0 !important; background: var(--paper); }
+  .story-heading { display: grid; grid-template-columns: 1.08fr .72fr; align-items: end; gap: clamp(44px, 8vw, 124px); padding: 0 clamp(20px, 6vw, 96px) clamp(64px, 7vw, 104px); }
+  .story-heading h2 { margin-bottom: 0; font-size: clamp(54px, 7vw, 108px); line-height: .86; letter-spacing: -.07em; }
+  .story-heading h2 span { color: var(--blue); }
+  .story-intro > p { max-width: 650px; font-size: clamp(18px, 1.55vw, 23px); line-height: 1.48; }
+  .timeline-switch { display: inline-flex; flex-wrap: wrap; margin-top: 24px; border: var(--rule); box-shadow: 5px 5px 0 var(--ink); }
+  .timeline-switch button { min-height: 50px; padding: 0 18px; border: 0; color: var(--ink); background: var(--paper-bright); cursor: pointer; font: 800 12px/1.2 ui-monospace, monospace; text-transform: uppercase; }
+  .timeline-switch button + button { border-left: var(--rule); }
+  .timeline-switch button[aria-pressed="true"] { color: white; background: var(--blue); }
+  .timeline-switch button span { margin-right: 8px; font-size: 18px; }
+
+  .team-network { margin: 0 clamp(20px, 4vw, 64px) clamp(72px, 8vw, 112px); padding: clamp(24px, 3.5vw, 48px); display: grid; grid-template-columns: minmax(360px, 1.35fr) auto minmax(150px, .55fr) auto minmax(130px, .42fr) auto minmax(150px, .5fr); align-items: center; gap: 18px; border: var(--rule); background: var(--paper-bright); box-shadow: 10px 10px 0 var(--ink); }
+  .workstations { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: var(--rule); }
+  .person-node { min-width: 0; padding: 18px 12px; display: grid; grid-template-columns: auto 42px; align-items: center; gap: 10px; }
+  .person-node + .person-node { border-left: var(--rule); }
+  .person-node img { width: 42px; height: 42px; object-fit: contain; }
+  .person-node p, .system-node p { grid-column: 1 / -1; margin: 7px 0 0; display: grid; gap: 4px; }
+  .person-node strong, .system-node strong { font-size: 14px; }
+  .person-node p span, .system-node p span { color: var(--muted); font: 650 10px/1.3 ui-monospace, monospace; text-transform: uppercase; }
+  .avatar { display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 50%; font: 900 13px/1 ui-monospace, monospace; }
+  .avatar-a, .avatar-alice { background: var(--acid); }
+  .avatar-b, .avatar-bob { background: var(--orange); }
+  .avatar-c, .avatar-charlie { color: white; background: var(--blue); }
+  .avatar-gyst { color: white; background: var(--ink); }
+  .system-node { min-height: 142px; padding: 20px 14px; display: grid; place-items: center; align-content: center; border: var(--rule); text-align: center; }
+  .system-node img { width: 58px; height: 58px; object-fit: contain; }
+  .gyst-node { color: white; background: var(--blue); }
+  .gyst-node p span { color: rgba(255,255,255,.72); }
+  .gyst-glyph { display: grid; place-items: center; width: 58px; height: 58px; border: 2px solid white; font: 950 28px/1 ui-monospace, monospace; }
+  .plm-node { background: var(--acid); }
+  .network-arrow { display: grid; justify-items: center; gap: 8px; }
+  .network-arrow span { writing-mode: vertical-rl; transform: rotate(180deg); font: 750 9px/1 ui-monospace, monospace; letter-spacing: .08em; }
+  .network-arrow b { font: 950 24px/1 ui-monospace, monospace; }
+  .team-network figcaption { grid-column: 1 / -1; padding-top: 18px; border-top: 1.5px solid var(--ink); color: var(--muted); font: 650 11px/1.4 ui-monospace, monospace; text-align: center; }
+
+  .story-stage { padding: clamp(28px, 4vw, 64px) clamp(20px, 4vw, 64px) clamp(72px, 8vw, 120px); color: white; background: var(--ink); }
+  .story-overview { position: sticky; top: 76px; z-index: 30; border: 2px solid white; background: var(--ink); box-shadow: 0 12px 24px rgba(0,0,0,.38); }
+  .overview-title { min-height: 50px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #69675f; }
+  .overview-title p { margin: 0; display: flex; align-items: baseline; gap: 12px; }
+  .overview-title strong, .direction-readout { color: var(--acid); font: 800 11px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
+  .overview-title p span { color: #aaa79e; font: 600 10px/1.2 ui-monospace, monospace; }
+  .overview-grid { display: grid; grid-template-columns: minmax(680px, 1.45fr) minmax(250px, .55fr); }
+  .gantt-scroll { min-width: 0; overflow-x: auto; border-right: 1px solid #69675f; scrollbar-color: var(--orange) #33332f; }
+  .gantt { min-width: 790px; padding: 12px 14px 14px; }
+  .gantt-row { display: grid; grid-template-columns: 82px repeat(10, minmax(50px, 1fr)); min-height: 24px; align-items: stretch; gap: 3px; }
+  .gantt-row > strong { display: flex; align-items: center; gap: 7px; color: white; font: 750 9px/1 ui-monospace, monospace; }
+  .gantt-row > strong > span { width: 9px; height: 14px; border: 1px solid white; background: white; }
+  .gantt-row.alice > strong > span { background: var(--acid); }
+  .gantt-row.bob > strong > span { background: var(--orange); }
+  .gantt-row.charlie > strong > span { background: var(--blue); }
+  .gantt-row.gyst > strong > span { background: white; }
+  .gantt-row.plm > strong > span { background: #ffb4df; }
+  .gantt-days button { min-width: 0; padding: 4px 2px 5px; display: grid; justify-items: center; gap: 3px; border: 0; color: #aaa79e; background: transparent; cursor: pointer; }
+  .gantt-days button span { font: 800 9px/1 ui-monospace, monospace; }
+  .gantt-days button time { max-width: 58px; overflow: hidden; color: #dad7cf; font: 650 8px/1 ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+  .gantt-days button:hover, .gantt-days button:focus-visible { color: white; background: #343431; }
+  .gantt-row i { margin: 3px 0; border: 1px solid #44433f; background: #242421; }
+  .gantt-row i.on { border-color: var(--paper-bright); }
+  .gantt-row.alice i.on { background: var(--acid); }
+  .gantt-row.bob i.on { background: var(--orange); }
+  .gantt-row.charlie i.on { background: var(--blue); }
+  .gantt-row.gyst i.on { background: white; }
+  .gantt-row.plm i.on { background: #ffb4df; }
+  .cost-chart { min-width: 0; margin: 0; padding: 14px 18px 10px; }
+  .cost-chart figcaption { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 750 10px/1.2 ui-monospace, monospace; }
+  .cost-chart figcaption span { color: var(--orange); }
+  .cost-chart svg { display: block; width: 100%; height: 104px; margin-top: 5px; overflow: visible; }
+  .cost-chart polyline { fill: none; stroke: var(--orange); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+  .cost-chart circle { fill: var(--acid); stroke: var(--ink); stroke-width: 2; }
+  .cost-area { fill: color-mix(in srgb, var(--orange) 16%, transparent); }
+
+  [data-day-index] { transition: opacity 150ms ease, filter 150ms ease, box-shadow 150ms ease; }
+  .story-stage.has-day-focus [data-day-index].is-muted { opacity: .2; filter: saturate(.35) brightness(.65); }
+  .story-stage.has-day-focus [data-day-index].is-focused { opacity: 1; filter: none; }
+  .event-card.is-focused, .failure-card.is-focused { box-shadow: 0 0 0 4px var(--acid), 8px 8px 0 var(--blue); }
+
+  .track-controls { margin-top: 42px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid #69675f; background: #242421; }
+  .track-controls p { margin: 0; display: flex; align-items: baseline; gap: 12px; }
+  .track-controls p strong { color: var(--acid); font: 800 11px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
+  .track-controls p span, .track-controls > div > span { color: #aaa79e; font: 650 10px/1.2 ui-monospace, monospace; }
+  .track-controls > div { display: flex; align-items: center; gap: 10px; }
+  .track-controls button { width: 42px; height: 38px; border: 1.5px solid white; color: white; background: var(--ink); cursor: pointer; font: 900 19px/1 ui-monospace, monospace; }
+  .track-controls button:hover { color: var(--ink); background: var(--acid); }
+  .event-window { position: relative; }
+  .event-window::after { content: "MORE →"; position: absolute; z-index: 4; top: 18px; right: -1px; bottom: 30px; width: 74px; display: grid; place-items: center; pointer-events: none; color: var(--acid); background: linear-gradient(90deg, transparent, var(--ink) 72%); font: 800 9px/1 ui-monospace, monospace; writing-mode: vertical-rl; letter-spacing: .12em; }
+  .event-track { display: grid; grid-auto-flow: column; grid-auto-columns: clamp(330px, 34vw, 430px); align-items: start; gap: 18px; padding: 26px 78px 28px 2px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-color: var(--orange) #33332f; }
+  .event-card { min-height: 0; align-self: start; display: grid; grid-template-rows: auto auto auto; color: var(--ink); background: var(--paper-bright); border: var(--rule); scroll-snap-align: start; }
+  .event-card.alice { border-top: 12px solid var(--acid); }
+  .event-card.bob { border-top: 12px solid var(--orange); }
+  .event-card.charlie { border-top: 12px solid var(--blue); }
+  .event-card.gyst { border-top: 12px solid white; }
+  .event-meta { padding: 14px 16px; display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; border-bottom: var(--rule); }
+  .event-meta p { margin: 0; display: grid; gap: 3px; }
+  .event-meta p strong { font-size: 14px; }
+  .event-meta p span, .event-day, .event-number, .event-cost span { color: var(--muted); font: 700 10px/1.2 ui-monospace, monospace; text-transform: uppercase; }
+  .event-day { color: var(--blue); }
+  .event-copy { padding: 18px 19px 20px; display: grid; grid-template-columns: 62px 1fr; column-gap: 16px; align-items: start; }
+  .event-icon { width: 62px; height: 62px; padding: 9px; display: grid; place-items: center; border: var(--rule); background: var(--acid); }
+  .event-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .bob .event-icon { background: var(--orange); }
+  .charlie .event-icon { background: var(--blue); }
+  .charlie .event-icon img { filter: invert(1); }
+  .gyst .event-icon { background: white; }
+  .event-icon { grid-row: 1 / span 2; }
+  .event-number { grid-column: 2; margin: 1px 0 7px; }
+  .event-copy h3 { grid-column: 2; margin-bottom: 12px; font-size: clamp(24px, 2vw, 29px); line-height: 1; letter-spacing: -.045em; }
+  .event-copy > p:not(.event-number) { grid-column: 1 / -1; margin-top: 12px; color: var(--muted); font-size: 16px; line-height: 1.45; }
+  .event-copy ul { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 16px 0 0; list-style: none; }
+  .event-copy li { padding: 7px 8px; border: 1.5px solid var(--ink); background: var(--paper); font: 700 10px/1 ui-monospace, monospace; text-transform: uppercase; }
+  .event-cost { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: var(--rule); }
+  .event-cost strong { color: var(--blue); font-size: 26px; letter-spacing: -.04em; }
+  .story-note { max-width: 900px; margin: 20px 0 0; color: #aaa79e; font: 600 11px/1.55 ui-monospace, monospace; }
+
+  .story-stage[data-story-layout="vertical"] .track-controls { display: none; }
+  .story-stage[data-story-layout="vertical"] .event-window::after { display: none; }
+  .story-stage[data-story-layout="vertical"] .event-track { max-width: 980px; margin: 0 auto; display: grid; grid-auto-flow: row; grid-auto-columns: auto; padding-right: 2px; overflow: visible; scroll-snap-type: none; }
+  .story-stage[data-story-layout="vertical"] .event-card { min-height: 0; grid-template-columns: 210px 1fr 150px; grid-template-rows: auto; align-items: stretch; }
+  .story-stage[data-story-layout="vertical"] .event-meta { grid-template-columns: auto auto 1fr; align-content: start; border-right: var(--rule); border-bottom: 0; }
+  .story-stage[data-story-layout="vertical"] .event-meta p { grid-column: 1 / -1; margin-top: 6px; }
+  .story-stage[data-story-layout="vertical"] .event-copy { display: grid; grid-template-columns: 76px 1fr; column-gap: 22px; align-content: center; }
+  .story-stage[data-story-layout="vertical"] .event-icon { grid-row: 1 / span 4; }
+  .story-stage[data-story-layout="vertical"] .event-number { margin-top: 0; }
+  .story-stage[data-story-layout="vertical"] .event-copy h3, .story-stage[data-story-layout="vertical"] .event-copy > p, .story-stage[data-story-layout="vertical"] .event-copy ul { grid-column: 2; }
+  .story-stage[data-story-layout="vertical"] .event-cost { flex-direction: column; justify-content: center; border-top: 0; border-left: var(--rule); }
+  .story-stage[data-story-layout="vertical"] .story-note { margin-left: auto; margin-right: auto; }
+
+  .versus { margin-top: clamp(84px, 10vw, 150px); padding-top: clamp(70px, 8vw, 120px); border-top: 2px solid #69675f; }
+  .versus-heading { display: grid; grid-template-columns: .42fr 1.05fr .72fr; align-items: start; gap: clamp(28px, 5vw, 80px); }
+  .versus-heading h3 { margin: 0; font-size: clamp(46px, 6vw, 86px); line-height: .9; letter-spacing: -.06em; }
+  .versus-heading h3 span { color: var(--orange); }
+  .versus-heading > p:last-child { color: #c8c5bd; font-size: clamp(17px, 1.5vw, 22px); line-height: 1.48; }
+  .versus-scoreboard { max-width: 980px; margin: 64px auto 36px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; }
+  .score { padding: clamp(22px, 4vw, 44px); color: var(--ink); border: 2px solid white; }
+  .score.good { background: var(--acid); }
+  .score.bad { background: var(--orange); }
+  .score > span { font: 850 11px/1.2 ui-monospace, monospace; text-transform: uppercase; }
+  .score > strong { display: block; margin: 14px 0 8px; font-size: clamp(42px, 5vw, 72px); line-height: .9; letter-spacing: -.06em; }
+  .score p { margin: 0; font-size: 16px; }
+  .score time { font-weight: 800; }
+  .versus-mark { display: grid; place-items: center; min-width: 72px; color: var(--ink); background: white; font: 950 20px/1 ui-monospace, monospace; }
+  .comparison-calendar { padding: 18px; overflow-x: auto; border: 1px solid #69675f; background: #242421; scrollbar-color: var(--orange) #33332f; }
+  .comparison-row { min-width: 870px; display: grid; grid-template-columns: 110px repeat(10, minmax(52px, 1fr)); gap: 4px; }
+  .comparison-row > strong { display: flex; align-items: center; color: white; font: 750 9px/1 ui-monospace, monospace; }
+  .comparison-days time { padding: 6px 2px; display: grid; place-items: center; overflow: hidden; color: #c8c5bd; font: 650 8px/1 ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+  .comparison-row i { min-height: 25px; margin: 2px 0; border: 1px solid #44433f; background: #161614; }
+  .evidence-row i.active { background: var(--blue); border-color: white; }
+  .evidence-row i.result { background: var(--acid); box-shadow: inset 0 0 0 4px var(--blue); }
+  .wrong-row i.active { background: var(--orange); border-color: white; }
+  .wrong-row i.chaos { background: repeating-linear-gradient(135deg, var(--orange) 0 7px, #8f260e 7px 14px); }
+  .beyond-window { min-width: 870px; margin: 10px 0 0 110px; color: var(--orange); font: 800 10px/1.3 ui-monospace, monospace; text-align: right; }
+  .failure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); align-items: start; gap: 14px; margin-top: 34px; }
+  .failure-card { align-self: start; padding: 20px; color: var(--ink); border: 2px solid white; background: var(--paper-bright); }
+  .failure-card > div { display: flex; justify-content: space-between; gap: 12px; color: var(--orange); font: 800 10px/1.2 ui-monospace, monospace; text-transform: uppercase; }
+  .failure-card h4 { margin: 24px 0 10px; font-size: 24px; line-height: 1; letter-spacing: -.04em; }
+  .failure-card p { min-height: 0; margin-bottom: 20px; color: var(--muted); font-size: 16px; line-height: 1.45; }
+  .failure-card > span { display: inline-block; padding: 7px 9px; color: white; background: var(--orange); font: 850 11px/1 ui-monospace, monospace; }
+  .cost-consequence { margin-top: 34px; display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(28px, 5vw, 72px); padding: clamp(28px, 5vw, 64px); border: 2px solid var(--orange); background: #20120e; }
+  .cost-delta { display: block; margin: 12px 0; color: var(--orange); font-size: clamp(64px, 9vw, 132px); line-height: .8; letter-spacing: -.07em; }
+  .cost-consequence > div > p:last-child { max-width: 520px; color: #c8c5bd; font-size: 17px; line-height: 1.45; }
+  .cost-consequence ul { margin: 0; padding: 0; list-style: none; }
+  .cost-consequence li { padding: 14px 0; display: flex; justify-content: space-between; gap: 24px; border-top: 1px solid #6d3930; font-size: 16px; }
+  .cost-consequence li strong { color: var(--orange); }
+
+  .quickstart { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(48px, 8vw, 120px); background: var(--acid); }
+  .quickstart-copy ol { padding: 0; margin: 38px 0 0; list-style: none; }
+  .quickstart-copy li { display: flex; align-items: flex-start; gap: 16px; padding: 18px 0; border-top: 1.5px solid var(--ink); }
+  .quickstart-copy li:last-child { border-bottom: 1.5px solid var(--ink); }
+  .quickstart-copy li > span { display: grid; place-items: center; flex: 0 0 30px; height: 30px; color: white; background: var(--ink); border-radius: 50%; font: 800 12px/1 monospace; }
+  .quickstart-copy li div { display: grid; grid-template-columns: 95px 1fr; gap: 16px; width: 100%; }
+  .quickstart-copy li strong { font: 850 13px/1.4 ui-monospace, monospace; text-transform: uppercase; }
+  .quickstart-copy li p { margin: 0; line-height: 1.4; }
+  .terminal { align-self: center; border: var(--rule); background: var(--ink); color: #f7f3e8; box-shadow: 10px 10px 0 color-mix(in srgb, var(--blue) 100%, black); overflow: hidden; }
+  .terminal-bar { display: flex; justify-content: space-between; gap: 20px; padding: 13px 16px; border-bottom: 1px solid #4c4b45; color: var(--acid); font: 750 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; }
+  .terminal pre { margin: 0; padding: clamp(20px, 3vw, 40px); overflow-x: auto; font: 600 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .prompt { color: var(--orange); }
+  .output { color: #aaa79e; }
+  .terminal-note { margin: 0; padding: 14px 18px; border-top: 1px solid #4c4b45; color: #aaa79e; font: 600 10px/1.45 ui-monospace, monospace; }
+
+  .boundary { min-height: 720px; position: relative; display: grid; place-items: center; overflow: hidden; color: white; background: var(--blue); }
+  .boundary-grid { position: absolute; inset: 0; opacity: .22; background-image: linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px); background-size: 42px 42px; transform: perspective(700px) rotateX(58deg) scale(1.4) translateY(18%); transform-origin: center bottom; }
+  .boundary-copy { position: relative; max-width: 1050px; padding: clamp(32px, 5vw, 72px); border: 2px solid white; background: color-mix(in srgb, var(--blue) 88%, black); box-shadow: 12px 12px 0 var(--ink); }
+  .boundary-copy > p { max-width: 820px; }
+  .boundary-facts { display: grid; grid-template-columns: repeat(4, 1fr); margin: 48px 0 28px; border: 1.5px solid white; }
+  .boundary-facts p { margin: 0; padding: 18px; display: grid; gap: 8px; }
+  .boundary-facts p + p { border-left: 1.5px solid white; }
+  .boundary-facts span { font: 700 10px/1 ui-monospace, monospace; letter-spacing: .08em; color: var(--acid); }
+  .boundary-facts strong { font-size: 16px; }
+  .fine-print { margin: 0; max-width: 760px !important; color: rgba(255,255,255,.72); font: 600 12px/1.55 ui-monospace, monospace !important; }
+
+  .status { background: var(--paper-bright); }
+  .status-columns { display: grid; grid-template-columns: 1fr 1fr; margin-top: 68px; border: var(--rule); }
+  .status-card { padding: clamp(28px, 4vw, 56px); }
+  .status-card + .status-card { border-left: var(--rule); }
+  .status-card.current { background: var(--paper); }
+  .status-card.next { background: white; }
+  .status-label { display: flex; align-items: center; gap: 10px; margin-bottom: 34px; }
+  .status-label span { width: 11px; height: 11px; border-radius: 50%; background: var(--blue); }
+  .next .status-label span { background: var(--orange); }
+  .status-card ul { margin: 0; padding: 0; list-style: none; }
+  .status-card li { position: relative; padding: 15px 0 15px 28px; border-top: 1px solid #b7b2a7; font-size: 17px; line-height: 1.35; }
+  .status-card li::before { content: "✓"; position: absolute; left: 0; font-weight: 900; color: var(--blue); }
+  .status-card.next li::before { content: "→"; color: var(--orange); }
+  .not-this { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 22px; }
+  .not-this strong { margin-right: 8px; font: 850 12px/1 monospace; text-transform: uppercase; }
+  .not-this span { padding: 8px 10px; border: 1.5px solid var(--ink); background: var(--paper); font: 650 11px/1 monospace; text-transform: uppercase; }
+
+  .final-cta { min-height: 660px; display: flex; flex-direction: column; justify-content: center; color: white; background: var(--ink); }
+  .final-cta h2 { max-width: 1000px; color: var(--acid); font-size: clamp(56px, 8vw, 124px); line-height: .84; }
+  .final-cta > p { max-width: 780px; }
+  .button.inverse { color: var(--ink); border-color: white; box-shadow: 6px 6px 0 var(--orange); }
+  .button.inverse:hover { box-shadow: 3px 3px 0 var(--orange); }
+  .inverse-link { color: white; }
+  .architecture-link { align-self: flex-start; margin-top: 28px; color: #aaa79e; font: 650 11px/1.4 ui-monospace, monospace; text-transform: uppercase; text-underline-offset: 5px; }
+
+  .icon-credits { padding: 22px clamp(20px, 6vw, 96px); border-top: 1px solid #494844; color: #b8b5ac; background: var(--ink); font: 600 11px/1.65 ui-monospace, monospace; }
+  .icon-credits summary { display: inline-block; cursor: pointer; color: var(--paper-bright); font-weight: 800; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; }
+  .icon-credits summary::-webkit-details-marker { display: none; }
+  .icon-credits p { max-width: 1200px; margin: 16px 0 0; }
+  .icon-credits a { text-underline-offset: 3px; }
+
+  footer { min-height: 120px; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; gap: 24px; padding: 26px clamp(20px, 6vw, 96px); border-top: var(--rule); }
+  footer p { margin: 0; text-align: center; font-weight: 750; }
+  footer > div { justify-self: end; display: flex; gap: 22px; font: 750 10px/1.4 ui-monospace, monospace; }
+  .footer-mark { justify-self: start; }
+
+  @media (max-width: 1050px) {
+    .hero { grid-template-columns: 1fr; }
+    .artifact-stack { width: min(100%, 620px); }
+    .recognition, .section-heading { grid-template-columns: 1fr; }
+    .recognition { gap: 18px; }
+    .pull-quote { margin-top: 28px; }
+    .flow { grid-template-columns: 1fr; }
+    .flow-arrow { min-height: 28px; transform: rotate(90deg); }
+    .flow-column, .flow-core { min-height: 250px; }
+    .quickstart { grid-template-columns: 1fr; }
+    .boundary-facts { grid-template-columns: repeat(2, 1fr); }
+    .boundary-facts p:nth-child(3) { border-left: 0; border-top: 1.5px solid white; }
+    .boundary-facts p:nth-child(4) { border-top: 1.5px solid white; }
+    .story-heading { grid-template-columns: 1fr; align-items: start; }
+    .team-network { grid-template-columns: 1fr; }
+    .network-arrow { grid-template-columns: auto auto; justify-content: center; align-items: center; }
+    .network-arrow span { writing-mode: initial; transform: none; }
+    .network-arrow b { transform: rotate(90deg); }
+    .overview-grid { grid-template-columns: 1fr; }
+    .gantt-scroll { border-right: 0; border-bottom: 1px solid #69675f; }
+    .versus-heading { grid-template-columns: 1fr; gap: 18px; }
+    .cost-consequence { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 720px) {
+    .site-header { height: 68px; grid-template-columns: 1fr auto; padding: 0 18px; }
+    .site-header nav { display: none; }
+    .wordmark-mark { width: 30px; height: 30px; }
+    .hero { min-height: auto; padding-top: 72px; padding-bottom: 88px; }
+    h1 { font-size: clamp(50px, 16vw, 76px); }
+    .deck { font-size: 19px; }
+    .artifact-stack { min-height: 410px; margin-top: 20px; }
+    .artifact-card { padding: 18px; min-height: 130px; }
+    .artifact-card-middle { top: 128px; }
+    .artifact-card-front { top: 240px; }
+    .stamp { right: 0; top: 90px; font-size: 18px; }
+    .reason-grid, .status-columns { grid-template-columns: 1fr; }
+    .status-card + .status-card { border-left: 0; border-top: var(--rule); }
+    .principle-strip { grid-template-columns: 1fr; }
+    .principle-strip p + p { border-left: 0; border-top: var(--rule); }
+    .quickstart-copy li div { grid-template-columns: 1fr; gap: 4px; }
+    .boundary { min-height: auto; }
+    .boundary-copy { padding: 26px 20px; }
+    .boundary-facts { grid-template-columns: 1fr; }
+    .boundary-facts p + p, .boundary-facts p:nth-child(3) { border-left: 0; border-top: 1.5px solid white; }
+    .final-cta h2 { font-size: clamp(52px, 17vw, 80px); }
+    .story-heading h2 { font-size: clamp(50px, 15vw, 76px); }
+    .timeline-switch { display: grid; width: 100%; }
+    .timeline-switch button + button { border-left: 0; border-top: var(--rule); }
+    .team-network { margin-left: 18px; margin-right: 18px; padding: 18px; }
+    .workstations { grid-template-columns: 1fr; }
+    .person-node { grid-template-columns: auto 42px 1fr; }
+    .person-node + .person-node { border-left: 0; border-top: var(--rule); }
+    .person-node p { grid-column: auto; margin: 0; }
+    .story-stage { padding-left: 14px; padding-right: 14px; }
+    .story-overview { position: static; }
+    .overview-title { align-items: flex-start; flex-direction: column; }
+    .overview-title p { align-items: flex-start; flex-direction: column; gap: 4px; }
+    .gantt { min-width: 790px; padding-left: 8px; padding-right: 8px; }
+    .track-controls { align-items: flex-start; flex-direction: column; }
+    .track-controls p { align-items: flex-start; flex-direction: column; gap: 4px; }
+    .event-track { grid-auto-columns: minmax(292px, 88vw); }
+    .story-stage[data-story-layout="vertical"] .event-card { grid-template-columns: 1fr; }
+    .story-stage[data-story-layout="vertical"] .event-meta { border-right: 0; border-bottom: var(--rule); }
+    .story-stage[data-story-layout="vertical"] .event-copy { display: block; }
+    .story-stage[data-story-layout="vertical"] .event-icon { margin-bottom: 20px; }
+    .story-stage[data-story-layout="vertical"] .event-cost { flex-direction: row; border-left: 0; border-top: var(--rule); }
+    .versus-scoreboard { grid-template-columns: 1fr; }
+    .versus-mark { min-height: 48px; }
+    .failure-grid { grid-template-columns: 1fr; }
+    .cost-consequence { padding: 24px 18px; }
+    .cost-consequence li { align-items: flex-start; flex-direction: column; gap: 5px; }
+    footer { grid-template-columns: 1fr; text-align: left; }
+    footer p { text-align: left; }
+    footer > div { justify-self: start; flex-wrap: wrap; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  }
+</style>

@@ -8,8 +8,10 @@ feedback in chat or email. Traditional PLM deployments often begin by asking the
 organization to migrate and standardize. Gyst begins by observing what exists,
 preserving where it came from, and connecting it incrementally.
 
-The product is a **digital-thread integration layer**, not merely a Git client,
-file sync product, project tracker, or PLM replacement.
+The product is **engineering observability and provenance infrastructure**, not
+merely a Git client, file sync product, project tracker, or PLM replacement. It
+may contribute to a digital thread, but it creates value before an organization
+adopts that category or centralizes its systems.
 
 ## Product promises
 
@@ -28,8 +30,8 @@ Gyst should answer four questions reliably:
 
 | Role | Decisions Gyst should support | Representative view |
 |---|---|---|
-| Executive / director | Are projects on schedule and budget? Where is risk concentrated? | Portfolio health, cost, labor, milestones, confidence |
-| Engineering manager | Who owns work? Is data healthy? Is refactoring or release work accumulating? | Workload, change activity, hygiene, dependency risk |
+| Executive / director | Are releases and reported risks supported by current evidence? | Release confidence, cost inputs, milestones, provenance |
+| Engineering manager | Who owns an artifact or decision? Is release work accumulating? | Ownership routing, findings, dependencies, release readiness |
 | Engineer | Where is the current artifact? What changed recently? What is generated? | Project workspace, change feed, provenance, dependencies |
 | Manufacturing engineer | What is released to build? What changed and why? How do I respond? | Release package, instructions, BOM diff, feedback loop |
 | Floor lead / operator | What exact revision should be used for this work order? | Approved documents, tooling, redlines, acknowledgements |
@@ -37,6 +39,14 @@ Gyst should answer four questions reliably:
 The engineer/manager discovery workflow comes first. Executive aggregation is
 only trustworthy after the underlying project, ownership, schedule, and cost
 data have provenance and confidence.
+
+## Human boundary
+
+Gyst observes engineering artifacts and system state, not employee productivity.
+It may use ownership to route a question or identify a missing approval, but it
+must not rank people using commit counts, file activity, inferred effort, online
+presence, or opaque health scores. Evidence about work products must not be
+quietly repurposed as evidence about a person's value or performance.
 
 ## Core concepts
 
@@ -81,6 +91,8 @@ data have provenance and confidence.
 - Full ERP/MRP, procurement, payroll, or timekeeping functionality.
 - Silent mutation, relocation, or deletion of user files.
 - Treating heuristic inferences as authoritative business records.
+- Requiring a vendor-hosted service, license server, or online account.
+- Ranking or monitoring workers from repository and artifact activity.
 
 ## Experience model
 
@@ -116,6 +128,10 @@ split between Git and local/network folders, whose board designs use KiCad, and
 whose BOM/release data is kept in CSV/XLSX. The wedge is: **find the right thing,
 explain what changed, and prepare a trustworthy handoff**. This produces value
 before replacing any incumbent tool.
+
+The external promise is: **find the authoritative engineering files, explain
+what changed, and prove what went into the release--without requiring a
+migration.**
 
 ## Product and part semantics
 

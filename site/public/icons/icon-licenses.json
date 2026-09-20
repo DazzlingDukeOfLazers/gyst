@@ -1,0 +1,22 @@
+{
+  "license": {
+    "name": "CC BY 3.0",
+    "url": "https://creativecommons.org/licenses/by/3.0/"
+  },
+  "source": "Noun Project",
+  "source_url": "https://thenounproject.com/",
+  "icons": [
+    { "file": "document-search.svg", "id": "5032444", "term": "document search", "creator": "Puchongart", "username": "aun9calendar", "url": "https://thenounproject.com/icon/5032444/" },
+    { "file": "change-history.svg", "id": "6256772", "term": "Revision", "creator": "LUTFI GANI AL ACHMAD", "username": "lutfidiarycoc", "url": "https://thenounproject.com/icon/6256772/" },
+    { "file": "release-checklist.svg", "id": "6662244", "term": "release checklist", "creator": "Trend Icons", "username": "Trend_Icons", "url": "https://thenounproject.com/icon/6662244/" },
+    { "file": "air-gap.svg", "id": "4957910", "term": "air gap", "creator": "M. Oki Orlando", "username": "orvipixel", "url": "https://thenounproject.com/icon/4957910/" },
+    { "file": "developer-workstation.svg", "id": "6750759", "term": "Software", "creator": "Creative Studio", "username": "meharbadsha2211", "url": "https://thenounproject.com/icon/6750759/" },
+    { "file": "file-server.svg", "id": "8433666", "term": "File Server", "creator": "El Hikami", "username": "najamalhikami", "url": "https://thenounproject.com/icon/8433666/" },
+    { "file": "circuit-board.svg", "id": "8078320", "term": "circuit board", "creator": "Hilmy Abiyyu Asad", "username": "hillvector", "url": "https://thenounproject.com/icon/8078320/" },
+    { "file": "schematic.svg", "id": "4210333", "term": "pcb", "creator": "Christian Nababan", "username": "christsandwich", "url": "https://thenounproject.com/icon/4210333/" },
+    { "file": "machine-screw.svg", "id": "3634021", "term": "machine screw", "creator": "Oleksandr Panasovskyi", "username": "a.panasovsky", "url": "https://thenounproject.com/icon/3634021/" },
+    { "file": "bill-of-materials.svg", "id": "8218034", "term": "bill of materials", "creator": "diyah farida", "username": "anilofex", "url": "https://thenounproject.com/icon/8218034/" },
+    { "file": "cad-drawing.svg", "id": "8217992", "term": "cad drawing", "creator": "diyah farida", "username": "anilofex", "url": "https://thenounproject.com/icon/8217992/" },
+    { "file": "merge.svg", "id": "6355050", "term": "Code merge", "creator": "Michael", "username": "michael-finlay", "url": "https://thenounproject.com/icon/6355050/" }
+  ]
+}

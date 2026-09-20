@@ -3,6 +3,34 @@
 The roadmap is organized around evidence and usable vertical slices, not feature
 counts. Each phase should end with a demo against realistic, messy project data.
 
+## Current priority -- field validation and offline proof
+
+The pre-alpha walking skeleton has already established immutable observations,
+replayable projections, local-folder and Git discovery, identity profiles,
+provenance explanation, tombstones, reconciliation, and conservative rename
+detection. Do not continue through the feature roadmap merely because the next
+phase is documented.
+
+The immediate vertical slice is a locally operated Release Readiness Audit:
+
+- Produce one portable human-readable report plus machine-readable evidence.
+- Demonstrate installation and use without an internet connection or account.
+- Run against realistic Git, folder, KiCad, PDF, and BOM data.
+- Show authorities, changes, copies, generated files, ambiguity, and unknowns.
+- Prepare an inspectable candidate release manifest without mutating sources.
+- Record measured time saved or a concrete release/handoff risk exposed.
+
+Field gate before broadening the platform:
+
+- Five problem interviews across at least two organizations.
+- Two realistic datasets or in-place scans.
+- Two paid audits or funded-development commitments.
+- One repeat-use request and one continuous-observation or connector request.
+
+Until that gate is met, cloud connectors, executive dashboards, generalized
+records, federation, and write-back remain design work rather than active build
+priorities.
+
 ## Phase 0 — Discovery and contracts (2–4 weeks)
 
 Goal: validate the wedge and eliminate architecture-changing unknowns.
@@ -20,7 +48,9 @@ Goal: validate the wedge and eliminate architecture-changing unknowns.
   path semantics, locked files, and long paths.
 - Spike supported KiCad CLI versions, native metadata extraction, deterministic
   outputs, and semantic comparison.
-- Choose license, governance, language, and repository layout.
+- Document contributor governance, dependency acceptance, language, and
+  repository layout; verify that all dependencies and fixtures are compatible
+  with the MIT license.
 
 Exit criteria:
 
@@ -146,3 +176,6 @@ Goal: make Gyst an extensible FOSS platform rather than a closed application.
 - AI-generated mutations.
 - Supporting CAD other than KiCad natively; unsupported designs use file metadata
   and PDF-based review.
+- Worker productivity scoring, activity rankings, or employee surveillance.
+- Any core workflow that requires Gyst-operated hosting, telemetry, licensing,
+  identity, or AI services.

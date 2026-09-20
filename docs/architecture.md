@@ -166,6 +166,19 @@ observation and optional managed storage, not a second general sync protocol.
 Keep the component boundaries consistent across profiles. SQLite may support the
 solo profile, but PostgreSQL remains the reference behavior.
 
+### Offline acceptance
+
+Air-gapped operation is a baseline architecture constraint rather than a premium
+deployment tier. Core workflows must not depend on a vendor account, license
+check, telemetry endpoint, remote identity provider, externally hosted model,
+remote web asset, or package download. Releases should include offline
+documentation, a software bill of materials, verifiable binaries, and a signed
+update bundle that can cross an air gap through an inspectable process.
+
+Connected services and organization-operated infrastructure may add
+capabilities. They must not become prerequisites for scanning, querying,
+explaining provenance, producing reports, or validating release records.
+
 ## Security and trust
 
 - Mutual authentication between edge agents and server; short-lived credentials.
