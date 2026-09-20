@@ -68,6 +68,7 @@ go build ./cmd/gyst
 ./gyst status                                # sources, passes, coverage
 ./gyst explain some-file.pdf                 # why Gyst believes what it believes
 ./gyst report --out report.json              # everything, as one document
+./gyst report --html report.html             # the same, as a page to open
 ```
 
 `gyst status` prints where the database file is. `GYST_DATA_DIR` moves it;
