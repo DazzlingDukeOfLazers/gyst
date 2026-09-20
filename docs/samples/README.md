@@ -7,13 +7,15 @@ profile applied, and one authority assertion so the declared state appears. It i
 [`design-system.md`](../design-system.md) and the "representative generated
 JSON" its Phase 0 asks for.
 
-Regenerate it with either engine. On a SQLite file, no server is needed:
+Regenerate it with either engine. With nothing set, Gyst uses a SQLite
+file in your data directory; point it at a scratch file to keep the fixture
+apart from your own data:
 
 ```sh
 export GYST_DATABASE_URL=sqlite:/tmp/gyst-fixture.db
 ```
 
-On PostgreSQL:
+Or on PostgreSQL:
 
 ```sh
 createdb gyst_fixture && for f in migrations/*.sql; do psql -q -d gyst_fixture -f "$f"; done

@@ -103,11 +103,16 @@ Option A, in four stages, each a pull request that leaves the tree working:
 4. **Make it the default.** With `GYST_DATABASE_URL` unset, open a SQLite
    file under the user's data directory. PostgreSQL remains the reference
    engine for the team profile and stays in the documentation as such.
+   *Done 2026-09-20; see `docs/day-16-notes.md`. The README's first
+   section is now clone, build, scan, report, with nothing else
+   installed.*
 
 ## Acceptance
 
 - On a clean machine with Go installed and no services running: clone,
   `go build ./cmd/gyst`, `gyst scan --root .`, `gyst report`. Nothing else.
+  *Met 2026-09-20, simulated with an empty home directory and no
+  environment.*
 - `go test ./...` passes on both engines.
 - The fixture report from each engine is identical apart from `generated_at`.
 - `gyst verify` reproduces the projection on both.
