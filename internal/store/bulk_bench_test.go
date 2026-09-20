@@ -26,7 +26,9 @@ func TestBulkInsertShapes(t *testing.T) {
 	}
 	ctx := context.Background()
 	dsns := map[string]func() string{
-		EngineSQLite: func() string { return "sqlite:" + filepath.Join(t.TempDir(), fmt.Sprintf("b%d.db", time.Now().UnixNano())) },
+		EngineSQLite: func() string {
+			return "sqlite:" + filepath.Join(t.TempDir(), fmt.Sprintf("b%d.db", time.Now().UnixNano()))
+		},
 	}
 	if pg := os.Getenv("GYST_TEST_DATABASE_URL"); pg != "" {
 		dsns[EnginePostgres] = func() string { return pg }
