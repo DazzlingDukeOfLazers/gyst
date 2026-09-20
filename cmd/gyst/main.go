@@ -33,7 +33,7 @@ Usage:
   gyst discover [--root <path>]... [--depth 6] [--nested] [--json]
   gyst projects                               projects and where membership comes from
   gyst findings [--all] [--json]              what needs attention
-  gyst report [--out report.json]             everything, as one JSON document
+  gyst report [--out report.json] [--html report.html]   everything, as one document
   gyst assert authority     <locator> --by <name> --reason <text>
   gyst assert not-authority <locator> --by <name> --reason <text>
   gyst assert retract <id>  --by <name> --reason <text>

@@ -19,7 +19,8 @@ const Version = "0.1.0-dev"
 // static report consumes.
 func cmdReport(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("report", flag.ExitOnError)
-	out := fs.String("out", "", "write to this file instead of stdout")
+	out := fs.String("out", "", "write JSON to this file instead of stdout")
+	html := fs.String("html", "", "also write a static HTML page to this file")
 	fs.Parse(args)
 
 	s, err := open(ctx)
@@ -31,6 +32,21 @@ func cmdReport(ctx context.Context, args []string) error {
 	doc, err := report.Build(ctx, s, time.Now().UTC(), Version)
 	if err != nil {
 		return err
+	}
+	if *html != "" {
+		f, err := os.Create(*html)
+		if err != nil {
+			return err
+		}
+		if err := report.WriteHTML(f, doc); err != nil {
+			f.Close()
+			return err
+		}
+		f.Close()
+		fmt.Fprintf(os.Stderr, "wrote %s\n", *html)
+		if *out == "" {
+			return nil
+		}
 	}
 	w := os.Stdout
 	if *out != "" {
