@@ -21,6 +21,13 @@ import (
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
 
+// Bookkeeping retention defaults (ADR 005): passes kept per source beyond
+// the first, and how long a resolved finding without a waiver is kept.
+const (
+	keepPasses         = 30
+	resolvedFindingAge = 90 * 24 * time.Hour
+)
+
 const usage = `gyst -- find, understand, and coordinate engineering work products
 
 Usage:
@@ -253,6 +260,17 @@ func cmdScan(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	// Bookkeeping retention: passes and resolved findings are about Gyst's
+	// own activity, not the sources, and are bounded here. Nothing a
+	// finding, relation, or release cites is touched (ADR 005).
+	prunedPasses, err := s.PruneScanPasses(ctx, sourceID, keepPasses)
+	if err != nil {
+		return err
+	}
+	prunedFindings, err := s.PruneResolvedFindings(ctx, time.Now().UTC().Add(-resolvedFindingAge))
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("source     %s\n", sourceID)
 	fmt.Printf("location   %s   %s\n", loc, loc.Evidence)
@@ -300,6 +318,10 @@ func cmdScan(ctx context.Context, args []string) error {
 		auth.Declared, auth.Likely, auth.Multiple, auth.None)
 	fmt.Printf("findings   %d open (%d new, %d reopened, %d resolved this pass)\n",
 		fnd.Open, fnd.New, fnd.Reopened, fnd.Resolved)
+	if prunedPasses+prunedFindings > 0 {
+		fmt.Printf("retention  pruned %d old passes and %d resolved findings older than %d days\n",
+			prunedPasses, prunedFindings, int(resolvedFindingAge.Hours()/24))
+	}
 	fmt.Printf("coverage   %s: %s\n", cov.Status, cov.Detail)
 	if !res.Complete {
 		fmt.Printf("partial    stopped at --max-files; rerun with --resume\n")
