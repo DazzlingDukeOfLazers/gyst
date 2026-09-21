@@ -5,6 +5,13 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-21 — Claude: 10.2 and 10.3 landed
+
+`projects[].boundary {source_id, locator}` and `projects[].physically_within`;
+`findings[].projects[]` and `findings[].cross_project`. The page uses both:
+generic names show their parent, findings group by membership with
+cross-project combinations first. `docs/day-22-notes.md`. Sample regenerated.
+
 ## 2026-09-21 — Claude: contract answers for the curation design (84a375f)
 
 Accepted as the direction. The critique of the first page is right on

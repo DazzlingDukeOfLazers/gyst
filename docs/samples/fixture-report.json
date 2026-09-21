@@ -5,7 +5,7 @@
       "name": "gyst",
       "version": "0.1.0-dev"
     },
-    "generated_at": "2026-09-20T20:34:40.603827Z",
+    "generated_at": "2026-09-21T06:52:38.608821Z",
     "visibility_scope": "Everything the exporting operator could see. No viewer filtering was applied; whoever holds this file holds all of it.",
     "identity_policy": {
       "version": "ip_suffix-as-identity",
@@ -54,7 +54,7 @@
       },
       "freshness": {
         "state": "current",
-        "age_seconds": 0,
+        "age_seconds": 37078,
         "expected_every_seconds": 86400,
         "coverage": "complete",
         "coverage_detail": "walked to the end of history"
@@ -88,7 +88,7 @@
       },
       "freshness": {
         "state": "current",
-        "age_seconds": 0,
+        "age_seconds": 37078,
         "expected_every_seconds": 604800,
         "coverage": "complete",
         "coverage_detail": "complete unresumed pass with no read errors"
@@ -120,7 +120,12 @@
       "file_count": 18,
       "source_ids": [
         "src_local_eng_share"
-      ]
+      ],
+      "boundary": {
+        "source_id": "src_local_eng_share",
+        "locator": "engineering"
+      },
+      "physically_within": null
     },
     {
       "project_id": "widget",
@@ -144,7 +149,12 @@
       "file_count": 10,
       "source_ids": [
         "src_local_eng_share"
-      ]
+      ],
+      "boundary": {
+        "source_id": "src_local_eng_share",
+        "locator": "engineering/widget"
+      },
+      "physically_within": "engineering"
     },
     {
       "project_id": "mark_e979905c06187cc9cbd76014",
@@ -168,7 +178,12 @@
       "file_count": 2,
       "source_ids": [
         "src_local_eng_share"
-      ]
+      ],
+      "boundary": {
+        "source_id": "src_local_eng_share",
+        "locator": "firmware"
+      },
+      "physically_within": null
     }
   ],
   "files": [
@@ -1212,7 +1227,12 @@
         "proposal": "Nominate one as the authoritative copy and relate the others to it; or, if they are deliberate mirrors, record that.",
         "reversible": true,
         "requires_approval": true
-      }
+      },
+      "projects": [
+        "engineering",
+        "widget"
+      ],
+      "cross_project": true
     }
   ],
   "assertions": [
