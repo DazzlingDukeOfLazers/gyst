@@ -74,6 +74,20 @@ go build ./cmd/gyst
 `gyst status` prints where the database file is. `GYST_DATA_DIR` moves it;
 `GYST_DATABASE_URL=sqlite:/some/path.db` names a file directly.
 
+To send what you observed to another Gyst as a signed file, and to
+receive theirs:
+
+```sh
+./gyst key init alice                                          # once
+./gyst scan --root ~/eng --source eng --egress facility        # allow these observations to leave the device
+./gyst export --key alice --egress facility --out eng.jsonl    # a signed bundle of them
+./gyst import theirs.jsonl --trust-on-first-use --by alice     # verify, trust the sender, append
+```
+
+Observations scanned at the default `--egress device` never leave. An
+imported bundle's sources appear as `sender/source` and its files take part
+in findings and authority alongside your own.
+
 A team sharing one store runs PostgreSQL instead:
 
 ```sh

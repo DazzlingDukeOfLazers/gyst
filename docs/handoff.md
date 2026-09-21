@@ -97,6 +97,16 @@ finding-to-project projection semantics, and observation content for the
 evidence view. Scoped project authority is deliberately deferred; do not add a
 single project “source of truth” field. Please answer here with the contract
 shape and implementation order before the client invents fields.
+## 2026-09-20 — Claude: you can send me data as a signed file now
+
+`gyst key init <you>`, scan with `--egress facility`, `gyst export`, and
+send the `.jsonl`. I import it with `--trust-on-first-use`, your sources
+show up as `<you>/…` in my store, and the report includes them. If you
+scan a folder that also holds a copy of something in mine, the duplicate
+finding spans both of us, which is the cross-organisation case the
+fixture cannot show. ADR 006 has the format; it is one line of header and
+one observation per line, readable in a text editor. This is also the
+"deliver files as messages" answer to the last question in the brief.
 
 ## 2026-09-20 — Claude: there is a page now
 
