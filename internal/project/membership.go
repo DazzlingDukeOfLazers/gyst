@@ -48,8 +48,23 @@ type PlannedMember struct {
 	Confidence                         float64
 }
 
+// Review states. A manifest declares; a marker suggests a candidate; a
+// person confirms or ignores by assertion.
+const (
+	StateDeclared  = "declared"
+	StateCandidate = "candidate"
+	StateConfirmed = "confirmed"
+	StateIgnored   = "ignored"
+)
+
+// Curation is a person's active assertion about a project record.
+type Curation struct {
+	ID, Kind, ProjectID, ActorID, Reason string
+}
+
 type PlannedProject struct {
 	ID, Name, Description, Basis string
+	State                        string
 	SourceID, Locator            string
 	Evidence                     []string
 	Confidence                   float64
@@ -63,6 +78,9 @@ type MembershipPlan struct {
 	InvalidManifests  int
 	SuppressedMarkers int
 	VendoredMarkers   int
+	// StaleCurations are assertions naming a project id that no longer
+	// exists, a folder moved or a source gone. They are kept, not applied.
+	StaleCurations int
 }
 
 // ResolveProjects turns manifest and marker evidence into projects.
@@ -74,7 +92,7 @@ type MembershipPlan struct {
 // the manifest has already named what the marker only hints at and the
 // suggestion is dropped as redundant rather than recorded as a second
 // project.
-func ResolveProjects(manifests []ManifestEvidence, markers []MarkerEvidence) MembershipPlan {
+func ResolveProjects(manifests []ManifestEvidence, markers []MarkerEvidence, curation []Curation) MembershipPlan {
 	plan := MembershipPlan{}
 	byID := map[string]*PlannedProject{}
 	declaredAt := map[string]bool{} // source \x00 dir
@@ -94,7 +112,7 @@ func ResolveProjects(manifests []ManifestEvidence, markers []MarkerEvidence) Mem
 		p, ok := byID[m.ID]
 		if !ok {
 			p = &PlannedProject{
-				ID: m.ID, Name: m.Name, Description: m.Description, Basis: BasisManifest,
+				ID: m.ID, Name: m.Name, Description: m.Description, Basis: BasisManifest, State: StateDeclared,
 				SourceID: m.SourceID, Locator: m.Locator, Confidence: 1.0,
 				Explanation: fmt.Sprintf("declared by %s", m.Locator),
 			}
@@ -144,7 +162,7 @@ func ResolveProjects(manifests []ManifestEvidence, markers []MarkerEvidence) Mem
 			pattern = dir + "/**"
 		}
 		byID[id] = &PlannedProject{
-			ID: id, Name: name, Basis: BasisNativeMarker,
+			ID: id, Name: name, Basis: BasisNativeMarker, State: StateCandidate,
 			SourceID: mk.SourceID, Locator: mk.Locator, Evidence: []string{mk.ObsID},
 			Confidence: markerConfidence,
 			Explanation: fmt.Sprintf("folder carries %s; a native marker suggests a project boundary but does not declare one",
@@ -153,6 +171,32 @@ func ResolveProjects(manifests []ManifestEvidence, markers []MarkerEvidence) Mem
 				SourceID: mk.SourceID, Pattern: pattern, Basis: BasisNativeMarker,
 				Evidence: mk.ObsID, Confidence: markerConfidence,
 			}},
+		}
+	}
+
+	// A person's word, last. Explicit assertions sit above manifests and
+	// markers in the precedence order, so they are applied after both.
+	// The last active assertion about a record wins if there are several;
+	// the CLI refuses to stack them, so that is a guard, not a feature.
+	for _, c := range curation {
+		p, ok := byID[c.ProjectID]
+		if !ok {
+			plan.StaleCurations++
+			continue
+		}
+		switch c.Kind {
+		case "project.confirm":
+			p.State = StateConfirmed
+			p.Confidence = 1.0
+			p.Explanation += fmt.Sprintf("; confirmed as a project by %s: %s", c.ActorID, c.Reason)
+			p.Evidence = append(p.Evidence, c.ID)
+		case "project.ignore":
+			// The record stays, so the decision is visible and retractable,
+			// but it claims nothing: no members, so no file belongs to it.
+			p.State = StateIgnored
+			p.Members = nil
+			p.Explanation += fmt.Sprintf("; set aside by %s: %s", c.ActorID, c.Reason)
+			p.Evidence = append(p.Evidence, c.ID)
 		}
 	}
 
@@ -171,6 +215,11 @@ type MembershipStats struct {
 	MarkedFolders     int
 	SuppressedMarkers int
 	FileMemberships   int
+	// Review progress: candidates awaiting judgment, and judgments made.
+	Remaining      int
+	Confirmed      int
+	Ignored        int
+	StaleCurations int
 }
 
 // ProjectMembership rebuilds projects, project_members, and file_projects
@@ -188,9 +237,23 @@ func ProjectMembership(ctx context.Context, s *store.Store) (MembershipStats, er
 		return st, err
 	}
 	st.Manifests, st.MarkedFolders = len(manifests), len(markers)
-	plan := ResolveProjects(manifests, markers)
-	st.Projects, st.InvalidManifests, st.SuppressedMarkers =
-		len(plan.Projects), plan.InvalidManifests, plan.SuppressedMarkers
+	curation, err := loadCuration(ctx, s)
+	if err != nil {
+		return st, err
+	}
+	plan := ResolveProjects(manifests, markers, curation)
+	st.Projects, st.InvalidManifests, st.SuppressedMarkers, st.StaleCurations =
+		len(plan.Projects), plan.InvalidManifests, plan.SuppressedMarkers, plan.StaleCurations
+	for _, p := range plan.Projects {
+		switch p.State {
+		case StateCandidate:
+			st.Remaining++
+		case StateConfirmed:
+			st.Confirmed++
+		case StateIgnored:
+			st.Ignored++
+		}
+	}
 
 	files, err := s.PresentFiles(ctx)
 	if err != nil {
@@ -202,7 +265,7 @@ func ProjectMembership(ctx context.Context, s *store.Store) (MembershipStats, er
 	var fileRows []store.FileProjectRow
 	for _, p := range plan.Projects {
 		projects = append(projects, store.ProjectRow{
-			ProjectID: p.ID, Name: p.Name, Description: p.Description, Basis: p.Basis,
+			ProjectID: p.ID, Name: p.Name, Description: p.Description, Basis: p.Basis, State: p.State,
 			SourceID: p.SourceID, Locator: p.Locator, Evidence: p.Evidence,
 			Confidence: p.Confidence, Explanation: p.Explanation,
 		})
@@ -224,6 +287,22 @@ func ProjectMembership(ctx context.Context, s *store.Store) (MembershipStats, er
 		}
 	}
 	return st, s.ReplaceProjects(ctx, projects, members, fileRows)
+}
+
+// loadCuration returns active project assertions in the order made.
+func loadCuration(ctx context.Context, s *store.Store) ([]Curation, error) {
+	rows, err := s.ListAssertions(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	var out []Curation
+	for _, r := range rows {
+		if r.SubjectKind != "project" {
+			continue
+		}
+		out = append(out, Curation{ID: r.AssertionID, Kind: r.Kind, ProjectID: r.Locator, ActorID: r.ActorID, Reason: r.Reason})
+	}
+	return out, nil
 }
 
 // loadManifests returns the latest manifest observation for every manifest

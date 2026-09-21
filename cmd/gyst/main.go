@@ -40,6 +40,7 @@ Usage:
   gyst git     --repo <path> [--ref HEAD] [--resume]
   gyst discover [--root <path>]... [--depth 6] [--nested] [--json]
   gyst projects                               projects and where membership comes from
+  gyst review [<candidate>]                   what still needs your judgment, and one candidate explained
   gyst findings [--all] [--json]              what needs attention
   gyst report [--out report.json] [--html report.html]   everything, as one document
   gyst assert authority     <locator> --by <name> --reason <text>
@@ -93,6 +94,8 @@ func main() {
 		err = cmdDiscover(ctx, os.Args[2:])
 	case "projects":
 		err = cmdProjects(ctx, os.Args[2:])
+	case "review":
+		err = cmdReview(ctx, os.Args[2:])
 	case "findings":
 		err = cmdFindings(ctx, os.Args[2:])
 	case "report":
@@ -328,6 +331,10 @@ func cmdScan(ctx context.Context, args []string) error {
 		members.Projects, members.Manifests-members.InvalidManifests,
 		members.Projects-(members.Manifests-members.InvalidManifests),
 		members.SuppressedMarkers, members.FileMemberships)
+	if members.Remaining+members.Confirmed+members.Ignored > 0 {
+		fmt.Printf("review     %d confirmed, %d ignored, %d candidates remaining (gyst review)\n",
+			members.Confirmed, members.Ignored, members.Remaining)
+	}
 	if members.InvalidManifests > 0 {
 		fmt.Printf("           %d manifest(s) could not be parsed; see gyst explain\n", members.InvalidManifests)
 	}

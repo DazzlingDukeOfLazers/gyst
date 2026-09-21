@@ -76,12 +76,15 @@ type Group struct {
 }
 
 type Assertion struct {
-	ID       string
-	Kind     string
-	Subject  Key
-	ActorID  string
-	Reason   string
-	Evidence []string
+	ID          string
+	Kind        string
+	SubjectKind string // file or project; the resolver uses file ones only
+	Subject     Key
+	Object      string
+	Value       string
+	ActorID     string
+	Reason      string
+	Evidence    []string
 }
 
 type Input struct {
