@@ -21,6 +21,7 @@ func cmdGit(ctx context.Context, args []string) error {
 	ref := fs.String("ref", "HEAD", "ref to walk")
 	resume := fs.Bool("resume", false, "resume from the stored cursor")
 	maxCommits := fs.Int("max-commits", 0, "stop after N commits (0 = default cap)")
+	egress := fs.String("egress", "device", "how far these observations may travel: device, facility, or connected-server")
 	fs.Parse(args)
 
 	if *repo == "" {
@@ -66,6 +67,7 @@ func cmdGit(ctx context.Context, args []string) error {
 		Cursor:        cursor,
 		PolicyVersion: "pol_dev_r1",
 		MaxCommits:    *maxCommits,
+		Egress:        *egress,
 	})
 	if err != nil {
 		return finishInterrupted(ctx, s, passID, err)

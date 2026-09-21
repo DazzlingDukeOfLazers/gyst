@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/bundle"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/connector/localfolder"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
@@ -31,7 +32,7 @@ const (
 const usage = `gyst -- find, understand, and coordinate engineering work products
 
 Usage:
-  gyst scan    --root <path> [--source <id>] [--policy fingerprint|metadata] [--resume] [--cadence 7d]
+  gyst scan    --root <path> [--source <id>] [--policy fingerprint|metadata] [--resume] [--cadence 7d] [--egress device|facility|connected-server]
   gyst changes [--since 1h] [--limit 50]
   gyst project [--rebuild]
   gyst verify
@@ -45,6 +46,10 @@ Usage:
   gyst assert not-authority <locator> --by <name> --reason <text>
   gyst assert retract <id>  --by <name> --reason <text>
   gyst assert list [--all]
+  gyst key init <id> | gyst key show <id>     a signing identity for bundles
+  gyst trust add <sender> <public-key> --by <name> | gyst trust list
+  gyst export --key <id> --egress facility [--source <id>]... --out bundle.jsonl
+  gyst import bundle.jsonl [--trust-on-first-use --by <name>]
   gyst findings ack   <id> --by <name>
   gyst findings waive <id> --by <name> --reason <text> [--until YYYY-MM-DD]
 
@@ -94,6 +99,14 @@ func main() {
 		err = cmdReport(ctx, os.Args[2:])
 	case "assert":
 		err = cmdAssert(ctx, os.Args[2:])
+	case "key":
+		err = cmdKey(ctx, os.Args[2:])
+	case "trust":
+		err = cmdTrust(ctx, os.Args[2:])
+	case "export":
+		err = cmdExport(ctx, os.Args[2:])
+	case "import":
+		err = cmdImport(ctx, os.Args[2:])
 	case "identity":
 		err = cmdIdentity(ctx, os.Args[2:])
 	case "explain":
@@ -123,7 +136,11 @@ func cmdScan(ctx context.Context, args []string) error {
 	resume := fs.Bool("resume", false, "resume from the stored cursor instead of a full pass")
 	maxFiles := fs.Int("max-files", 0, "stop after N files (0 = no limit)")
 	cadence := fs.String("cadence", "", "how often this source is expected to be scanned, e.g. 7d or 12h")
+	egress := fs.String("egress", "device", "how far these observations may travel: device, facility, or connected-server")
 	fs.Parse(args)
+	if !bundle.ValidEgress(*egress) {
+		return fmt.Errorf("--egress %q: one of device, facility, connected-server", *egress)
+	}
 
 	if *root == "" {
 		return fmt.Errorf("--root is required")
@@ -186,7 +203,7 @@ func cmdScan(ctx context.Context, args []string) error {
 		Root:          *root,
 		SourceID:      sourceID,
 		ContentLevel:  *policy,
-		Egress:        "device",
+		Egress:        *egress,
 		PolicyVersion: "pol_dev_r1",
 		Cursor:        cursor,
 		MaxFiles:      *maxFiles,
@@ -214,7 +231,7 @@ func cmdScan(ctx context.Context, args []string) error {
 
 	// Deletion detection: anything known but not seen by a complete pass.
 	opts := localfolder.Options{Cursor: cursor, SourceID: sourceID,
-		ContentLevel: *policy, Egress: "device", PolicyVersion: "pol_dev_r1"}
+		ContentLevel: *policy, Egress: *egress, PolicyVersion: "pol_dev_r1"}
 	tomb := localfolder.Tombstones(res, opts, known)
 	res.Observations = append(res.Observations, tomb.Tombstones...)
 
@@ -454,11 +471,25 @@ func cmdStatus(ctx context.Context) error {
 		fmt.Println("sources      none registered")
 		return nil
 	}
+	srcs, err := s.Sources(ctx)
+	if err != nil {
+		return err
+	}
+	importedFrom := map[string]string{}
+	for _, r := range srcs {
+		importedFrom[r.SourceID] = r.ImportedFrom
+	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "\nSOURCE\tKIND\tLOCATION\tLAST PASS\tCOVERAGE\tDETAIL")
 	for _, p := range passes {
+		status, detail := passStatus(p), passDetail(p)
+		if from := importedFrom[p.SourceID]; from != "" && p.Status == "" {
+			// An imported source is never scanned here; its passes happened
+			// at the sender. Saying "never scanned" would read as neglect.
+			status, detail = "imported", "observations received from "+from+"; scanned there, not here"
+		}
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			p.SourceID, p.Kind, p.Location, passAge(p), passStatus(p), short(passDetail(p), 64))
+			p.SourceID, p.Kind, p.Location, passAge(p), status, short(detail, 64))
 	}
 	w.Flush()
 	return nil
