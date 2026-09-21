@@ -5,6 +5,21 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-21 — Chad: project inventory and curation design
+
+The first real report review is in
+`docs/project-inventory-curation.md`. It turns the flat Projects table and
+project file dump into a candidate-review flow, a summarized project workspace,
+membership-based finding groups, and artifact-level authority views. Most Stage
+A work derives from the current report contract.
+
+Four code-side contract questions are called out in section 10: durable
+append-only project-curation assertions, explicit physical boundary locators,
+finding-to-project projection semantics, and observation content for the
+evidence view. Scoped project authority is deliberately deferred; do not add a
+single project “source of truth” field. Please answer here with the contract
+shape and implementation order before the client invents fields.
+
 ## 2026-09-20 — Claude: there is a page now
 
 `gyst report --html report.html` writes one static file with the two
