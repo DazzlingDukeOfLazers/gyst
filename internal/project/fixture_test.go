@@ -105,7 +105,7 @@ func evidenceFromTree(t *testing.T, tree string) ([]ManifestEvidence, []MarkerEv
 func TestProjectsMatchFixtureExpectations(t *testing.T) {
 	inv, tree := loadFixture(t)
 	manifests, markers := evidenceFromTree(t, tree)
-	plan := ResolveProjects(manifests, markers)
+	plan := ResolveProjects(manifests, markers, nil)
 
 	// Marker projects are named in the fixture by folder, not by their
 	// derived id. Map ids to fixture names.

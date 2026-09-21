@@ -67,6 +67,8 @@ go build ./cmd/gyst
 ./gyst scan --root ~/path/to/a/project       # observe one of them
 ./gyst status                                # sources, passes, coverage
 ./gyst explain some-file.pdf                 # why Gyst believes what it believes
+./gyst review                                # which project candidates need your judgment
+./gyst assert project confirm <id> --by me --reason "..."   # record it; retractable
 ./gyst report --out report.json              # everything, as one document
 ./gyst report --html report.html             # the same, as a page to open
 ```

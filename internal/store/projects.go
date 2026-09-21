@@ -117,6 +117,7 @@ func (s *Store) InvalidManifests(ctx context.Context) ([]PresentFile, []string, 
 // ProjectRow mirrors the projects table.
 type ProjectRow struct {
 	ProjectID, Name, Description, Basis string
+	State                               string // declared | candidate | confirmed | ignored
 	SourceID, Locator                   string
 	Evidence                            []string
 	Confidence                          float64
@@ -145,9 +146,13 @@ func (s *Store) ReplaceProjects(ctx context.Context, projects []ProjectRow, memb
 	}
 	prows := make([][]any, 0, len(projects))
 	for _, p := range projects {
-		prows = append(prows, []any{p.ProjectID, p.Name, p.Description, p.Basis, p.SourceID, p.Locator, p.Evidence, p.Confidence, p.Explanation})
+		state := p.State
+		if state == "" {
+			state = "candidate"
+		}
+		prows = append(prows, []any{p.ProjectID, p.Name, p.Description, p.Basis, state, p.SourceID, p.Locator, p.Evidence, p.Confidence, p.Explanation})
 	}
-	if _, err := tx.insertRows(ctx, "projects", []string{"project_id", "name", "description", "basis", "source_id", "locator",
+	if _, err := tx.insertRows(ctx, "projects", []string{"project_id", "name", "description", "basis", "state", "source_id", "locator",
 		"evidence", "confidence", "explanation"}, prows, ""); err != nil {
 		return err
 	}
@@ -209,7 +214,7 @@ type ProjectSummary struct {
 // from three plain queries rather than JSON aggregates.
 func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) {
 	rows, err := s.db.query(ctx, `
-		SELECT project_id, name, description, basis, source_id, locator, evidence, confidence, explanation
+		SELECT project_id, name, description, basis, state, source_id, locator, evidence, confidence, explanation
 		FROM projects ORDER BY basis, name, project_id`)
 	if err != nil {
 		return nil, err
@@ -218,7 +223,7 @@ func (s *Store) ProjectSummaries(ctx context.Context) ([]ProjectSummary, error) 
 	index := map[string]int{}
 	for rows.Next() {
 		var p ProjectSummary
-		if err := rows.Scan(&p.ProjectID, &p.Name, &p.Description, &p.Basis, &p.SourceID, &p.Locator,
+		if err := rows.Scan(&p.ProjectID, &p.Name, &p.Description, &p.Basis, &p.State, &p.SourceID, &p.Locator,
 			jsl(&p.Evidence), &p.Confidence, &p.Explanation); err != nil {
 			rows.Close()
 			return nil, err

@@ -89,6 +89,9 @@ func load(ctx context.Context, s *store.Store) (Input, error) {
 		return in, err
 	}
 	for _, a := range asts {
+		if a.SubjectKind != "file" {
+			continue
+		}
 		in.Assertions = append(in.Assertions, Assertion{ID: a.AssertionID, Kind: a.Kind,
 			Subject: Key{a.SourceID, a.Locator}, ActorID: a.ActorID, Reason: a.Reason, Evidence: a.Evidence})
 	}
@@ -150,8 +153,8 @@ func List(ctx context.Context, s *store.Store, all bool) ([]Row, error) {
 	out := make([]Row, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, Row{
-			Assertion: Assertion{ID: r.AssertionID, Kind: r.Kind, Subject: Key{r.SourceID, r.Locator},
-				ActorID: r.ActorID, Reason: r.Reason, Evidence: r.Evidence},
+			Assertion: Assertion{ID: r.AssertionID, Kind: r.Kind, SubjectKind: r.SubjectKind, Subject: Key{r.SourceID, r.Locator},
+				Object: r.Object, Value: r.Value, ActorID: r.ActorID, Reason: r.Reason, Evidence: r.Evidence},
 			AssertedAt: r.AssertedAt, RetractedAt: r.RetractedAt, RetractedBy: r.RetractedBy, RetractReason: r.RetractReason,
 		})
 	}

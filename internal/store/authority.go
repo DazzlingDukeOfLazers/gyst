@@ -7,10 +7,15 @@ import (
 
 // AssertionRow mirrors the assertions table.
 type AssertionRow struct {
-	AssertionID   string
-	Kind          string
+	AssertionID string
+	Kind        string
+	// SubjectKind is "file" (SourceID and Locator name it) or "project"
+	// (Locator carries the project id, SourceID is empty).
+	SubjectKind   string
 	SourceID      string
 	Locator       string
+	Object        string
+	Value         string
 	ActorID       string
 	Reason        string
 	Evidence      []string
@@ -23,10 +28,13 @@ type AssertionRow struct {
 // InsertAssertion records a person's statement. Only the user actor kind
 // exists in this table; the check constraint enforces it.
 func (s *Store) InsertAssertion(ctx context.Context, a AssertionRow) error {
+	if a.SubjectKind == "" {
+		a.SubjectKind = "file"
+	}
 	_, err := s.db.exec(ctx, `
-		INSERT INTO assertions (assertion_id, kind, source_id, locator, actor_kind, actor_id, reason, evidence, asserted_at)
-		VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8)`,
-		a.AssertionID, a.Kind, a.SourceID, a.Locator, a.ActorID, a.Reason, a.Evidence, a.AssertedAt)
+		INSERT INTO assertions (assertion_id, kind, subject_kind, source_id, locator, object, value, actor_kind, actor_id, reason, evidence, asserted_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,'user',$8,$9,$10,$11)`,
+		a.AssertionID, a.Kind, a.SubjectKind, a.SourceID, a.Locator, a.Object, a.Value, a.ActorID, a.Reason, a.Evidence, a.AssertedAt)
 	return err
 }
 
@@ -43,7 +51,7 @@ func (s *Store) RetractAssertion(ctx context.Context, id, by, reason string) (bo
 // only active ones.
 func (s *Store) ListAssertions(ctx context.Context, all bool) ([]AssertionRow, error) {
 	rows, err := s.db.query(ctx, `
-		SELECT assertion_id, kind, source_id, locator, actor_id, reason, evidence,
+		SELECT assertion_id, kind, subject_kind, source_id, locator, object, value, actor_id, reason, evidence,
 		       asserted_at, retracted_at, retracted_by, retract_reason
 		FROM assertions WHERE $1 OR retracted_at IS NULL ORDER BY asserted_at`, all)
 	if err != nil {
@@ -53,7 +61,7 @@ func (s *Store) ListAssertions(ctx context.Context, all bool) ([]AssertionRow, e
 	var out []AssertionRow
 	for rows.Next() {
 		var r AssertionRow
-		if err := rows.Scan(&r.AssertionID, &r.Kind, &r.SourceID, &r.Locator, &r.ActorID, &r.Reason,
+		if err := rows.Scan(&r.AssertionID, &r.Kind, &r.SubjectKind, &r.SourceID, &r.Locator, &r.Object, &r.Value, &r.ActorID, &r.Reason,
 			jsl(&r.Evidence), ts(&r.AssertedAt), tsp(&r.RetractedAt), &r.RetractedBy, &r.RetractReason); err != nil {
 			return nil, err
 		}

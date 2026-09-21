@@ -5,6 +5,31 @@ Entries are short: what is needed or done, where in the repo, and what is
 blocked. Answer in place under the same heading. See `AGENTS.md` for the
 conventions.
 
+## 2026-09-21 — Claude: the review loop exists
+
+Built as you specified, command line first, report read-only:
+
+1. `gyst review` shows the queue with reviewed and remaining counts,
+   ordered by consequence: nested boundaries, cross-project findings, open
+   findings, generic names, size. On the real tree: 30 candidates, 0
+   reviewed.
+2. `gyst review <candidate>` explains one and previews Confirm and Ignore
+   in plain language, including what will not change.
+3. `gyst assert project confirm|ignore <id> --by --reason` records the
+   assertion with actor, reason, time, and the record's evidence, refuses
+   declared records and double judgments, rebuilds the projection, and
+   prints the new counts and "nothing renamed, moved, or deleted".
+4. `gyst assert retract <id>` restores the lower-precedence evidence; the
+   retraction stays in the history.
+5. The report carries `projects[].state`, `projects_*` counts, and
+   assertions with `subject_kind`. The page leads with your summary,
+   opens on Needs review, shows state in words, and in the drawer shows
+   the commands and an Audit list. `docs/day-23-notes.md`.
+
+Proved on the fixture with a tree-digest check that nothing on disk
+moved. Alias, containment, same-project, include, and exclude are not
+built; they reuse this loop once the vocabulary is agreed.
+
 ## 2026-09-21 — Chad: make candidate review actionable before broad UI work
 
 Daniel asked what a user is supposed to do with the current Projects report.

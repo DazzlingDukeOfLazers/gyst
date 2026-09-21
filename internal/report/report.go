@@ -63,9 +63,14 @@ type Boundary struct {
 // ones stay in the document: the history of what was asserted is part of
 // the evidence.
 type AssertionRecord struct {
-	AssertionID   string        `json:"assertion_id"`
-	Kind          string        `json:"kind"`
+	AssertionID string `json:"assertion_id"`
+	Kind        string `json:"kind"`
+	// SubjectKind is file or project. For a project, Subject.Locator is
+	// the project id and Subject.SourceID is empty.
+	SubjectKind   string        `json:"subject_kind"`
 	Subject       authority.Key `json:"subject"`
+	Object        string        `json:"object,omitempty"`
+	Value         string        `json:"value,omitempty"`
 	Actor         observe.Actor `json:"actor"`
 	Reason        string        `json:"reason"`
 	Evidence      []string      `json:"evidence"`
@@ -110,6 +115,11 @@ type Counts struct {
 	AuthorityLikely   int `json:"authority_likely"`
 	AuthorityMultiple int `json:"authority_multiple"`
 	AuthorityNone     int `json:"authority_none"`
+	// Review progress over project records.
+	ProjectsDeclared  int `json:"projects_declared"`
+	ProjectsCandidate int `json:"projects_candidate"`
+	ProjectsConfirmed int `json:"projects_confirmed"`
+	ProjectsIgnored   int `json:"projects_ignored"`
 }
 
 // Freshness states, as the design names them. Age and coverage are two
@@ -167,10 +177,13 @@ type Member struct {
 }
 
 type Project struct {
-	ProjectID   string   `json:"project_id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Basis       string   `json:"basis"`
+	ProjectID   string `json:"project_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Basis       string `json:"basis"`
+	// State is the review state: declared by a manifest, candidate from a
+	// marker awaiting judgment, confirmed or ignored by a person's assertion.
+	State       string   `json:"state"`
 	Confidence  float64  `json:"confidence"`
 	Explanation string   `json:"explanation"`
 	Evidence    []string `json:"evidence"`
@@ -334,7 +347,7 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 	doc.Assertions = make([]AssertionRecord, 0, len(asts))
 	for _, a := range asts {
 		doc.Assertions = append(doc.Assertions, AssertionRecord{
-			AssertionID: a.ID, Kind: a.Kind, Subject: a.Subject,
+			AssertionID: a.ID, Kind: a.Kind, SubjectKind: a.SubjectKind, Subject: a.Subject, Object: a.Object, Value: a.Value,
 			Actor: observe.Actor{Kind: "user", ID: a.ActorID}, Reason: a.Reason, Evidence: a.Evidence,
 			AssertedAt: a.AssertedAt, RetractedAt: a.RetractedAt, RetractedBy: a.RetractedBy, RetractReason: a.RetractReason,
 		})
@@ -359,6 +372,18 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 
 	c := &doc.Report.Counts
 	c.Sources, c.Projects, c.Artifacts, c.Relations = len(doc.Sources), len(doc.Projects), len(doc.Artifacts), len(doc.Relations)
+	for _, p := range doc.Projects {
+		switch p.State {
+		case "declared":
+			c.ProjectsDeclared++
+		case "confirmed":
+			c.ProjectsConfirmed++
+		case "ignored":
+			c.ProjectsIgnored++
+		default:
+			c.ProjectsCandidate++
+		}
+	}
 	for _, f := range doc.Files {
 		if f.Present {
 			c.FilesPresent++
@@ -631,7 +656,7 @@ func projects(ctx context.Context, s *store.Store) ([]Project, error) {
 	}
 	out := make([]Project, 0, len(rows))
 	for _, r := range rows {
-		p := Project{ProjectID: r.ProjectID, Name: r.Name, Description: r.Description, Basis: r.Basis,
+		p := Project{ProjectID: r.ProjectID, Name: r.Name, Description: r.Description, Basis: r.Basis, State: r.State,
 			Confidence: r.Confidence, Explanation: r.Explanation, Evidence: r.Evidence,
 			FileCount: r.FileCount, SourceIDs: r.SourceIDs, Members: []Member{},
 			Boundary: boundaryOf(r.Basis, r.SourceID, r.Locator)}
