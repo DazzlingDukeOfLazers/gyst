@@ -37,6 +37,46 @@ The screen must:
 This document extends the existing design record; it does not replace the
 Projects/Places model or the read-only and evidence requirements.
 
+### 1.1 The user's job
+
+The Projects screen is not primarily a catalogue to browse. Its first job is:
+
+> Help me turn machine-detected folders into a project map I trust, without
+> changing the files that were scanned.
+
+The first successful session is a review queue, not an open-ended dashboard:
+
+1. Gyst says how many project records were declared and how many still need a
+   person's judgment.
+2. The user opens the highest-consequence candidate and sees why it exists,
+   where its boundary is, what is folded, and what would change in the
+   projection.
+3. The user chooses **Confirm as project**, **Ignore as project**, or **Review
+   later**. Confirm and Ignore require a reason and create append-only,
+   retractable assertions. Review later changes no durable state.
+4. Gyst rebuilds the projection, returns the user to the queue, and shows the
+   remaining count. It explicitly says that no source file was renamed, moved,
+   or deleted.
+5. The user can inspect the recorded decision and retract it.
+
+This thin loop is the minimum actionable product. Alias, containment,
+same-project, member inclusion, and member exclusion may follow, but the product
+must not postpone every durable user action until after the report redesign.
+
+Until that loop exists, describe the HTML output as a **scan report** or
+**evidence review**, not a project inventory the user has organized. A static
+report can support discovery and preview the assertion that a command would
+record; it cannot claim that the review was completed.
+
+The next job is different:
+
+> Help me find the artifact I should edit, release, manufacture, document, or
+> hand off, and explain why it is the appropriate authority for that task.
+
+The current file-level authority contract can reveal ambiguity, but it does not
+yet complete this second job. Concern-scoped authority remains a research and
+modeling milestone; do not present an aggregate authority count as the answer.
+
 ## 2. What the first real scan taught
 
 The real scan contains about 81,000 files, 32 projected projects, and 1,412 open
@@ -130,6 +170,21 @@ report:
 
 [Review candidates] [Browse confirmed/declared] [View scan coverage]
 ```
+
+When durable assertions are available, the primary action and progress should
+be more explicit:
+
+```text
+We found 30 possible projects. Help Gyst identify what they are.
+
+0 reviewed · 30 remaining
+
+[Review first candidate] [Browse all records]
+```
+
+After the user records a decision, return to this queue, update the progress,
+and offer the next candidate. Do not make the user reconstruct the workflow by
+searching, opening arbitrary rows, and remembering which ones they already saw.
 
 Only show a number when the current report can calculate it honestly. For
 example, nested-boundary counts require an explicit or safely derivable boundary
@@ -556,41 +611,76 @@ substitute for an export preview.
 
 ## 14. Implementation sequence
 
-### Stage A — current contract, static report
+The ordering below is outcome-driven. Do not complete every presentational
+improvement before proving that one user judgment can travel through the full
+system. The first implementation milestone after basic legibility is a vertical
+slice for Confirm, Ignore, and Retract.
+
+### Stage A — current contract, honest static report
 
 1. Add the Projects scan summary.
 2. Replace numeric confidence column with declared/candidate language.
-3. Add sort, filter, grouping, and a Needs review view.
+3. Make Needs review the default view, show a remaining count, and order it by
+   expected consequence.
 4. Build indexes once and derive project composition, authority, and finding
    summaries.
 5. Replace project file dump with the overview order in section 6.
 6. Preserve selection when switching Projects and Places.
 7. Group findings using actual file memberships.
 8. Add keyboard and focus behavior, URL state, and print summary.
+9. Preview Confirm and Ignore in plain language, including what their projection
+   effect would be, while clearly identifying the report as read-only.
 
-### Stage B — contract additions
+Stage A succeeds when a person understands the queue and the consequence of a
+decision. It does not succeed merely because the flat table has more controls.
+
+### Stage B — minimum actionable review loop
 
 1. Expose explicit boundary locators.
-2. Define and implement project-curation assertions.
-3. Project finding-to-project relationships if client derivation is inadequate.
-4. Add visibility-filtered observation detail or a documented local evidence
+2. Implement the project assertion contract and projection support needed for
+   `project.confirm`, `project.ignore`, and retraction. Preserve actor, reason,
+   time, evidence, and the stable candidate identifier.
+3. Expose those three operations through the first available trusted write
+   boundary. A CLI is acceptable before an interactive application, provided
+   the report gives accurate next-step instructions and regeneration shows the
+   result.
+4. Rebuild or refresh the projection after an assertion and show the candidate
+   as confirmed or ignored, the updated remaining count, and the decision in an
+   Audit view.
+5. Project finding-to-project relationships rather than deriving them with a
+   first-path heuristic in the client.
+6. Add visibility-filtered observation detail or a documented local evidence
    query.
+7. Test the entire loop with one real candidate: unexplained candidate → reason
+   and evidence → consequence preview → Confirm or Ignore → changed projection
+   → Retract → restored lower-precedence result.
 
-### Stage C — interactive application
+Do not wait for alias, containment, merging, or arbitrary member overrides to
+complete this stage. They are extensions of the proven loop.
 
-1. Present assertion previews and persist them through ordinary application
-   services.
-2. Show assertion/retraction history in the project Audit view.
-3. Add saved local views.
+### Stage C — expanded curation and interactive application
+
+1. Add alias, containment, same-project, member inclusion, and member exclusion
+   through the same preview/assert/rebuild/audit/retract interaction.
+2. Allow the interactive UI to persist assertions through ordinary application
+   services; do not write directly from an exported HTML report.
+3. Add saved local views and resume the user's incomplete review queue.
 4. Validate concern-scoped authority language through field research before
    extending the model.
+5. Design the second task-oriented workflow: name a change, release, document,
+   manufacturing package, or handoff and locate the appropriate authority with
+   its supporting evidence.
 
 ## 15. Acceptance criteria
 
 The redesigned inventory is successful when:
 
+- a first-time user can answer “what am I supposed to do?” from the Projects
+  summary without opening a row;
 - a user immediately understands that marker rows are candidates, not confirmed
   organizational projects;
+- a user can complete the Confirm or Ignore loop, see the queue count change,
+  inspect the assertion, retract it, and verify that no source file changed;
 - two `godot` candidates are distinguishable without opening either drawer;
 - a user can isolate declared projects, suggestions, multi-source projects,
   nested boundaries, and projects with findings;
