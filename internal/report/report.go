@@ -14,12 +14,14 @@ package report
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/DazzlingDukeOfLazers/gyst/internal/authority"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/discover"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/findings"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/location"
+	"github.com/DazzlingDukeOfLazers/gyst/internal/manifest"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/observe"
 	"github.com/DazzlingDukeOfLazers/gyst/internal/store"
 )
@@ -27,14 +29,34 @@ import (
 const Schema = "gyst.report/0.1.0"
 
 type Document struct {
-	Report     Meta               `json:"report"`
-	Sources    []Source           `json:"sources"`
-	Projects   []Project          `json:"projects"`
-	Files      []File             `json:"files"`
-	Artifacts  []Artifact         `json:"artifacts"`
-	Relations  []Relation         `json:"relations"`
-	Findings   []findings.Finding `json:"findings"`
-	Assertions []AssertionRecord  `json:"assertions"`
+	Report     Meta              `json:"report"`
+	Sources    []Source          `json:"sources"`
+	Projects   []Project         `json:"projects"`
+	Files      []File            `json:"files"`
+	Artifacts  []Artifact        `json:"artifacts"`
+	Relations  []Relation        `json:"relations"`
+	Findings   []Finding         `json:"findings"`
+	Assertions []AssertionRecord `json:"assertions"`
+}
+
+// Finding is a finding in the v0 schema plus the projects its file
+// subjects belong to. Computed here, once, so no client has to derive it
+// from the first path segment of the first subject.
+type Finding struct {
+	findings.Finding
+	// Projects is the union of the memberships of the finding's file
+	// subjects. Subjects that are not files contribute nothing, so it may
+	// be empty.
+	Projects []string `json:"projects"`
+	// CrossProject is true when the subjects span more than one project.
+	CrossProject bool `json:"cross_project"`
+}
+
+// Boundary is the folder a project record rests on: the folder holding
+// the manifest, or the folder carrying the marker.
+type Boundary struct {
+	SourceID string `json:"source_id"`
+	Locator  string `json:"locator"` // "" is the source root
 }
 
 // AssertionRecord is a person's statement, active or retracted. Retracted
@@ -155,6 +177,12 @@ type Project struct {
 	Members     []Member `json:"members"`
 	FileCount   int      `json:"file_count"`
 	SourceIDs   []string `json:"source_ids"`
+	// Boundary is where the declaring evidence sits. PhysicallyWithin is
+	// the nearest other record in the same source whose boundary is a path
+	// prefix of this one: a fact about folders, not about organisation.
+	// Containment between projects is an assertion and a separate field.
+	Boundary         Boundary `json:"boundary"`
+	PhysicallyWithin *string  `json:"physically_within"`
 }
 
 type FileProject struct {
@@ -315,13 +343,17 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 	if err != nil {
 		return nil, err
 	}
-	doc.Findings = make([]findings.Finding, 0, len(rows))
+	doc.Findings = make([]Finding, 0, len(rows))
+	memberships := fileMemberships(doc.Files)
 	for _, r := range rows {
-		doc.Findings = append(doc.Findings, r.Finding)
+		f := Finding{Finding: r.Finding}
+		f.Projects, f.CrossProject = findingProjects(r.Finding, memberships)
+		doc.Findings = append(doc.Findings, f)
 		if r.Status == findings.StatusOpen || r.Status == findings.StatusAcknowledged {
 			doc.Report.Counts.FindingsOpen++
 		}
 	}
+	placeBoundaries(doc.Projects)
 
 	sortDocument(doc)
 
@@ -343,6 +375,99 @@ func Build(ctx context.Context, s *store.Store, now time.Time, version string) (
 	}
 	c.Observations = int(n)
 	return doc, nil
+}
+
+// fileMemberships indexes project ids by file key.
+func fileMemberships(files []File) map[string][]string {
+	out := make(map[string][]string, len(files))
+	for _, f := range files {
+		if len(f.Projects) == 0 {
+			continue
+		}
+		ids := make([]string, 0, len(f.Projects))
+		for _, p := range f.Projects {
+			ids = append(ids, p.ProjectID)
+		}
+		out[f.SourceID+"\x00"+f.Locator] = ids
+	}
+	return out
+}
+
+// findingProjects is the union of the memberships of a finding's file
+// subjects, sorted, and whether they span more than one project.
+func findingProjects(f findings.Finding, memberships map[string][]string) ([]string, bool) {
+	seen := map[string]bool{}
+	var out []string
+	for _, s := range f.Subjects {
+		if s.Kind != "file" {
+			continue
+		}
+		for _, id := range memberships[s.Location.SourceID+"\x00"+s.Location.Locator] {
+			if !seen[id] {
+				seen[id] = true
+				out = append(out, id)
+			}
+		}
+	}
+	if out == nil {
+		out = []string{}
+	}
+	sort.Strings(out)
+	return out, len(out) > 1
+}
+
+// boundaryOf is the folder a record rests on. A manifest project's locator
+// is the manifest file; a marker project's is the folder itself.
+func boundaryOf(basis, sourceID, locator string) Boundary {
+	switch basis {
+	case "manifest":
+		return Boundary{SourceID: sourceID, Locator: manifest.Dir(locator)}
+	default:
+		if locator == "." {
+			locator = ""
+		}
+		return Boundary{SourceID: sourceID, Locator: locator}
+	}
+}
+
+// placeBoundaries fills PhysicallyWithin for every project: the longest
+// other boundary in the same source that is a strict path prefix of this
+// one. A root boundary is a prefix of everything else in its source. Two
+// records on the same folder, a manifest and a marker say, are not within
+// each other.
+func placeBoundaries(projects []Project) {
+	for i := range projects {
+		p := &projects[i]
+		p.PhysicallyWithin = nil
+		best := -1
+		for j := range projects {
+			if j == i {
+				continue
+			}
+			q := &projects[j]
+			if q.Boundary.SourceID != p.Boundary.SourceID || !within(p.Boundary.Locator, q.Boundary.Locator) {
+				continue
+			}
+			if best < 0 || len(q.Boundary.Locator) > len(projects[best].Boundary.Locator) {
+				best = j
+			}
+		}
+		if best >= 0 {
+			id := projects[best].ProjectID
+			p.PhysicallyWithin = &id
+		}
+	}
+}
+
+// within reports whether folder inner is strictly inside folder outer.
+func within(inner, outer string) bool {
+	if inner == outer {
+		return false
+	}
+	if outer == "" {
+		return true
+	}
+	return strings.HasPrefix(inner, outer+"/")
 }
 
 // sortDocument puts every list in byte order in Go. Databases sort text by
@@ -508,7 +633,8 @@ func projects(ctx context.Context, s *store.Store) ([]Project, error) {
 	for _, r := range rows {
 		p := Project{ProjectID: r.ProjectID, Name: r.Name, Description: r.Description, Basis: r.Basis,
 			Confidence: r.Confidence, Explanation: r.Explanation, Evidence: r.Evidence,
-			FileCount: r.FileCount, SourceIDs: r.SourceIDs, Members: []Member{}}
+			FileCount: r.FileCount, SourceIDs: r.SourceIDs, Members: []Member{},
+			Boundary: boundaryOf(r.Basis, r.SourceID, r.Locator)}
 		for _, m := range r.Members {
 			p.Members = append(p.Members, Member{SourceID: m.SourceID, Pattern: m.Pattern, Basis: m.Basis,
 				Confidence: m.Confidence, Evidence: m.Evidence})
